@@ -147,6 +147,7 @@ tjson_lib = library(
     dependencies: deps,
     include_directories: inc_dirs,
     c_args: [compile_flags, internal_c_args],
+    install: true
 )
 
 tjson_dep = declare_dependency(
