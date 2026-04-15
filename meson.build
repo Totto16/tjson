@@ -15,10 +15,7 @@ project(
 )
 
 deps = []
-compile_flags = [
-    '-DPROGRAM_NAME=' + meson.project_name(),
-    '-DVERSION_STRING=' + meson.project_version(),
-]
+compile_flags = []
 
 deps += dependency(
     'libutf8proc',
@@ -50,6 +47,12 @@ deps += dependency(
     version: ['>=1.0.0', '<2'],
 )
 
+deps += dependency(
+    'tstr_builder',
+    allow_fallback: true,
+    version: ['>=1.0.0', '<2'],
+)
+
 cc = meson.get_compiler('c')
 
 deps += cc.find_library(
@@ -57,7 +60,7 @@ deps += cc.find_library(
     required: false,
 )
 
-internal_c_args = []
+internal_c_args = ['-D_TJSON_IMPL_INTERNAL__']
 
 
 internal_c_args += cc.get_supported_arguments(
