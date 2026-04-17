@@ -16,6 +16,7 @@ project(
 
 deps = []
 compile_flags = []
+public_deps = []
 
 deps += dependency(
     'libutf8proc',
@@ -139,22 +140,22 @@ inc_dirs = []
 
 subdir('src')
 
-deps += json_variants_dep
+public_deps += json_variants_dep
 
 tjson_lib = library(
     'tjson',
     src_files,
-    dependencies: deps,
+    dependencies: [deps, public_deps],
     include_directories: inc_dirs,
     c_args: [compile_flags, internal_c_args],
-    install: true
+    install: true,
 )
 
 tjson_dep = declare_dependency(
     link_with: tjson_lib,
     include_directories: inc_dirs,
     compile_args: [compile_flags],
-    dependencies: deps,
+    dependencies: public_deps,
     version: meson.project_version(),
 )
 
