@@ -1,7 +1,7 @@
 #include "./json.hpp"
 
-#include "./generic.hpp"
 #include "./cpp_types.hpp"
+#include "./generic.hpp"
 
 [[nodiscard]] bool operator==(const JsonValue& json_value1, const JsonValue& json_value2) {
 	const auto tag1 = get_current_tag_type_for_json_value(json_value1);
@@ -91,7 +91,12 @@ std::ostream& operator<<(std::ostream& os, const JsonValue& json_value) {
 }
 
 [[nodiscard]] bool operator==(const JsonNumber& json_number1, const JsonNumber& json_number2) {
+
+	// NOTE: here it is fine for us, to compare float values, as this is a strict equal!
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 	return json_number1.value == json_number2.value;
+#pragma GCC diagnostic pop
 }
 
 JsonStringCpp::JsonStringCpp(JsonString* value) : m_value{ value } {}
@@ -117,9 +122,10 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 
 	for(size_t i = 0; i < size1; ++i) {
 
-		const auto val1 = json_array_at(json_array1, i);
-		const auto val2 = json_array_at(json_array2, i);
+		const JsonValue* val1 = json_array_at(json_array1, i);
+		const JsonValue* val2 = json_array_at(json_array2, i);
 
+		//TODO
 		if(val1 != val2) {
 			return false;
 		}
@@ -225,7 +231,7 @@ JsonObjectCpp::JsonObjectCpp(JsonObject* value) : m_value{ value } {}
 }
 
 [[nodiscard]] JsonValue JsonValueCpp::array(std::initializer_list<JsonValue>&& values) {
-	JsonArray* const array = get_empty_json_array();
+	JsonArray* const array = json_array_get_empty();
 
 	if(array == nullptr) {
 		throw std::runtime_error("JSON array initialization failed");
@@ -244,7 +250,7 @@ JsonObjectCpp::JsonObjectCpp(JsonObject* value) : m_value{ value } {}
 
 [[nodiscard]] JsonValue
 JsonValueCpp::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
-	JsonObject* const object = get_empty_json_object();
+	JsonObject* const object = json_object_get_empty();
 
 	if(object == nullptr) {
 		throw std::runtime_error("JSON object initialization failed");
@@ -269,25 +275,26 @@ JsonValueCpp::object(std::initializer_list<std::pair<std::string, JsonValue>>&& 
 	return new_json_value_object(object);
 }
 
-JsonErrorCpp::JsonErrorCpp(std::string&& message, SourceLocation loc)
+JsonErrorCpp::JsonErrorCpp(std::string&& message, JsonSourceLocation loc)
     : m_message{ std::move(message) }, m_loc{ loc } {}
 
 JsonErrorCpp::JsonErrorCpp(const JsonError& value)
     : JsonErrorCpp{ string_from_tstr_static(value.message), value.loc } {}
 
 JsonErrorCpp JsonErrorCpp::with_no_loc(std::string&& value) {
-	return { std::move(value), make_null_source_location() };
+	return { std::move(value), json_source_location_get_null() };
 }
 
 JsonErrorCpp JsonErrorCpp::with_string_loc(std::string&& value, tstr_view data,
-                                           SourcePosition pos) {
-	const SourceLocation loc = { .source = new_json_source_string(JsonStringSource{ .data = data }),
-		                         .pos = pos };
+                                           JsonSourcePosition pos) {
+	const JsonSourceLocation loc = { .source =
+		                                 new_json_source_string(JsonStringSource{ .data = data }),
+		                             .pos = pos };
 	return { std::move(value), loc };
 }
 
-[[nodiscard]] static bool operator==(const SourcePosition& source_pos1,
-                                     const SourcePosition& source_pos2) {
+[[nodiscard]] static bool operator==(const JsonSourcePosition& source_pos1,
+                                     const JsonSourcePosition& source_pos2) {
 	if(source_pos1.col != source_pos2.col) {
 		return false;
 	}
@@ -319,8 +326,8 @@ JsonErrorCpp JsonErrorCpp::with_string_loc(std::string&& value, tstr_view data,
 	return *file_source1.file_path == *file_source2.file_path;
 }
 
-[[nodiscard]] static bool operator==(const SourceLocation& source_loc1,
-                                     const SourceLocation& source_loc2) {
+[[nodiscard]] static bool operator==(const JsonSourceLocation& source_loc1,
+                                     const JsonSourceLocation& source_loc2) {
 
 	if(source_loc1.pos != source_loc2.pos) {
 		return false;
@@ -379,7 +386,7 @@ JsonErrorCpp JsonErrorCpp::with_string_loc(std::string&& value, tstr_view data,
 
 std::ostream& operator<<(std::ostream& os, const JsonErrorCpp& json_error) {
 	os << json_error.m_message;
-	if(!is_null_source_location(json_error.m_loc)) {
+	if(!json_source_location_is_null(json_error.m_loc)) {
 		tstr src_loc = json_format_source_location(json_error.m_loc);
 		os << ": " << src_loc;
 		tstr_free(&src_loc);

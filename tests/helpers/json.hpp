@@ -99,16 +99,16 @@ struct JsonValueCpp {
 struct JsonErrorCpp {
   private:
 	std::string m_message;
-	SourceLocation m_loc;
+	JsonSourceLocation m_loc;
 
-	JsonErrorCpp(std::string&& message, SourceLocation loc);
+	JsonErrorCpp(std::string&& message, JsonSourceLocation loc);
 
   public:
 	explicit JsonErrorCpp(const JsonError& value);
 
 	static JsonErrorCpp with_no_loc(std::string&& value);
 
-	static JsonErrorCpp with_string_loc(std::string&& value, tstr_view data, SourcePosition pos);
+	static JsonErrorCpp with_string_loc(std::string&& value, tstr_view data, JsonSourcePosition pos);
 
 	[[nodiscard]] bool operator==(const JsonErrorCpp& json_error2) const;
 

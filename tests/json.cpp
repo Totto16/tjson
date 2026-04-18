@@ -60,7 +60,8 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		          JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
-		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2": true, "array": []}}})",
+		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
+		   true, "array": []}}})",
 		    .expected = JsonValueCpp::object(
 		        { { "key1", JsonValueCpp::string("hello") },
 		          { "key2", JsonValueCpp::null() },
@@ -110,31 +111,31 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		JsonParseTestCaseError{
 		    .input = "not_null xD",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not null", dummy_str_view, SourcePosition{ .line = 0, .col = 0 }) },
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 0 }) },
 		JsonParseTestCaseError{
 		    .input = "for_sure_not_false ",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not a boolean", dummy_str_view, SourcePosition{ .line = 0, .col = 0 }) },
+		        "not a boolean", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 0 }) },
 		JsonParseTestCaseError{
 		    .input = "trivially_not_true ",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not a boolean", dummy_str_view, SourcePosition{ .line = 0, .col = 0 }) },
+		        "not a boolean", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 0 }) },
 		JsonParseTestCaseError{
 		    .input = "  trivially_not_true ",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not a boolean", dummy_str_view, SourcePosition{ .line = 0, .col = 2 }) },
+		        "not a boolean", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 2 }) },
 		JsonParseTestCaseError{
 		    .input = "  \ntrivially_not_true ",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not a boolean", dummy_str_view, SourcePosition{ .line = 1, .col = 0 }) },
+		        "not a boolean", dummy_str_view, JsonSourcePosition{ .line = 1, .col = 0 }) },
 		JsonParseTestCaseError{
 		    .input = "\n  trivially_not_true ",
 		    .expected_error = JsonErrorCpp::with_string_loc(
-		        "not a boolean", dummy_str_view, SourcePosition{ .line = 1, .col = 2 }) },
+		        "not a boolean", dummy_str_view, JsonSourcePosition{ .line = 1, .col = 2 }) },
 		JsonParseTestCaseError{ .input = R"({"key1": 1, "key1": 2 })",
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "json object has duplicate key", dummy_str_view,
-		                            SourcePosition{ .line = 0, .col = 21 }) },
+		                            JsonSourcePosition{ .line = 0, .col = 21 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
@@ -160,24 +161,24 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 	SUBCASE("null source handling") {
 		[]() -> void {
-			const auto null_src = make_null_source_location();
+			const auto null_src = json_source_location_get_null();
 
-			REQUIRE_TRUE(is_null_source_location(null_src));
+			REQUIRE_TRUE(json_source_location_is_null(null_src));
 
 			const tstr_static nonnull_src_str = "nothing"_tstr_static;
 
 			const auto nonnull_src =
-			    SourceLocation{ .source = new_json_source_string(JsonStringSource{
-				                    .data = tstr_static_as_view(nonnull_src_str) }),
-				                .pos = SourcePosition{ .line = 0, .col = 0 } };
+			    JsonSourceLocation{ .source = new_json_source_string(JsonStringSource{
+				                        .data = tstr_static_as_view(nonnull_src_str) }),
+				                    .pos = JsonSourcePosition{ .line = 0, .col = 0 } };
 
-			REQUIRE_FALSE(is_null_source_location(nonnull_src));
+			REQUIRE_FALSE(json_source_location_is_null(nonnull_src));
 		}();
 	}
 
 	SUBCASE("object add entry") {
 		[]() -> void {
-			JsonObject* const object = get_empty_json_object();
+			JsonObject* const object = json_object_get_empty();
 
 			if(object == nullptr) {
 				throw std::runtime_error("JSON object initialization failed");
@@ -229,12 +230,10 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		JsonStringifyTest{ .expected = "null", .input = JsonValueCpp::null() },
 		JsonStringifyTest{ .expected = "true", .input = JsonValueCpp::boolean(true) },
 		JsonStringifyTest{ .expected = "false", .input = JsonValueCpp::boolean(false) },
-		// TODO: better format .000000, format it as int
-		JsonStringifyTest{ .expected = "100.000000", .input = JsonValueCpp::number((int64_t)100) },
-		JsonStringifyTest{ .expected = "-100.000000",
-		                   .input = JsonValueCpp::number((int64_t)-100) },
-		JsonStringifyTest{ .expected = "-100.010000", .input = JsonValueCpp::number(-100.01) },
-		JsonStringifyTest{ .expected = "100.430000", .input = JsonValueCpp::number(100.43) },
+		JsonStringifyTest{ .expected = "100", .input = JsonValueCpp::number((int64_t)100) },
+		JsonStringifyTest{ .expected = "-100", .input = JsonValueCpp::number((int64_t)-100) },
+		JsonStringifyTest{ .expected = "-100.01", .input = JsonValueCpp::number(-100.01) },
+		JsonStringifyTest{ .expected = "100.43", .input = JsonValueCpp::number(100.43) },
 		JsonStringifyTest{ .expected = R"("hello world")",
 		                   .input = JsonValueCpp::string("hello world") },
 		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t")",
@@ -242,7 +241,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		JsonStringifyTest{
 		    .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
 		    .input = JsonValueCpp::string("smiley: 🙃 is not escapable as it is U+1F643") },
-		JsonStringifyTest{ .expected = R"([null, 1.000000, 2.000000, true])",
+		JsonStringifyTest{ .expected = R"([null, 1, 2, true])",
 		                   .input = JsonValueCpp::array(
 		                       { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
 		                         JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
