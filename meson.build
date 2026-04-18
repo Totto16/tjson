@@ -39,7 +39,7 @@ deps += dependency(
     version: ['>=1.0.0', '<2'],
 )
 
-deps += dependency(
+public_deps += dependency(
     'tstr.h',
     allow_fallback: true,
     default_options: {
