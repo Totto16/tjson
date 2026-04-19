@@ -108,7 +108,8 @@ struct JsonErrorCpp {
 
 	static JsonErrorCpp with_no_loc(std::string&& value);
 
-	static JsonErrorCpp with_string_loc(std::string&& value, tstr_view data, JsonSourcePosition pos);
+	static JsonErrorCpp with_string_loc(std::string&& value, tstr_view data,
+	                                    JsonSourcePosition pos);
 
 	[[nodiscard]] bool operator==(const JsonErrorCpp& json_error2) const;
 

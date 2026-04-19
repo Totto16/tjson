@@ -125,8 +125,7 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 		const JsonValue* val1 = json_array_at(json_array1, i);
 		const JsonValue* val2 = json_array_at(json_array2, i);
 
-		//TODO
-		if(val1 != val2) {
+		if(*val1 != *val2) {
 			return false;
 		}
 	}
@@ -147,11 +146,11 @@ JsonObjectCpp::JsonObjectCpp(JsonObject* value) : m_value{ value } {}
 [[nodiscard]] static bool json_object_entry_value_eq(const JsonObjectEntry* const entry1,
                                                      const JsonObjectEntry* const entry2) {
 
-	const auto value1 = json_object_entry_get_value(entry1);
+	const JsonValue* const value1 = json_object_entry_get_value(entry1);
 
-	const auto value2 = json_object_entry_get_value(entry2);
+	const JsonValue* const value2 = json_object_entry_get_value(entry2);
 
-	return value1 == value2;
+	return *value1 == *value2;
 }
 
 [[nodiscard]] static bool json_object_eq_impl(const JsonObject* const json_object1,
