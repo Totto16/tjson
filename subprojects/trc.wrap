@@ -1,0 +1,8 @@
+[wrap-git]
+directory = trc
+url = https://github.com/Totto16/trc.git
+revision = b16f4a2c3d9fdb706107ad70c393caaec2fc03c1
+depth = 1
+
+[provide]
+dependency_names = trc
