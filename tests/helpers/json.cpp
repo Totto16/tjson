@@ -72,11 +72,11 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 [[nodiscard]] static bool json_object_entry_value_eq(const JsonObjectEntry* const entry1,
                                                      const JsonObjectEntry* const entry2) {
 
-	const JsonValue* const value1 = json_object_entry_get_value(entry1);
+	const JsonValue value1 = json_object_entry_get_value(entry1);
 
-	const JsonValue* const value2 = json_object_entry_get_value(entry2);
+	const JsonValue value2 = json_object_entry_get_value(entry2);
 
-	return JsonValueCpp{ value1 } == value2;
+	return value1 == value2;
 }
 
 [[nodiscard]] static bool json_object_eq_impl(const JsonObject* const json_object1,
@@ -102,11 +102,7 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 			break;
 		}
 
-		const auto* const key1 = json_object_entry_get_key(entry1);
-
-		assert(key1 != nullptr);
-
-		const JsonObjectEntry* entry2 = json_object_get_entry_by_key(json_object2, key1);
+		const JsonObjectEntry* entry2 = json_object_get_entry_by_other_entry(json_object2, entry1);
 
 		// the same key was not found
 		if(entry2 == nullptr) {
@@ -241,7 +237,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 		throw std::runtime_error("JSON string initialization failed");
 	}
 
-	return new_json_value_string(string);
+	return new_json_value_string_rc(string);
 }
 
 [[nodiscard]] JsonValue JsonValueCpp::array(std::initializer_list<JsonValue>&& values) {
@@ -259,7 +255,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 		}
 	}
 
-	return new_json_value_array(array);
+	return new_json_value_array_rc(array);
 }
 
 [[nodiscard]] JsonValue
@@ -286,7 +282,7 @@ JsonValueCpp::object(std::initializer_list<std::pair<std::string, JsonValue>>&& 
 		}
 	}
 
-	return new_json_value_object(object);
+	return new_json_value_object_rc(object);
 }
 
 JsonErrorCpp::JsonErrorCpp(std::string&& message, JsonSourceLocation loc)

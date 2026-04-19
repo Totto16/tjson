@@ -209,7 +209,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 				}
 			}
 
-			auto json_value = new_json_value_object(object);
+			auto json_value = new_json_value_object_rc(object);
 
 			auto expected_value = JsonValueCpp::object({
 			    { "key_null", JsonValueCpp::null() },
