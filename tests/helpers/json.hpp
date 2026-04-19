@@ -9,10 +9,6 @@
 #include <ostream>
 #include <ranges>
 
-[[nodiscard]] bool operator==(const JsonValue& json_value1, const JsonValue& json_value2);
-
-std::ostream& operator<<(std::ostream& os, const JsonValue& json_value);
-
 [[nodiscard]] bool operator==(const JsonBoolean& json_boolean1, const JsonBoolean& json_boolean2);
 
 [[nodiscard]] bool operator==(const JsonNumber& json_number1, const JsonNumber& json_number2);
@@ -60,12 +56,15 @@ struct JsonObjectEntryCpp {
 	int todo;
 };
 
+// TODO
+// static_assert(std::iterator_traits<JsonObjectEntryCpp>);
+
 struct JsonObjectCpp {
   private:
-	JsonObject* m_value;
+	const JsonObject* m_value;
 
   public:
-	explicit JsonObjectCpp(JsonObject* value);
+	explicit JsonObjectCpp(const JsonObject* value);
 
 	[[nodiscard]] bool operator==(const JsonObjectCpp& json_object2) const;
 
@@ -79,6 +78,17 @@ struct JsonObjectCpp {
 static_assert(std::ranges::range<JsonObjectCpp>);
 
 struct JsonValueCpp {
+  private:
+	const JsonValue* m_value;
+
+  public:
+	explicit JsonValueCpp(const JsonValue* value);
+
+	[[nodiscard]] bool operator==(const JsonValueCpp& json_value2) const;
+
+	[[nodiscard]] bool operator==(const JsonValue* json_value2) const;
+
+	// static helper fn's
 
 	[[nodiscard]] static JsonValue null();
 
@@ -94,7 +104,15 @@ struct JsonValueCpp {
 
 	[[nodiscard]] static JsonValue
 	object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
+
+	friend std::ostream& operator<<(std::ostream& os, const JsonValueCpp& json_error);
 };
+
+[[nodiscard]] bool operator==(const JsonValue& json_value1, const JsonValue& json_value2);
+
+std::ostream& operator<<(std::ostream& os, const JsonValueCpp& json_error);
+
+std::ostream& operator<<(std::ostream& os, const JsonValue& json_value);
 
 struct JsonErrorCpp {
   private:
