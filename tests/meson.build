@@ -41,7 +41,7 @@ test_inc_dirs = []
 
 test_deps += dependency(
     'doctest_patched',
-    version: ['>=2.4.12','<3'],
+    version: ['>=2.4.12', '<3'],
     fallback: ['doctest', 'doctest_dep'],
 )
 
@@ -55,17 +55,17 @@ test_deps += tjson_dep
 test_inc_dirs += include_directories('.')
 
 test_src += files(
-    'helpers/main.cpp',
-    'helpers/string_maker.hpp',
     'helpers/c_types.cpp',
     'helpers/c_types.hpp',
     'helpers/cpp_types.cpp',
     'helpers/cpp_types.hpp',
-    'helpers/json.cpp',
-    'helpers/json.hpp',
     'helpers/generic.cpp',
     'helpers/generic.hpp',
     'helpers/helpers.hpp',
+    'helpers/json.cpp',
+    'helpers/json.hpp',
+    'helpers/main.cpp',
+    'helpers/string_maker.hpp',
     'helpers/support.hpp',
 )
 
@@ -82,7 +82,7 @@ test_files_manual = [
     'json.cpp',
 ]
 
-workdir = meson.project_source_root() / 'tests'  / 'files'
+workdir = meson.project_source_root() / 'tests' / 'files'
 
 foreach test_file : test_files_manual
 
@@ -135,7 +135,7 @@ if get_option('b_coverage')
     # check if we have gcovr >= 8.4, as this is needed for the 'GCOVR_EXCL_BR_WITHOUT_HIT: x/y' feature
     gocvr = find_program(
         'gcovr',
-        version: ['>=8.4','<9'],
+        version: ['>=8.4', '<9'],
     )
 
     # GCOVR_EXCL_BR_SOURCE was added in gcovr 8.0, but requries gcc to have enough information, to use it! (it need branch to destination mapping (especially for switch cases), only gcc produces)
