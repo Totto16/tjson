@@ -39,8 +39,8 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 
 [[nodiscard]] static bool json_array_eq_impl(const JsonArray* const json_array1,
                                              const JsonArray* const json_array2) {
-	const size_t size1 = json_array_size(json_array1);
-	const size_t size2 = json_array_size(json_array2);
+	const size_t size1 = json_array_get_size(json_array1);
+	const size_t size2 = json_array_get_size(json_array2);
 
 	if(size1 != size2) {
 		return false;
@@ -48,8 +48,8 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 
 	for(size_t i = 0; i < size1; ++i) {
 
-		const JsonValue* val1 = json_array_at(json_array1, i);
-		const JsonValue* val2 = json_array_at(json_array2, i);
+		const JsonValue* val1 = json_array_get_at(json_array1, i);
+		const JsonValue* val2 = json_array_get_at(json_array2, i);
 
 		if(JsonValueCpp{ val1 } != val2) {
 			return false;
@@ -82,8 +82,8 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 [[nodiscard]] static bool json_object_eq_impl(const JsonObject* const json_object1,
                                               const JsonObject* const json_object2) {
 
-	const size_t size1 = json_object_count(json_object1);
-	const size_t size2 = json_object_count(json_object2);
+	const size_t size1 = json_object_get_count(json_object1);
+	const size_t size2 = json_object_get_count(json_object2);
 
 	if(size1 != size2) {
 		return false;
