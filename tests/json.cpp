@@ -46,6 +46,7 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
 		JsonParseTestCaseSuccess{ .input = "1.2e3",
 		                          .expected = JsonValueCpp::number((int64_t)1200) },
+		JsonParseTestCaseSuccess{ .input = "0", .expected = JsonValueCpp::number((int64_t)0) },
 		JsonParseTestCaseSuccess{ .input = "1.3E+3",
 		                          .expected = JsonValueCpp::number((int64_t)1300) },
 		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
@@ -200,6 +201,26 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "invalid continuation of values in array: expected ','",
 		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{ .input = R"(-)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number: <EOF> after '-'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-3151325312532575675757575757575775757575)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 22 }) },
+		JsonParseTestCaseError{ .input = R"(13124124512491246156139813265081326513205861320)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 21 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
