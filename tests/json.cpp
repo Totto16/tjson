@@ -136,6 +136,32 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "json object has duplicate key", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1,)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing member after 'value-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 11 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, ")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: <EOF> after '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 13 }) },
+		JsonParseTestCaseError{
+		    .input = R"({"key1")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object member: missing 'name-separator' after member name", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" -)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong name-separator: expected ':'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 8 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" :)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing value after 'name-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" : )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty value: expected value but got <EOF>", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 10 }) },
+
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
