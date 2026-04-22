@@ -221,6 +221,22 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "invalid number int part: value overflowed a 64 bit number!",
 		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"(1.)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number frac part: <EOF> after '.'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
