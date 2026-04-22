@@ -44,7 +44,10 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
 		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
 		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-1e2",
+		                          .expected = JsonValueCpp::number((int64_t)-100) },
 		JsonParseTestCaseSuccess{ .input = "1e20", .expected = JsonValueCpp::number(1e20) },
+		JsonParseTestCaseSuccess{ .input = "1E20", .expected = JsonValueCpp::number(1E20) },
 		JsonParseTestCaseSuccess{ .input = "1.2e3",
 		                          .expected = JsonValueCpp::number((int64_t)1200) },
 		JsonParseTestCaseSuccess{ .input = "0", .expected = JsonValueCpp::number((int64_t)0) },
@@ -55,16 +58,24 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		                          .expected = JsonValueCpp::number((int64_t)15000000000) },
 		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
 		                          .expected = JsonValueCpp::number(8.98846567431158e307) },
+		JsonParseTestCaseSuccess{ .input = "1e0", .expected = JsonValueCpp::number(1.0) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
 		                          .expected = JsonValueCpp::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
 		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
 		JsonParseTestCaseSuccess{ .input = R"({})", .expected = JsonValueCpp::object({}) },
 		JsonParseTestCaseSuccess{
-		    .input = R"([null,  	1,2,   true ])",
+		    .input = R"([null,  	1,-2,   true ])",
 		    .expected = JsonValueCpp::array(
 		        { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		          JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		          JsonValueCpp::number((int64_t)-2), JsonValueCpp::boolean(true) }) },
+		JsonParseTestCaseSuccess{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		    .expected = JsonValueCpp::array(
+		        { JsonValueCpp::number(1e10), JsonValueCpp::number(-2e10),
+		          JsonValueCpp::number(1e-10), JsonValueCpp::number(-2e-10),
+		          JsonValueCpp::number(-1.0), JsonValueCpp::number(1.0),
+		          JsonValueCpp::number(1.25e-10), JsonValueCpp::number(-2.25e-10) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
 		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
@@ -276,6 +287,11 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		    .expected_error = JsonErrorCpp::with_string_loc(
 		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
 		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1.1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
