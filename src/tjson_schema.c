@@ -296,7 +296,7 @@ json_schema_to_string_object_impl(const JsonSchemaObject* const object,
 
 	{ // complicated properties
 
-		if(json_array_size(required_arr) > 0) {
+		if(json_array_get_size(required_arr) > 0) {
 
 			tstr_static insert_result =
 			    json_object_add_entry_cstr(root, "required", new_json_value_array_rc(required_arr));
@@ -828,7 +828,7 @@ static void json_schema_object_destroy_impl(JsonSchemaObject* const json_schema_
 }
 
 TJSON_NODISCARD JsonSchemaObject* json_schema_object_get(const bool allow_additional_properties) {
-	JsonSchemaObject* const object = RC_MALLOC(JsonSchemaObject, json_schema_object_destroy_impl);
+	JsonSchemaObject* const object = RC_ALLOC(JsonSchemaObject, json_schema_object_destroy_impl);
 
 	if(object == NULL) {
 		return NULL;
@@ -905,7 +905,7 @@ static void json_schema_array_destroy_impl(JsonSchemaArray* const json_schema_ar
 
 TJSON_NODISCARD JsonSchemaArray* json_schema_array_get(const JsonSchema items,
                                                        const bool require_unique_items) {
-	JsonSchemaArray* const array = RC_MALLOC(JsonSchemaArray, json_schema_array_destroy_impl);
+	JsonSchemaArray* const array = RC_ALLOC(JsonSchemaArray, json_schema_array_destroy_impl);
 
 	if(array == NULL) {
 		return NULL;
@@ -965,7 +965,7 @@ static void json_schema_string_destroy_impl(JsonSchemaString* const json_schema_
 }
 
 TJSON_NODISCARD JsonSchemaString* json_schema_string_get(void) {
-	JsonSchemaString* const string = RC_MALLOC(JsonSchemaString, json_schema_string_destroy_impl);
+	JsonSchemaString* const string = RC_ALLOC(JsonSchemaString, json_schema_string_destroy_impl);
 
 	if(string == NULL) {
 		return NULL;
@@ -1029,7 +1029,7 @@ TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const st
 	const SimpleRegex regex = result.data.ok;
 
 	JsonSchemaRegex* const json_schema_regex =
-	    RC_MALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);
+	    RC_ALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);
 
 	if(json_schema_regex == NULL) {
 		return NULL;
@@ -1078,7 +1078,7 @@ static void json_schema_one_of_destroy_impl(JsonSchemaOneOf* const json_schema_o
 }
 
 TJSON_NODISCARD JsonSchemaOneOf* json_schema_one_of_get_empty(void) {
-	JsonSchemaOneOf* const one_of = RC_MALLOC(JsonSchemaOneOf, json_schema_one_of_destroy_impl);
+	JsonSchemaOneOf* const one_of = RC_ALLOC(JsonSchemaOneOf, json_schema_one_of_destroy_impl);
 
 	if(one_of == NULL) {
 		return NULL;
@@ -1111,7 +1111,7 @@ static void json_schema_literal_destroy_impl(JsonSchemaLiteral* const json_schem
 
 TJSON_NODISCARD static JsonSchemaLiteral* json_schema_literal_get_impl(tstr value) {
 	JsonSchemaLiteral* const literal =
-	    RC_MALLOC(JsonSchemaLiteral, json_schema_literal_destroy_impl);
+	    RC_ALLOC(JsonSchemaLiteral, json_schema_literal_destroy_impl);
 
 	if(literal == NULL) {
 		return NULL;
@@ -1169,6 +1169,7 @@ void free_json_schema(JsonSchema* const json_schema) {
 		VARIANT_CASE_END();
 		CASE_JSON_SCHEMA_IS_NULL() {}
 		break;
+		VARIANT_CASE_END();
 		CASE_JSON_SCHEMA_IS_ONE_OF_CONST(*json_schema) {
 			free_json_schema_one_of(one_of.one_of);
 		}
@@ -1179,13 +1180,489 @@ void free_json_schema(JsonSchema* const json_schema) {
 		}
 		break;
 		VARIANT_CASE_END();
-		VARIANT_CASE_END();
 		default: {
 			break;
 		}
 	}
 
 	*json_schema = new_json_schema_null();
+}
+
+#define FORMAT_TSTR(tstr_res, statement, format, ...) \
+	do { \
+		char* buf = NULL; \
+		FORMAT_STRING(&buf, statement, format, __VA_ARGS__); \
+		tstr_res = tstr_own_cstr(buf); \
+	} while(false)
+
+typedef struct {
+	const JsonObjectEntrySchema* schema_ptr;
+} JsonObjectSchemaCheckRequiredId;
+
+/* NOLINTBEGIN(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c) */
+// GCOVR_EXCL_START (external library)
+TMAP_DEFINE_AND_IMPLEMENT_MAP_TYPE(JsonObjectSchemaCheckRequiredId,
+                                   JsonObjectSchemaCheckRequiredIdName, bool,
+                                   JsonObjectSchemaCheckRequiredMapImpl)
+// GCOVR_EXCL_STOP
+/* NOLINTEND(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c) */
+
+TMAP_HASH_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredIdName) {
+	// hash ptrs
+	const intptr_t ptr = (intptr_t)key.schema_ptr;
+
+	return TMAP_HASH_SCALAR(ptr);
+}
+
+TMAP_EQ_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredIdName) {
+	// compare ptres
+	return key1.schema_ptr == key2.schema_ptr;
+}
+
+NODISCARD static tstr
+json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema_object,
+                                             const JsonObject* const value) {
+
+	TMAP_TYPENAME_MAP(JsonObjectSchemaCheckRequiredMapImpl)
+	required_map = TMAP_EMPTY(JsonObjectSchemaCheckRequiredMapImpl);
+
+#define FREE_AT_END() \
+	do { \
+		TMAP_FREE(JsonObjectSchemaCheckRequiredMapImpl, &(required_map)); \
+	} while(false)
+
+	{ // check all keys if they are allowed and check teh subschema
+
+		JsonObjectIter* iter = json_object_get_iterator(value);
+
+		while(true) {
+			const JsonObjectEntry* entry = json_object_iterator_next(iter);
+
+			if(entry == NULL) {
+				break;
+			}
+
+			const JsonString* const key = json_object_entry_get_key(entry);
+
+			if(key == NULL) {
+				FREE_AT_END();
+				return TSTR_LIT(
+				    "ERROR: JsonObject implementation error: get at known good entry failed");
+			}
+
+			tstr key_str = json_string_get_as_str(key);
+
+			if(tstr_is_null(&key_str)) {
+				FREE_AT_END();
+				return TSTR_LIT("ERROR: JsonString serialization error");
+			}
+
+			const JsonObjectEntrySchema* const schema_entry =
+			    TMAP_GET(JsonObjectEntryMapImpl, &(json_schema_object->map), key_str);
+
+			if(schema_entry == NULL) {
+
+				if(json_schema_object->allow_additional_properties) {
+					tstr_free(&key_str);
+					// this is allowed here, but we allow any value here
+					continue;
+				}
+
+				json_object_free_iterator(iter);
+
+				tstr error;
+				FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+				            , "object can't have additional properties: but got key '" TSTR_FMT "'",
+				            TSTR_FMT_ARGS(key_str));
+
+				tstr_free(&key_str);
+
+				FREE_AT_END();
+				return error;
+			}
+
+			const JsonValue sub_value = json_object_entry_get_value(entry);
+
+			tstr subschema_result = json_schema_validate_data(&(schema_entry->schema), &sub_value);
+
+			if(!tstr_is_null(&subschema_result)) {
+				FREE_AT_END();
+
+				// TODO: here we should add more details, that it was on an object with the key name
+				return subschema_result;
+			}
+
+			if(schema_entry->required) {
+				// add this to found required entries
+
+				const JsonObjectSchemaCheckRequiredId required_key = { .schema_ptr = schema_entry };
+
+				TmapInsertResult insert_result = TMAP_INSERT(
+				    JsonObjectSchemaCheckRequiredMapImpl, &required_map, required_key, true, false);
+
+				if(insert_result != TmapInsertResultOk) {
+					FREE_AT_END();
+					return TSTR_LIT("ERROR: Required tracking map impl error");
+				}
+			}
+		}
+
+		json_object_free_iterator(iter);
+	}
+
+	{ // check that all required values where found!
+
+		TMAP_TYPENAME_ITER(JsonObjectEntryMapImpl)
+		iter = TMAP_ITER_INIT(JsonObjectEntryMapImpl, &(json_schema_object->map));
+
+		TMAP_TYPENAME_ENTRY(JsonObjectEntryMapImpl) entry_value;
+
+		while(TMAP_ITER_NEXT(JsonObjectEntryMapImpl, &iter, &entry_value)) {
+
+			const tstr obj_key = entry_value.key;
+			const JsonObjectEntrySchema obj_value = entry_value.value;
+
+			if(obj_value.required) {
+
+				// NOTE: this is not optimal, as we query the map twice for the value, but we need
+				// the "stable" ptr to that entry, for comparison, as it is much faster than other
+				// means of comparing two entries by other means, as str comparison requires
+				// normalization of the JsonString value first
+				const JsonObjectEntrySchema* const schema_entry =
+				    TMAP_GET(JsonObjectEntryMapImpl, &(json_schema_object->map), obj_key);
+
+				if(schema_entry == NULL) {
+					FREE_AT_END();
+					return TSTR_LIT(
+					    "ERROR: JsonObject implementation error: get at known good entry failed");
+				}
+
+				const JsonObjectSchemaCheckRequiredId required_key = { .schema_ptr = schema_entry };
+
+				// check if we have encountered it
+				const bool* const required_entry =
+				    TMAP_GET(JsonObjectSchemaCheckRequiredMapImpl, &required_map, required_key);
+
+				if(required_entry == NULL) {
+					FREE_AT_END();
+
+					tstr error;
+					FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+					            , "object is missing required key '" TSTR_FMT "'",
+					            TSTR_FMT_ARGS(obj_key));
+
+					FREE_AT_END();
+
+					return error;
+				}
+			}
+		}
+	}
+
+	FREE_AT_END();
+
+	return tstr_null();
+}
+
+#undef FREE_AT_END
+
+NODISCARD static tstr
+json_schema_validate_object_schema_raw_impl(const JsonSchemaObject* json_schema_object,
+                                            const JsonValue* const value) {
+	IF_JSON_VALUE_IS_OBJECT_CONST(*value) {
+		return json_schema_validate_object_schema_data_impl(json_schema_object, object.obj);
+	}
+
+	return TSTR_LIT("JsonValue is not an object");
+}
+
+NODISCARD static tstr
+json_schema_validate_array_schema_data_impl(const JsonSchemaArray* json_schema_array,
+                                            const JsonArray* const value) {
+
+	const JsonSchemaArrayProperties array_props = json_schema_array->props;
+
+	if(HAS_FLAG(array_props.flags, JsonSchemaArrayPropertiesFlagsMin)) {
+
+		const size_t min_items = array_props.min_items;
+
+		const size_t size = json_array_get_size(value);
+
+		if(min_items < size) {
+			tstr error;
+			FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+			            , "array length (%zu) is smaller than the min length (%zu)", size,
+			            min_items);
+			return error;
+		}
+
+		// fall through to the next checks
+	}
+
+	if(HAS_FLAG(array_props.flags, JsonSchemaArrayPropertiesFlagsMax)) {
+
+		const size_t max_items = array_props.max_items;
+
+		const size_t size = json_array_get_size(value);
+
+		if(max_items > size) {
+			tstr error;
+			FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+			            , "array length (%zu) is larger than the max length (%zu)", size,
+			            max_items);
+			return error;
+		}
+
+		// fall through to the next checks
+	}
+
+	// TODO: require_unique_items is not checked yet!
+
+	const size_t array_size = json_array_get_size(value);
+
+	for(size_t i = 0; i < array_size; ++i) {
+
+		const JsonValue* const sub_value = json_array_get_at(value, i);
+
+		if(sub_value == NULL) {
+			return TSTR_LIT(
+			    "ERROR: JsonArray implementation error: get at known good index failed");
+		}
+
+		tstr subschema_result = json_schema_validate_data(&(json_schema_array->items), sub_value);
+
+		if(!tstr_is_null(&subschema_result)) {
+			// TODO: here we should add more details, that it was on an array at index i
+			return subschema_result;
+		}
+	}
+
+	return tstr_null();
+}
+
+NODISCARD static tstr
+json_schema_validate_array_schema_raw_impl(const JsonSchemaArray* json_schema_array,
+                                           const JsonValue* const value) {
+	IF_JSON_VALUE_IS_ARRAY_CONST(*value) {
+		return json_schema_validate_array_schema_data_impl(json_schema_array, array.arr);
+	}
+
+	return TSTR_LIT("JsonValue is not an array");
+}
+
+NODISCARD static tstr json_schema_validate_number_schema_raw_impl(const JsonValue* const value) {
+	IF_JSON_VALUE_IS_NUMBER_IGN(*value) {
+		return tstr_null();
+	}
+
+	return TSTR_LIT("JsonValue is not a number");
+}
+
+NODISCARD static tstr
+json_schema_validate_string_schema_data_impl(const JsonSchemaString* json_schema_string,
+                                             const JsonString* const value) {
+
+	const JsonSchemaStringProperties string_props = json_schema_string->props;
+
+	if(HAS_FLAG(string_props.flags, JsonSchemaStringPropertiesFlagsMin)) {
+
+		const size_t min_length = string_props.min_length;
+
+		const size_t size = json_string_get_size(value);
+
+		if(min_length < size) {
+			tstr error;
+			FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+			            , "string size (%zu) is smaller than the min size (%zu)", size, min_length);
+			return error;
+		}
+
+		// fall through to the next checks
+	}
+
+	if(HAS_FLAG(string_props.flags, JsonSchemaStringPropertiesFlagsMax)) {
+
+		const size_t max_length = string_props.max_length;
+
+		const size_t size = json_string_get_size(value);
+
+		if(max_length > size) {
+			tstr error;
+			FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+			            , "string size (%zu) is larger than the max size (%zu)", size, max_length);
+			return error;
+		}
+
+		// fall through to the next checks
+	}
+
+	if(HAS_FLAG(string_props.flags, JsonSchemaStringPropertiesFlagsPattern)) {
+
+		const JsonSchemaRegex* pattern = string_props.pattern;
+		assert(pattern != NULL);
+
+		tstr value_str = json_string_get_as_str(value);
+
+		if(tstr_is_null(&value_str)) {
+			return TSTR_LIT("ERROR: JsonString serialization error");
+		}
+
+		const bool matches = simple_regex_match(&(pattern->regex), &value_str);
+
+		if(!matches) {
+			tstr error;
+			FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+			            , "string '" TSTR_FMT "' doesn't match regex '" TSTR_FMT "'",
+			            TSTR_FMT_ARGS(value_str), TSTR_FMT_ARGS((pattern->original)));
+
+			tstr_free(&value_str);
+
+			return error;
+		}
+
+		tstr_free(&value_str);
+
+		// fall through to the next checks
+	}
+
+	return tstr_null();
+}
+
+NODISCARD static tstr
+json_schema_validate_string_schema_raw_impl(const JsonSchemaString* json_schema_string,
+                                            const JsonValue* const value) {
+	IF_JSON_VALUE_IS_STRING_CONST(*value) {
+		return json_schema_validate_string_schema_data_impl(json_schema_string, string);
+	}
+
+	return TSTR_LIT("JsonValue is not a string");
+}
+
+NODISCARD static tstr json_schema_validate_boolean_schema_raw_impl(const JsonValue* const value) {
+	IF_JSON_VALUE_IS_BOOLEAN_IGN(*value) {
+		return tstr_null();
+	}
+
+	return TSTR_LIT("JsonValue is not a boolean");
+}
+
+NODISCARD static tstr json_schema_validate_null_schema_raw_impl(const JsonValue* const value) {
+	IF_JSON_VALUE_IS_NULL(*value) {
+		return tstr_null();
+	}
+
+	return TSTR_LIT("JsonValue is not null");
+}
+
+// TODO(Totto): don't return a tstr, return a variant with a better error, with a JsonPath? or a
+// similar hierarchy of where the error occured, with  a ref(RC REF!!) of the jsonvalue and schema
+// which caused the error!
+
+NODISCARD static tstr
+json_schema_validate_one_of_schema_raw_impl(const JsonSchemaOneOf* json_schema_one_of,
+                                            const JsonValue* const value) {
+
+	// search for the first match
+	for(size_t i = 0; i < TVEC_LENGTH(JsonSchema, json_schema_one_of->values); ++i) {
+		const JsonSchema one_of_value = TVEC_AT(JsonSchema, (json_schema_one_of->values), i);
+
+		tstr subschema_result = json_schema_validate_data(&one_of_value, value);
+
+		if(tstr_is_null(&subschema_result)) {
+			return tstr_null();
+		}
+
+		tstr_free(&subschema_result);
+	}
+
+	// TODO(Totto): better error reporting
+	tstr error;
+	FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+	            ,
+	            "JsonValue doesn't match one of the subschemas (NO ADDITIONAL CONTEXT IS PRINTED "
+	            "ATM, ptr of the one_of_struct %p)",
+	            (const void*)json_schema_one_of);
+
+	return error;
+}
+
+NODISCARD static tstr
+json_schema_validate_literal_schema_data_impl(const JsonSchemaLiteral* json_schema_literal,
+                                              const JsonString* const value) {
+
+	tstr value_str = json_string_get_as_str(value);
+
+	if(tstr_is_null(&value_str)) {
+		return TSTR_LIT("ERROR: JsonString serialization error");
+	}
+
+	const bool matches = tstr_eq(&value_str, &(json_schema_literal->value));
+
+	if(!matches) {
+		tstr error;
+		FORMAT_TSTR(error, OOM_ASSERT(false, "error in formatting error string");
+		            , "string '" TSTR_FMT "' doesn't match literal '" TSTR_FMT "'",
+		            TSTR_FMT_ARGS(value_str), TSTR_FMT_ARGS((json_schema_literal->value)));
+
+		tstr_free(&value_str);
+
+		return error;
+	}
+
+	tstr_free(&value_str);
+
+	return tstr_null();
+}
+
+NODISCARD static tstr
+json_schema_validate_literal_schema_raw_impl(const JsonSchemaLiteral* json_schema_literal,
+                                             const JsonValue* const value) {
+	IF_JSON_VALUE_IS_STRING_CONST(*value) {
+		return json_schema_validate_literal_schema_data_impl(json_schema_literal, string);
+	}
+
+	return TSTR_LIT("JsonValue is not a string (literal)");
+}
+
+TJSON_NODISCARD tstr json_schema_validate_data(const JsonSchema* const schema,
+                                               const JsonValue* const value) {
+	SWITCH_JSON_SCHEMA(*schema) {
+		CASE_JSON_SCHEMA_IS_OBJECT_CONST(*schema) {
+			return json_schema_validate_object_schema_raw_impl(object.obj, value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_ARRAY_CONST(*schema) {
+			return json_schema_validate_array_schema_raw_impl(array.arr, value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_NUMBER() {
+			return json_schema_validate_number_schema_raw_impl(value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_STRING_CONST(*schema) {
+			return json_schema_validate_string_schema_raw_impl(string.str, value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_BOOLEAN() {
+			return json_schema_validate_boolean_schema_raw_impl(value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_NULL() {
+			return json_schema_validate_null_schema_raw_impl(value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_ONE_OF_CONST(*schema) {
+			return json_schema_validate_one_of_schema_raw_impl(one_of.one_of, value);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_LITERAL_MUT(*schema) {
+			return json_schema_validate_literal_schema_raw_impl(literal.lit, value);
+		}
+		VARIANT_CASE_END();
+		default: {
+			return TSTR_LIT("Unknown schema passed");
+		}
+	}
 }
 
 TJSON_NODISCARD JsonSchemaObject*

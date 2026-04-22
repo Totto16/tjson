@@ -18,6 +18,19 @@ deps = []
 compile_flags = []
 public_deps = []
 
+allocators_used = ''
+internal_c_args = []
+src_files = []
+inc_dirs = []
+
+
+if get_option('tests') and get_option('b_coverage')
+    allocators_used = 'tjson_coverage_allocators'
+    internal_c_args += '-DTJSON_ALLOCATOR_PREFIX=tjson_coverage_allocator'
+    subdir('src/_impl/allocators')
+endif
+
+# allocators are not used, as this takes in buffers and never creates or frees them
 deps += dependency(
     'libutf8proc',
     allow_fallback: true,
@@ -27,18 +40,22 @@ deps += dependency(
     version: ['>=2.0.0', '<3'],
 )
 
+# allocators are defined, as this is a header only library
 deps += dependency(
     'tvec.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
 )
 
+# allocators are defined, as this is a header only library
+# the lib only includes some helper function for hashes
 deps += dependency(
     'tmap.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
 )
 
+#note: this lib is compiled, so it hasn't custom allocators, so we can't test against that, but that is no problem, as this lib has a custom type for json strings and therefore no testing is needed atm
 public_deps += dependency(
     'tstr.h',
     allow_fallback: true,
@@ -48,12 +65,14 @@ public_deps += dependency(
     version: ['>=1.0.0', '<2'],
 )
 
+#note: this lib is compiled, so it hasn't custom allocators, except for the public macros, that allow dynamic formatting into the buffer, but atm we dobn#t test that
 deps += dependency(
     'tstr_builder',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
 )
 
+# allocators are defined, as this is a header only library
 deps += dependency(
     'trc',
     allow_fallback: true,
@@ -67,7 +86,7 @@ deps += cc.find_library(
     required: false,
 )
 
-internal_c_args = ['-D_TJSON_IMPL_INTERNAL__']
+internal_c_args += ['-D_TJSON_IMPL_INTERNAL__', '-D__IMPL_TJSON_COMPILE_LIB__INTERNAL']
 
 
 internal_c_args += cc.get_supported_arguments(
@@ -144,9 +163,6 @@ if cc.get_id() == 'gcc'
 
 endif
 
-
-src_files = []
-inc_dirs = []
 
 subdir('src')
 

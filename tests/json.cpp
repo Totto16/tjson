@@ -1,7 +1,8 @@
 #include <doctest.h>
 
-#include "./helpers/generic.hpp"
 #include "./helpers/helpers.hpp"
+
+#include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
 
 #include <tjson.h>
@@ -44,20 +45,41 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
 		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
 		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-1e2",
+		                          .expected = JsonValueCpp::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "1e20", .expected = JsonValueCpp::number(1e20) },
+		JsonParseTestCaseSuccess{ .input = "1E20", .expected = JsonValueCpp::number(1E20) },
 		JsonParseTestCaseSuccess{ .input = "1.2e3",
 		                          .expected = JsonValueCpp::number((int64_t)1200) },
+		JsonParseTestCaseSuccess{ .input = "0", .expected = JsonValueCpp::number((int64_t)0) },
 		JsonParseTestCaseSuccess{ .input = "1.3E+3",
 		                          .expected = JsonValueCpp::number((int64_t)1300) },
 		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "1.5E10",
+		                          .expected = JsonValueCpp::number((int64_t)15000000000) },
+		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
+		                          .expected = JsonValueCpp::number(8.98846567431158e307) },
+		JsonParseTestCaseSuccess{ .input = "1e0", .expected = JsonValueCpp::number(1.0) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
 		                          .expected = JsonValueCpp::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
 		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		                          .expected =
+		                              JsonValueCpp::string("escape chars \\/\b\r::\x10\n\n") },
+		JsonParseTestCaseSuccess{ .input = R"({})", .expected = JsonValueCpp::object({}) },
 		JsonParseTestCaseSuccess{
-		    .input = R"([null,  	1,2,   true ])",
+		    .input = R"([null,  	1,-2,   true ])",
 		    .expected = JsonValueCpp::array(
 		        { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		          JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		          JsonValueCpp::number((int64_t)-2), JsonValueCpp::boolean(true) }) },
+		JsonParseTestCaseSuccess{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		    .expected = JsonValueCpp::array(
+		        { JsonValueCpp::number(1e10), JsonValueCpp::number(-2e10),
+		          JsonValueCpp::number(1e-10), JsonValueCpp::number(-2e-10),
+		          JsonValueCpp::number(-1.0), JsonValueCpp::number(1.0),
+		          JsonValueCpp::number(1.25e-10), JsonValueCpp::number(-2.25e-10) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
 		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
@@ -136,6 +158,202 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "json object has duplicate key", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1,)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing member after 'value-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 11 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, ")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: <EOF> after '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 13 }) },
+		JsonParseTestCaseError{
+		    .input = R"({"key1")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object member: missing 'name-separator' after member name", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" -)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong name-separator: expected ':'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 8 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" :)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing value after 'name-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" : )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty value: expected value but got <EOF>", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 10 }) },
+		JsonParseTestCaseError{
+		    .input = R"({)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object: missing 'member' or 'end-object' after 'begin-object'",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object: missing 'member' or 'end-object'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 14 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of member in object: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{
+		    .input = R"([)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array: missing 'value' or 'end-array' after 'begin-array'", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array value", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"([null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty array: missing 'value' or 'end-array'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 5 }) },
+		JsonParseTestCaseError{ .input = R"([null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of values in array: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{ .input = R"(-)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number: <EOF> after '-'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-3151325312532575675757575757575775757575)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 22 }) },
+		JsonParseTestCaseError{ .input = R"(13124124512491246156139813265081326513205861320)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"(1.)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number frac part: <EOF> after '.'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: <EOF> after 'e'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e+)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: no values after 'e' and optional sign",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1eA)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e1A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1.1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x80\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, -})",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong quotation-mark: expected '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 12 }) },
+		JsonParseTestCaseError{ .input = R"({"ke)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: expected '\"' or string-char but got <EOF>",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 4 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8 (underflows 0): \xFF\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 30 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x10\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string char: range [0, 0x20)", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 16 }) },
+		JsonParseTestCaseError{ .input = R"("\)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string escape sequence", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"("\u")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: unicode escape is missing "
+		                            "values, it requires at least 4 chars after it",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"("\o")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: not a recognized escape char",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\u#000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uZ000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uz000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(#)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
+		JsonParseTestCaseError{
+		    .input = R"(z)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
@@ -220,6 +438,31 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			CAutoFreePtr<JsonValue> defer2 = { &expected_value, free_json_value };
 
 			REQUIRE_EQ(json_value, expected_value);
+		}();
+	}
+
+	SUBCASE("json_object_add_entry_dup frees memory correctly") {
+		[]() -> void {
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			JsonString* key_string = json_get_string_from_cstr("key1");
+
+			auto res1 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_TRUE(tstr_static_is_null(res1));
+
+			auto res2 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_FALSE(tstr_static_is_null(res2));
+
+			std::string actual_error = string_from_tstr_static(res2);
+
+			std::string expected_error = "json object has duplicate key";
+
+			REQUIRE_EQ(expected_error, actual_error);
 		}();
 	}
 }
