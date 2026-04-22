@@ -63,6 +63,9 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		                          .expected = JsonValueCpp::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
 		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		                          .expected =
+		                              JsonValueCpp::string("escape chars \\/\b\r::\x10\n\n") },
 		JsonParseTestCaseSuccess{ .input = R"({})", .expected = JsonValueCpp::object({}) },
 		JsonParseTestCaseSuccess{
 		    .input = R"([null,  	1,-2,   true ])",
@@ -296,6 +299,50 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "Invalid UTF-8 string", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, -})",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong quotation-mark: expected '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 12 }) },
+		JsonParseTestCaseError{ .input = R"({"ke)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: expected '\"' or string-char but got <EOF>",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 4 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8 (underflows 0): \xFF\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 30 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x10\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string char: range [0, 0x20)", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 16 }) },
+		JsonParseTestCaseError{ .input = R"("\)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string escape sequence", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"("\u")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: unicode escape is missing "
+		                            "values, it requires at least 4 chars after it",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"("\o")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: not a recognized escape char",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\u#000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uZ000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uz000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
