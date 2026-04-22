@@ -45,9 +45,6 @@ deps += dependency(
     'tvec.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
-    default_options: {
-        'static_string_modification_behavior': 'error',
-    },
 )
 
 # allocators are defined, as this is a header only library
@@ -63,6 +60,7 @@ public_deps += dependency(
     allow_fallback: true,
     default_options: {
         'use_allocators': 'allocators_used',
+        'static_string_modification_behavior': 'error',
     },
     version: ['>=1.0.0', '<2'],
 )
