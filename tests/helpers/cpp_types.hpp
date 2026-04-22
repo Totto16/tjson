@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tjson.h>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -95,10 +97,6 @@ template <typename T>
 
 	return false;
 }
-
-// to have all generated error variant types
-
-#include <tjson.h>
 
 // END
 

@@ -39,6 +39,7 @@ test_inc_dirs = []
 # and https://github.com/doctest/doctest/pull/901
 # for the reason, why this is needed  like this
 
+# don't mess with allocators, as this is test code, it should just use the default ones
 test_deps += dependency(
     'doctest_patched',
     version: ['>=2.4.12', '<3'],
@@ -78,9 +79,25 @@ test_cpp_args = [
 
 test_cpp_args += internal_cpp_args
 
+
 test_files_manual = [
     'json.cpp',
 ]
+
+if get_option('b_coverage')
+
+
+    if allocators_used != 'tjson_coverage_allocators'
+        error('need custom allocators for the json oom test')
+    endif
+
+    test_files_manual += 'json_oom.cpp'
+    test_src += files(
+        'helpers/allocators.cpp',
+        'helpers/allocators.hpp',
+    )
+
+endif
 
 workdir = meson.project_source_root() / 'tests' / 'files'
 

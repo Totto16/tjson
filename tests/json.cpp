@@ -1,7 +1,8 @@
 #include <doctest.h>
 
-#include "./helpers/generic.hpp"
 #include "./helpers/helpers.hpp"
+
+#include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
 
 #include <tjson.h>
