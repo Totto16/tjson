@@ -53,7 +53,7 @@ jobs:
             - name: Install dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install ninja-build wget ca-certificates pipx -y --no-install-recommends
+                  sudo apt-get install ninja-build wget ca-certificates pipx valgrind -y --no-install-recommends
 
             # NOTE: the repos hav 7.0 but we need >= 8.4, so we install gcovr with pipx (it has to much dependencies for a raw install with --break-system-packages)
             # also install the newest version of ValgrindCI
