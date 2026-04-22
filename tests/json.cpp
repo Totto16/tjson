@@ -343,6 +343,16 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		    .expected_error = JsonErrorCpp::with_string_loc(
 		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
 		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(#)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
+		JsonParseTestCaseError{
+		    .input = R"(z)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
