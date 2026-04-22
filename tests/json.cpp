@@ -292,6 +292,10 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		    .expected_error = JsonErrorCpp::with_string_loc(
 		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
 		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x80\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 15 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
