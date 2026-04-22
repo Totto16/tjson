@@ -133,6 +133,54 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			REQUIRE_EQ(actual_error, expected_error);
 		}();
 	}
+
+	SUBCASE("parsing: object entry (tstr) add manual fails") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			tstr key = TSTR_LIT("key1");
+
+			const bool mock_res = mock_allocator.malloc().always_fail();
+			REQUIRE_TRUE(mock_res);
+
+			auto res1 = json_object_add_entry_tstr(object, &key, new_json_value_null());
+
+			std::string actual_error = string_from_tstr_static(res1);
+
+			std::string expected_error =
+			    "Internal OOM error: string allocation failed while adding an object entry by tstr";
+
+			REQUIRE_EQ(expected_error, actual_error);
+		}();
+	}
+
+	SUBCASE("parsing: object entry (cstr) add manual fails") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			const bool mock_res = mock_allocator.malloc().always_fail();
+			REQUIRE_TRUE(mock_res);
+
+			auto res1 = json_object_add_entry_cstr(object, "key1", new_json_value_null());
+
+			std::string actual_error = string_from_tstr_static(res1);
+
+			std::string expected_error =
+			    "Internal OOM error: string allocation failed while adding an object entry by cstr";
+
+			REQUIRE_EQ(expected_error, actual_error);
+		}();
+	}
 }
 
 TEST_SUITE_END();
