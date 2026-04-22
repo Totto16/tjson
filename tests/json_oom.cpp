@@ -16,9 +16,9 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 	SUBCASE("first alloc fails") {
 		[]() -> void {
-			auto& mock_allocator = mock::CMockAllocator::instantiate();
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
 
-			const bool mock_res = mock_allocator->malloc().always_fail();
+			const bool mock_res = mock_allocator.malloc().always_fail();
 			REQUIRE_TRUE(mock_res);
 
 			std::string json_str = "\"hello\"";
