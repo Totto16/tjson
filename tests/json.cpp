@@ -53,6 +53,7 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		                          .expected = JsonValueCpp::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
 		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		JsonParseTestCaseSuccess{ .input = R"({})", .expected = JsonValueCpp::object({}) },
 		JsonParseTestCaseSuccess{
 		    .input = R"([null,  	1,2,   true ])",
 		    .expected = JsonValueCpp::array(
@@ -161,7 +162,19 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "empty value: expected value but got <EOF>", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 10 }) },
-
+		JsonParseTestCaseError{
+		    .input = R"({)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object: missing 'member' or 'end-object' after 'begin-object'",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object: missing 'member' or 'end-object'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 14 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of member in object: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 15 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
