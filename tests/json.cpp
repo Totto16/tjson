@@ -301,6 +301,34 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 	}
 }
 
+TEST_CASE("manual json test cases <json_manual>") {
+
+	SUBCASE("json_object_add_entry_dup frees memory correctly") {
+		[]() -> void {
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			JsonString* key_string = json_get_string_from_cstr("key1");
+
+			auto res1 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_TRUE(tstr_static_is_null(res1));
+
+			auto res2 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_FALSE(tstr_static_is_null(res2));
+
+			std::string actual_error = string_from_tstr_static(res2);
+
+			std::string expected_error = "json object has duplicate key";
+
+			REQUIRE_EQ(expected_error, actual_error);
+		}();
+	}
+}
+
 // TODO: compare with nhlohmann json!
 
 TEST_SUITE_END();
