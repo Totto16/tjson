@@ -1,7 +1,7 @@
 [wrap-git]
 directory = trc
 url = https://github.com/Totto16/trc.git
-revision = 07901470b42f00e415f15d9985b524d2a5aa3b00
+revision = 8237ae5f74dd57da89cb8c2a05d4b08a826de858
 depth = 1
 
 [provide]
