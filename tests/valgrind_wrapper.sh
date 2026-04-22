@@ -7,7 +7,7 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-ROOT_DIR="$(realpath "$0/../..")"
+ROOT_DIR="$(dirname "$(dirname "$0")")"
 
 EXECUTABLE="$1"
 
