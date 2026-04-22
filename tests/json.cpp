@@ -175,6 +175,31 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "invalid continuation of member in object: expected ','",
 		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{
+		    .input = R"([)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array: missing 'value' or 'end-array' after 'begin-array'", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array value", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"([null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty array: missing 'value' or 'end-array'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 5 }) },
+		JsonParseTestCaseError{ .input = R"([null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of values in array: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
