@@ -16,7 +16,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 	SUBCASE("first alloc fails") {
 		[]() -> void {
-			const auto& mock_allocator = mock::CMockAllocator::instantiate();
+			auto& mock_allocator = mock::CMockAllocator::instantiate();
 
 			const bool mock_res = mock_allocator->malloc().always_fail();
 			REQUIRE_TRUE(mock_res);
@@ -37,7 +37,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			// just here as a dummy tstr_view
 			const auto dummy_str_view = tstr_view_from("__dummy_str_view__impl__");
 			auto expected_error = JsonErrorCpp::with_string_loc(
-			    "OOM", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 0 });
+			    "Internal OOM error", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 });
 
 			REQUIRE_EQ(actual_error, expected_error);
 		}();
