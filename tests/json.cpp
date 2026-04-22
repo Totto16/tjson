@@ -44,12 +44,17 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
 		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
 		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "1e20", .expected = JsonValueCpp::number(1e20) },
 		JsonParseTestCaseSuccess{ .input = "1.2e3",
 		                          .expected = JsonValueCpp::number((int64_t)1200) },
 		JsonParseTestCaseSuccess{ .input = "0", .expected = JsonValueCpp::number((int64_t)0) },
 		JsonParseTestCaseSuccess{ .input = "1.3E+3",
 		                          .expected = JsonValueCpp::number((int64_t)1300) },
 		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "1.5E10",
+		                          .expected = JsonValueCpp::number((int64_t)15000000000) },
+		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
+		                          .expected = JsonValueCpp::number(8.98846567431158e307) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
 		                          .expected = JsonValueCpp::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
@@ -237,6 +242,40 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: <EOF> after 'e'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e+)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: no values after 'e' and optional sign",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1eA)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e1A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 7 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
