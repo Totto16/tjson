@@ -55,23 +55,21 @@ deps += dependency(
     version: ['>=1.0.0', '<2'],
 )
 
+#note: this lib is compiled, so it hasn't custom allocators, so we can't test against that, but that is no problem, as this lib has a custom type for json strings and therefore no testing is needed atm
 public_deps += dependency(
     'tstr.h',
     allow_fallback: true,
     default_options: {
-        'use_allocators': 'allocators_used',
         'static_string_modification_behavior': 'error',
     },
     version: ['>=1.0.0', '<2'],
 )
 
+#note: this lib is compiled, so it hasn't custom allocators, except for the public macros, that allow dynamic formatting into the buffer, but atm we dobn#t test that
 deps += dependency(
     'tstr_builder',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
-    default_options: {
-        'use_allocators': 'allocators_used',
-    },
 )
 
 # allocators are defined, as this is a header only library
