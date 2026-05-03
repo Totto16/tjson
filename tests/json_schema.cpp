@@ -161,6 +161,29 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                                              .result = std::nullopt },
 
 		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::one_of({
+		        json_schema::null(),
+		        json_schema::number(),
+		        json_schema::string().nonempty().get(),
+		    }),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue doesn't match one of the 3 subschemas" },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("Hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string(""),
+		                .result = "JsonValue doesn't match one of the 3 subschemas" },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::number(1.0),
+		                                              .result = std::nullopt },
+
+		        },
 		}
 	};
 
