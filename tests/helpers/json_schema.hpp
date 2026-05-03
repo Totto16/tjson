@@ -62,6 +62,9 @@ template <typename T> struct JsonSchemaBuilderGeneric {
 	[[nodiscard]] JsonSchemaCpp get() {
 		JsonSchema schema = this->to_schema(this->m_value);
 		this->m_value = nullptr;
+		// call eventual parent destructors, as they might have some things to free too, the
+		// deconstructor for this class doesn't do anything, as m_value is NULL
+		this->~JsonSchemaBuilderGeneric();
 		return JsonSchemaCpp{ std::move(schema) };
 	}
 
