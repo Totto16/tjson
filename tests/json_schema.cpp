@@ -79,7 +79,7 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                                              .result = std::nullopt },
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = JsonValueCpp::string(""),
-		                .result = "string size (0) is smaller than the min size (1) TODO" },
+		                .result = "string size (0) is smaller than the min size (1)" },
 		        },
 
 		}

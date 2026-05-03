@@ -73,6 +73,26 @@ JsonSchemaArrayBuilder::JsonSchemaArrayBuilder(const JsonSchemaCpp& items,
 	return new_json_schema_array_rc(value);
 }
 
+[[nodiscard]] JsonSchemaArrayBuilder& JsonSchemaArrayBuilder::min(size_t value) {
+	const auto result = json_schema_array_set_min(this->value(), value);
+
+	if(!tstr_static_is_null(result)) {
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
+[[nodiscard]] JsonSchemaArrayBuilder& JsonSchemaArrayBuilder::max(size_t value) {
+	const auto result = json_schema_array_set_max(this->value(), value);
+
+	if(!tstr_static_is_null(result)) {
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
 [[nodiscard]] JsonSchemaStringBuilder json_schema::string() {
 	return JsonSchemaStringBuilder{};
 }
