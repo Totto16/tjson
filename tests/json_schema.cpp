@@ -17,7 +17,7 @@ struct JsonSchemaValidateTestCaseSingle {
 };
 
 struct JsonSchemaValidateTestCase {
-	JsonSchema schema;
+	JsonSchemaCpp schema;
 	std::vector<JsonSchemaValidateTestCaseSingle> tests;
 };
 
@@ -28,7 +28,11 @@ TEST_SUITE_BEGIN("json_schema" * doctest::description("json schema tests") * doc
 TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 
 	std::vector<JsonSchemaValidateTestCase> json_schema_validate_tests = {
-
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::null(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{ JsonSchemaValidateTestCaseSingle{
+		            .value = JsonValueCpp::null(), .result = std::nullopt } } }
 	};
 
 	CAutoFreePtr<std::vector<JsonSchemaValidateTestCase>> defer_tests = {
@@ -42,8 +46,6 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 
 				    free_json_value(&(test->value));
 			    }
-
-			    free_json_schema(&(value->schema));
 		    }
 		}
 	};
@@ -54,7 +56,8 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 
 		for(const auto& subtest : test_case.tests) {
 
-			auto validate_result = json_schema_validate_data(&test_case.schema, &subtest.value);
+			auto validate_result =
+			    json_schema_validate_data(test_case.schema.ptr(), &subtest.value);
 
 			CAutoFreePtr<tstr> defer_result = { &validate_result, [](tstr* const value) -> void {
 				                                   if(!tstr_is_null(value)) {

@@ -139,6 +139,10 @@ NODISCARD static JsonSchema json_schema_ref_increment(const JsonSchema json_sche
 	return json_schema_ref_increment(this->m_schema);
 }
 
+[[nodiscard]] const JsonSchema* JsonSchemaCpp::ptr() const {
+	return &(this->m_schema);
+}
+
 [[nodiscard]] static JsonSchema empty_json_schema() {
 	return new_json_schema_null();
 }

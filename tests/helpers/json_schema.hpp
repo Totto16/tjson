@@ -13,11 +13,12 @@ struct JsonSchemaCpp final {
   private:
 	JsonSchema m_schema;
 
-
   public:
 	explicit JsonSchemaCpp(JsonSchema&& schema);
 
 	[[nodiscard]] JsonSchema get() const;
+
+	[[nodiscard]] const JsonSchema* ptr() const;
 
 	JsonSchemaCpp(JsonSchemaCpp const&);
 	JsonSchemaCpp& operator=(JsonSchemaCpp const&);
