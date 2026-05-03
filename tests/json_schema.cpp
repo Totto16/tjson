@@ -194,6 +194,10 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .result = "JsonValue is not an array",
 		            },
 		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({}),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
 		                .value = JsonValueCpp::array({ JsonValueCpp::null() }),
 		                .result = std::nullopt,
 		            },
@@ -205,7 +209,101 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = JsonValueCpp::array({ JsonValueCpp::null(),
 		                                               JsonValueCpp::boolean(true) }),
-		                .result = "Item 1 in array is incorrect: JsonValue is not null",
+		                .result = "Item at index 1 in array is incorrect: JsonValue is not null",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).min(1).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an array",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({}),
+		                .result = "array length (0) is smaller than the min length (1)",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(),
+		                                               JsonValueCpp::boolean(true) }),
+		                .result = "Item at index 1 in array is incorrect: JsonValue is not null",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).min(1).max(2).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an array",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({}),
+		                .result = "array length (0) is smaller than the min length (1)",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null(),
+		                                               JsonValueCpp::null() }),
+		                .result = "array length (3) is larger than the max length (2)",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(),
+		                                               JsonValueCpp::boolean(true) }),
+		                .result = "Item at index 1 in array is incorrect: JsonValue is not null",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).max(2).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an array",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({}),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null(),
+		                                               JsonValueCpp::null() }),
+		                .result = "array length (3) is larger than the max length (2)",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(),
+		                                               JsonValueCpp::boolean(true) }),
+		                .result = "Item at index 1 in array is incorrect: JsonValue is not null",
 		            },
 		        },
 		}
