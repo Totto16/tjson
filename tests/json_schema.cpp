@@ -184,6 +184,30 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                                              .result = std::nullopt },
 
 		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an array",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    JsonValueCpp::array({ JsonValueCpp::null(), JsonValueCpp::null() }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::array({ JsonValueCpp::null(),
+		                                               JsonValueCpp::boolean(true) }),
+		                .result = "Item 1 in array is incorrect: JsonValue is not null",
+		            },
+		        },
 		}
 	};
 
