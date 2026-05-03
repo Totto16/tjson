@@ -122,6 +122,30 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .value = JsonValueCpp::string("1"),
 		                .result = "string size (1) is smaller than the min size (2)" },
 		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().regex("^a$").get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("a"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("ba"),
+		                                              .result =
+		                                                  "string 'ba' doesn't match regex '^a$'" },
+
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().regex("^[A-Z][a-z]*$").get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("Hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("HelloW"),
+		                .result = "string 'HelloW' doesn't match regex '^[A-Z][a-z]*$'" },
+
+		        },
 		}
 	};
 
