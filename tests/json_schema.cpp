@@ -146,6 +146,21 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .result = "string 'HelloW' doesn't match regex '^[A-Z][a-z]*$'" },
 
 		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::literal("hello"),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::boolean(true),
+		                                              .result =
+		                                                  "JsonValue is not a string (literal)" },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("Hello"),
+		                .result = "string 'Hello' doesn't match literal 'hello'" },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("hello"),
+		                                              .result = std::nullopt },
+
+		        },
 		}
 	};
 
