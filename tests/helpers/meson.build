@@ -10,6 +10,8 @@ support_src += files(
     'helpers/http.hpp',
     'helpers/json.cpp',
     'helpers/json.hpp',
+    'helpers/json_schema.cpp',
+    'helpers/json_schema.hpp',
     'generic.cpp',
     'generic.hpp',
     'helpers.hpp',

@@ -40,6 +40,16 @@ TstrStaticIsNull::TstrStaticIsNull() {}
 	return rhs == lhs;
 }
 
+TstrIsNull::TstrIsNull() {}
+
+[[nodiscard]] bool TstrIsNull::operator==(const tstr& lhs) const {
+	return tstr_is_null(&lhs);
+}
+
+[[nodiscard]] bool operator==(const tstr& lhs, const TstrIsNull& rhs) {
+	return rhs == lhs;
+}
+
 [[nodiscard]] std::string string_from_tstr(const tstr& value) {
 	if(tstr_is_null(&value)) {
 		throw std::runtime_error("tstr is NULL!");
@@ -66,6 +76,11 @@ std::ostream& operator<<(std::ostream& os, const IsNotError& /* error */) {
 }
 
 std::ostream& operator<<(std::ostream& os, const TstrStaticIsNull& /* is_null */) {
+	os << "{}";
+	return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const TstrIsNull& /* is_null */) {
 	os << "{}";
 	return os;
 }

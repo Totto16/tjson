@@ -158,6 +158,17 @@ struct TstrStaticIsNull {
 
 [[nodiscard]] bool operator==(const tstr_static& lhs, const TstrStaticIsNull& rhs);
 
+struct TstrIsNull {
+  public:
+	TstrIsNull();
+
+	friend std::ostream& operator<<(std::ostream& os, const TstrIsNull& error);
+
+	[[nodiscard]] bool operator==(const tstr& lhs) const;
+};
+
+[[nodiscard]] bool operator==(const tstr& lhs, const TstrIsNull& rhs);
+
 std::ostream& operator<<(std::ostream& os, const IsNotError& error);
 
 #define REQUIRE_IS_NOT_ERROR(val) REQUIRE_EQ(IsNotError{}, val)
