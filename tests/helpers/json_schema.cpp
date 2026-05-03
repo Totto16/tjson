@@ -12,6 +12,57 @@ JsonSchemaStringBuilder::JsonSchemaStringBuilder()
 	return new_json_schema_string_rc(value);
 }
 
+[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::nonempty() {
+
+	const auto result = json_schema_string_set_nonempty(this->value());
+
+	if(!tstr_static_is_null(result)) {
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
+[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::min(size_t value) {
+
+	const auto result = json_schema_string_set_min(this->value(), value);
+
+	if(!tstr_static_is_null(result)) {
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
+[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::max(size_t value) {
+
+	const auto result = json_schema_string_set_max(this->value(), value);
+
+	if(!tstr_static_is_null(result)) {
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
+[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(const std::string& str) {
+
+	auto* regex = json_schema_regex_get(str.c_str());
+
+	if(regex == nullptr) {
+		throw std::runtime_error("Regex was invalid!");
+	}
+
+	const auto result = json_schema_string_set_regex(this->value(), regex);
+
+	if(!tstr_static_is_null(result)) {
+		free_json_schema_regex(regex);
+		throw std::runtime_error(string_from_tstr_static(result));
+	}
+
+	return *this;
+}
+
 JsonSchemaArrayBuilder::JsonSchemaArrayBuilder(const JsonSchemaCpp& items,
                                                const bool require_unique_items)
     : JsonSchemaBuilderGeneric<JsonSchemaArray>{

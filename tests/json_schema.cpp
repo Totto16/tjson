@@ -31,8 +31,58 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		JsonSchemaValidateTestCase{
 		    .schema = json_schema::null(),
 		    .tests =
-		        std::vector<JsonSchemaValidateTestCaseSingle>{ JsonSchemaValidateTestCaseSingle{
-		            .value = JsonValueCpp::null(), .result = std::nullopt } } }
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::boolean(false),
+		                                              .result = "JsonValue is not null" },
+		        },
+
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::boolean(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::boolean(false),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
+		                                              .result = "JsonValue is not a boolean" },
+		        },
+
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::number(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::number(1.0),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
+		                                              .result = "JsonValue is not a number" },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
+		                                              .result = "JsonValue is not a string" },
+		        },
+
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().nonempty().get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string(""),
+		                .result = "string size (0) is smaller than the min size (1) TODO" },
+		        },
+
+		}
 	};
 
 	CAutoFreePtr<std::vector<JsonSchemaValidateTestCase>> defer_tests = {
@@ -42,7 +92,7 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 			    auto* const value = &(values->at(i));
 
 			    for(size_t j = 0; j < value->tests.size(); ++j) {
-				    auto* const test = &(value->tests.at(i));
+				    auto* const test = &(value->tests.at(j));
 
 				    free_json_value(&(test->value));
 			    }

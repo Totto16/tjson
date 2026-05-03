@@ -60,7 +60,7 @@ template <typename T> struct JsonSchemaBuilderGeneric {
 
   public:
 	[[nodiscard]] JsonSchemaCpp get() {
-		JsonSchema schema = this->to_schema();
+		JsonSchema schema = this->to_schema(this->m_value);
 		this->~JsonSchemaBuilderGeneric();
 		return JsonSchemaCpp{ std::move(schema) };
 	}
