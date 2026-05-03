@@ -6,26 +6,62 @@
 
 #include <_impl/utils.h>
 
+#include <functional>
 #include <ostream>
+
+struct JsonSchemaCpp final {
+  private:
+	JsonSchema m_schema;
+
+
+  public:
+	explicit JsonSchemaCpp(JsonSchema&& schema);
+
+	[[nodiscard]] JsonSchema get() const;
+
+	JsonSchemaCpp(JsonSchemaCpp const&);
+	JsonSchemaCpp& operator=(JsonSchemaCpp const&);
+
+	JsonSchemaCpp(JsonSchemaCpp&&) noexcept;
+	JsonSchemaCpp& operator=(JsonSchemaCpp&&) noexcept;
+
+	~JsonSchemaCpp();
+
+	friend std::ostream& operator<<(std::ostream& os, const JsonSchemaCpp& json_schema);
+};
+
+std::ostream& operator<<(std::ostream& os, const JsonSchemaCpp& json_schema);
 
 template <typename T> struct JsonSchemaBuilderGeneric {
   private:
 	T* m_value;
+	std::function<void(T*)> m_free_fn;
 
 	// virtual functions
 
 	[[nodiscard]] virtual JsonSchema to_schema(T* const value) const = 0;
 
-	virtual void free_value(T* const value) const = 0;
-
   protected:
-	JsonSchemaBuilderGeneric(T* raw_value) : m_value{ raw_value } {}
+	JsonSchemaBuilderGeneric(T* raw_value, std::function<void(T*)> free_fn)
+	    : m_value{ raw_value }, m_free_fn{ free_fn } {
+		if(raw_value == nullptr) {
+			throw std::runtime_error("Invalid nullptr received");
+		}
+	}
+
+	[[nodiscard]] T* value() const {
+		if(this->m_value == nullptr) {
+			throw std::runtime_error("Invalid get of empty schema builder");
+		}
+
+		return this->m_value;
+	}
 
   public:
-	[[nodiscard]] JsonSchema get() {
+	[[nodiscard]] JsonSchemaCpp get() {
 		JsonSchema schema = this->to_schema();
 		this->~JsonSchemaBuilderGeneric();
-		return schema;
+		return JsonSchemaCpp{ std::move(schema) };
 	}
 
 	JsonSchemaBuilderGeneric(JsonSchemaBuilderGeneric const&) = delete;
@@ -34,12 +70,12 @@ template <typename T> struct JsonSchemaBuilderGeneric {
 	JsonSchemaBuilderGeneric(JsonSchemaBuilderGeneric&&) noexcept = delete;
 	JsonSchemaBuilderGeneric& operator=(JsonSchemaBuilderGeneric&&) noexcept = delete;
 
-	~JsonSchemaBuilderGeneric() {
+	virtual ~JsonSchemaBuilderGeneric() {
 		if(this->m_value == nullptr) {
 			return;
 		}
 
-		this->free_value();
+		this->m_free_fn(this->m_value);
 
 		this->m_value = nullptr;
 	}
@@ -50,8 +86,6 @@ struct JsonSchemaStringBuilder final : JsonSchemaBuilderGeneric<JsonSchemaString
 	// virtual functions
 
 	[[nodiscard]] JsonSchema to_schema(JsonSchemaString* const value) const override;
-
-	void free_value(JsonSchemaString* const value) const override;
 
   public:
 	JsonSchemaStringBuilder();
@@ -71,39 +105,40 @@ struct JsonSchemaArrayBuilder final : JsonSchemaBuilderGeneric<JsonSchemaArray> 
 
 	[[nodiscard]] JsonSchema to_schema(JsonSchemaArray* const value) const override;
 
-	void free_value(JsonSchemaArray* const value) const override;
-
   public:
-	JsonSchemaArrayBuilder(JsonSchema items, bool require_unique_items);
+	JsonSchemaArrayBuilder(const JsonSchemaCpp& items, bool require_unique_items);
 
 	[[nodiscard]] JsonSchemaArrayBuilder& min(size_t value);
 
 	[[nodiscard]] JsonSchemaArrayBuilder& max(size_t value);
 };
 
-struct JsonSchemaCpp {
-	// static helper fn's
+namespace json_schema {
 
-	[[nodiscard]] static JsonSchemaStringBuilder string();
-
-	[[nodiscard]] static JsonSchemaArrayBuilder array(JsonSchema items, bool require_unique_items);
-
-	[[nodiscard]] static JsonSchema literal(std::string&& str);
-
-	[[nodiscard]] static JsonSchema number();
-
-	[[nodiscard]] static JsonSchema boolean();
-
-	[[nodiscard]] static JsonSchema null();
-
-	[[nodiscard]] static JsonSchema one_of(std::initializer_list<JsonSchema>&& values);
-
-	[[nodiscard]] static JsonSchema
-	object(bool allow_additional_properties,
-	       std::initializer_list<std::pair<std::string, JsonSchema>>&& values);
-
-	friend std::ostream& operator<<(std::ostream& os, const JsonSchemaCpp& json_error);
+struct JsonSchemaObjectEntryCpp {
+	std::string key;
+	JsonSchemaCpp value;
+	bool required;
 };
+
+[[nodiscard]] JsonSchemaStringBuilder string();
+
+[[nodiscard]] JsonSchemaArrayBuilder array(const JsonSchemaCpp& items, bool require_unique_items);
+
+[[nodiscard]] JsonSchemaCpp literal(std::string&& str);
+
+[[nodiscard]] JsonSchemaCpp number();
+
+[[nodiscard]] JsonSchemaCpp boolean();
+
+[[nodiscard]] JsonSchemaCpp null();
+
+[[nodiscard]] JsonSchemaCpp one_of(std::initializer_list<JsonSchemaCpp>&& values);
+
+[[nodiscard]] JsonSchemaCpp object(bool allow_additional_properties,
+                                   std::initializer_list<JsonSchemaObjectEntryCpp>&& values);
+
+}; // namespace json_schema
 
 [[nodiscard]] bool operator==(const JsonSchema& json_schema1, const JsonSchema& json_schema2);
 

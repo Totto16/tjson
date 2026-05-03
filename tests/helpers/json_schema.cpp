@@ -5,56 +5,50 @@
 #include "./generic.hpp"
 
 JsonSchemaStringBuilder::JsonSchemaStringBuilder()
-    : JsonSchemaBuilderGeneric<JsonSchemaString>{ json_schema_string_get() } {}
+    : JsonSchemaBuilderGeneric<JsonSchemaString>{ json_schema_string_get(),
+	                                              free_json_schema_string } {}
 
 [[nodiscard]] JsonSchema JsonSchemaStringBuilder::to_schema(JsonSchemaString* const value) const {
 	return new_json_schema_string_rc(value);
 }
 
-void JsonSchemaStringBuilder::free_value(JsonSchemaString* const value) const {
-	free_json_schema_string(value);
-}
-
-JsonSchemaArrayBuilder::JsonSchemaArrayBuilder(const JsonSchema items,
+JsonSchemaArrayBuilder::JsonSchemaArrayBuilder(const JsonSchemaCpp& items,
                                                const bool require_unique_items)
-    : JsonSchemaBuilderGeneric<JsonSchemaArray>{ json_schema_array_get(items,
-	                                                                   require_unique_items) } {}
+    : JsonSchemaBuilderGeneric<JsonSchemaArray>{
+	      json_schema_array_get(items.get(), require_unique_items), free_json_schema_array
+      } {}
 
 [[nodiscard]] JsonSchema JsonSchemaArrayBuilder::to_schema(JsonSchemaArray* const value) const {
 	return new_json_schema_array_rc(value);
 }
 
-void JsonSchemaArrayBuilder::free_value(JsonSchemaArray* const value) const {
-	free_json_schema_array(value);
-}
-
-[[nodiscard]] JsonSchemaStringBuilder JsonSchemaCpp::string() {
+[[nodiscard]] JsonSchemaStringBuilder json_schema::string() {
 	return JsonSchemaStringBuilder{};
 }
 
-[[nodiscard]] JsonSchemaArrayBuilder JsonSchemaCpp::array(JsonSchema items,
-                                                          bool require_unique_items) {
+[[nodiscard]] JsonSchemaArrayBuilder json_schema::array(const JsonSchemaCpp& items,
+                                                        bool require_unique_items) {
 	return JsonSchemaArrayBuilder{ items, require_unique_items };
 }
 
-[[nodiscard]] JsonSchema JsonSchemaCpp::literal(std::string&& str) {
+[[nodiscard]] JsonSchemaCpp json_schema::literal(std::string&& str) {
 
-	return new_json_schema_literal_rc(json_schema_literal_get_cstr(str.c_str()));
+	return JsonSchemaCpp{ new_json_schema_literal_rc(json_schema_literal_get_cstr(str.c_str())) };
 }
 
-[[nodiscard]] JsonSchema JsonSchemaCpp::number() {
-	return new_json_schema_number();
+[[nodiscard]] JsonSchemaCpp json_schema::number() {
+	return JsonSchemaCpp{ new_json_schema_number() };
 }
 
-[[nodiscard]] JsonSchema JsonSchemaCpp::boolean() {
-	return new_json_schema_boolean();
+[[nodiscard]] JsonSchemaCpp json_schema::boolean() {
+	return JsonSchemaCpp{ new_json_schema_boolean() };
 }
 
-[[nodiscard]] JsonSchema JsonSchemaCpp::null() {
-	return new_json_schema_null();
+[[nodiscard]] JsonSchemaCpp json_schema::null() {
+	return JsonSchemaCpp{ new_json_schema_null() };
 }
 
-[[nodiscard]] JsonSchema JsonSchemaCpp::one_of(std::initializer_list<JsonSchema>&& values) {
+[[nodiscard]] JsonSchemaCpp json_schema::one_of(std::initializer_list<JsonSchemaCpp>&& values) {
 	JsonSchemaOneOf* const one_of = json_schema_one_of_get_empty();
 
 	if(one_of == nullptr) {
@@ -62,19 +56,19 @@ void JsonSchemaArrayBuilder::free_value(JsonSchemaArray* const value) const {
 	}
 
 	for(auto&& value : values) {
-		const auto add_result = json_schema_one_of_add_entry(one_of, value);
+		const auto add_result = json_schema_one_of_add_entry(one_of, value.get());
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(std::string{ "JSON Schema OneOf initialization failed:" } +
 			                         string_from_tstr_static(add_result));
 		}
 	}
 
-	return new_json_schema_one_of_rc(one_of);
+	return JsonSchemaCpp{ new_json_schema_one_of_rc(one_of) };
 }
 
-[[nodiscard]] JsonSchema
-JsonSchemaCpp::object(const bool allow_additional_properties,
-                      std::initializer_list<std::pair<std::string, JsonSchema>>&& values) {
+[[nodiscard]] JsonSchemaCpp
+json_schema::object(const bool allow_additional_properties,
+                    std::initializer_list<json_schema::JsonSchemaObjectEntryCpp>&& values) {
 	JsonSchemaObject* const object = json_schema_object_get(allow_additional_properties);
 
 	if(object == nullptr) {
@@ -82,15 +76,10 @@ JsonSchemaCpp::object(const bool allow_additional_properties,
 	}
 
 	for(auto&& value : values) {
-		JsonString* key_moved =
-		    json_get_string_from_tstr_view(helpers::tstr_view_from_str(value.first));
-		if(key_moved == nullptr) {
-			throw std::runtime_error(
-			    "JSON Schema object initialization failed: key initialization failed");
-		}
+		tstr key_moved = tstr_from_view(helpers::tstr_view_from_str(value.key));
 
-		const JsonValue final_value = value.second;
-		const auto add_result = json_object_add_entry(object, &key_moved, final_value);
+		const auto add_result =
+		    json_schema_object_add_entry(object, &key_moved, value.value.get(), value.required);
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(
 			    std::string{ "JSON Schema object entry addition failed for key: " } +
@@ -98,11 +87,97 @@ JsonSchemaCpp::object(const bool allow_additional_properties,
 		}
 	}
 
-	return new_json_schema_object_rc(object);
+	return JsonSchemaCpp{ new_json_schema_object_rc(object) };
+}
+
+JsonSchemaCpp::JsonSchemaCpp(JsonSchema&& schema) : m_schema{ std::move(schema) } {}
+
+// NOTE: this doesn't ref recursively, as we don't unref recursively either, so if we free a
+// subvalue of this json_schema, it is prone do errors!
+NODISCARD static JsonSchema json_schema_ref_increment(const JsonSchema json_schema) {
+	SWITCH_JSON_SCHEMA(json_schema) {
+		CASE_JSON_SCHEMA_IS_OBJECT_CONST(json_schema) {
+			return new_json_schema_object_rc(object.obj);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_ARRAY_CONST(json_schema) {
+			return new_json_schema_array_rc(array.arr);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_NUMBER() {
+			return json_schema;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_STRING_CONST(json_schema) {
+			return new_json_schema_string_rc(string.str);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_BOOLEAN() {
+			return json_schema;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_NULL() {
+			return json_schema;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_ONE_OF_CONST(json_schema) {
+			return new_json_schema_one_of_rc(one_of.one_of);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_SCHEMA_IS_LITERAL_MUT(json_schema) {
+			return new_json_schema_literal_rc(literal.lit);
+		}
+		VARIANT_CASE_END();
+		default: {
+			UNREACHABLE();
+		}
+	}
+}
+
+[[nodiscard]] JsonSchema JsonSchemaCpp::get() const {
+	// copy of this
+	return json_schema_ref_increment(this->m_schema);
+}
+
+[[nodiscard]] static JsonSchema empty_json_schema() {
+	return new_json_schema_null();
+}
+
+JsonSchemaCpp::JsonSchemaCpp(JsonSchemaCpp const& json_schema) {
+	this->m_schema = json_schema_ref_increment(json_schema.m_schema);
+}
+JsonSchemaCpp& JsonSchemaCpp::operator=(JsonSchemaCpp const& json_schema) {
+	this->m_schema = json_schema_ref_increment(json_schema.m_schema);
+
+	return *this;
+}
+
+JsonSchemaCpp::JsonSchemaCpp(JsonSchemaCpp&& json_schema) noexcept {
+	this->m_schema = json_schema.m_schema;
+	json_schema.m_schema = empty_json_schema();
+}
+JsonSchemaCpp& JsonSchemaCpp::operator=(JsonSchemaCpp&& json_schema) noexcept {
+	this->m_schema = json_schema.m_schema;
+	json_schema.m_schema = empty_json_schema();
+
+	return *this;
+}
+
+JsonSchemaCpp::~JsonSchemaCpp() {
+	free_json_schema(&this->m_schema);
+	this->m_schema = empty_json_schema();
 }
 
 std::ostream& operator<<(std::ostream& os, const JsonSchema& json_schema) {
 	auto str = json_schema_to_string(&json_schema);
+
+	os << str;
+
+	return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonSchemaCpp& json_schema) {
+	auto str = json_schema_to_string(&json_schema.m_schema);
 
 	os << str;
 

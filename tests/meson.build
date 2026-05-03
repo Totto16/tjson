@@ -64,6 +64,8 @@ test_src += files(
     'helpers/generic.hpp',
     'helpers/helpers.hpp',
     'helpers/json.cpp',
+    'helpers/json_schema.cpp',
+    'helpers/json_schema.hpp',
     'helpers/json.hpp',
     'helpers/main.cpp',
     'helpers/string_maker.hpp',
