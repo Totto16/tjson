@@ -69,7 +69,6 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::null(),
 		                                              .result = "JsonValue is not a string" },
 		        },
-
 		},
 		JsonSchemaValidateTestCase{
 		    .schema = json_schema::string().nonempty().get(),
@@ -81,7 +80,48 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .value = JsonValueCpp::string(""),
 		                .result = "string size (0) is smaller than the min size (1)" },
 		        },
-
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().min(2).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("1"),
+		                .result = "string size (1) is smaller than the min size (2)" },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("12"),
+		                                              .result = std::nullopt },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().max(2).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("1"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("123"),
+		                .result = "string size (3) is larger than the max size (2)" },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("12"),
+		                                              .result = std::nullopt },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().min(2).max(3).get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("12"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{ .value = JsonValueCpp::string("123"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("1234"),
+		                .result = "string size (4) is larger than the max size (3)" },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::string("1"),
+		                .result = "string size (1) is smaller than the min size (2)" },
+		        },
 		}
 	};
 
