@@ -698,6 +698,20 @@ TEST_CASE("testing json file parsing <json_file_parse>") {
 		    }) } },
 	};
 
+	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
+		&json_file_test_cases,
+		[](std::vector<JsonFileParseTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    if(value->expected.has_value()) {
+				    const auto ok_value = &(value->expected.value());
+				    free_json_value(ok_value);
+			    }
+		    }
+		}
+	};
+
 	for(const auto& test_case : json_file_test_cases) {
 
 		INFO("Test case: ", test_case.file);
