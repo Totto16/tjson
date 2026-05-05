@@ -2,12 +2,17 @@
 
 #include "./helpers/helpers.hpp"
 
+#include "./helpers/compat.hpp"
 #include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
 
 #include <tjson.h>
 
 #include "helpers/string_maker.hpp"
+
+#include <expected>
+
+#include <nlohmann/json.hpp>
 
 namespace {
 
@@ -24,6 +29,15 @@ struct JsonParseTestCaseError {
 struct JsonStringifyTest {
 	std::string expected;
 	JsonValue input;
+};
+
+struct JsonParseTestCaseCompat {
+	std::string input;
+};
+
+struct JsonFileParseTestCase {
+	std::string input;
+	std::expected<JsonValue, JsonErrorCpp> expected;
 };
 
 } // namespace
@@ -544,6 +558,113 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 	}
 }
 
-// TODO: compare with nhlohmann json!
+TEST_CASE("testing json compatibility with other json library (nlohmann_json) <json_compat>") {
+
+	std::vector<JsonParseTestCaseCompat> json_compat_test_cases = {
+		JsonParseTestCaseCompat{
+		    .input = "null",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "   null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "\t			null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "true",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "false",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100.01",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100.43",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1E20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.2e3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.3E+3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E-2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E10",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "8.98846567431158e307", // 2^1023 exactly
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world\n\"\f\t")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"({})",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([null,  	1,-2,   true ])",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		},
+		JsonParseTestCaseCompat{
+		    .input =
+		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
+		   true, "array": []}}})",
+		},
+	};
+
+	for(const auto& test_case : json_compat_test_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		const tstr_view str_view = helpers::tstr_view_from_str(test_case.input);
+
+		const auto parse_result = json_value_parse_from_str(str_view);
+
+		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result), JsonParseResultTypeOk);
+
+		JsonValue result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+		const auto& my_json_result = result;
+
+		const auto& compat_json_result = nlohmann::json::parse(test_case.input);
+
+		REQUIRE_EQ(my_json_result, compat_json_result);
+	}
+}
 
 TEST_SUITE_END();

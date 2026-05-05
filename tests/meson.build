@@ -58,6 +58,8 @@ test_inc_dirs += include_directories('.')
 test_src += files(
     'helpers/c_types.cpp',
     'helpers/c_types.hpp',
+    'helpers/compat.cpp',
+    'helpers/compat.hpp',
     'helpers/cpp_types.cpp',
     'helpers/cpp_types.hpp',
     'helpers/generic.cpp',
