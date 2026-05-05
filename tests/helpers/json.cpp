@@ -303,6 +303,14 @@ JsonErrorCpp JsonErrorCpp::with_string_loc(std::string&& value, tstr_view data,
 	return { std::move(value), loc };
 }
 
+JsonErrorCpp JsonErrorCpp::with_file_loc(std::string&& value, const tstr* const file_path,
+                                         JsonSourcePosition pos) {
+	const JsonSourceLocation loc = {
+		.source = new_json_source_file(JsonFileSource{ .file_path = file_path }), .pos = pos
+	};
+	return { std::move(value), loc };
+}
+
 [[nodiscard]] static bool operator==(const JsonSourcePosition& source_pos1,
                                      const JsonSourcePosition& source_pos2) {
 	if(source_pos1.col != source_pos2.col) {

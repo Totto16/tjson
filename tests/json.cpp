@@ -11,6 +11,7 @@
 #include "helpers/string_maker.hpp"
 
 #include <expected>
+#include <filesystem>
 
 #include <nlohmann/json.hpp>
 
@@ -35,9 +36,11 @@ struct JsonParseTestCaseCompat {
 	std::string input;
 };
 
+using JsonParseResultCpp = std::expected<JsonValue, JsonErrorCpp>;
+
 struct JsonFileParseTestCase {
-	std::string input;
-	std::expected<JsonValue, JsonErrorCpp> expected;
+	std::filesystem::path file;
+	JsonParseResultCpp expected;
 };
 
 } // namespace
@@ -664,6 +667,73 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 		const auto& compat_json_result = nlohmann::json::parse(test_case.input);
 
 		REQUIRE_EQ(my_json_result, compat_json_result);
+	}
+}
+
+TEST_CASE("testing json file parsing <json_file_parse>") {
+
+	std::filesystem::path test_file_root = std::filesystem::current_path();
+
+	if(!std::filesystem::exists(test_file_root)) {
+		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
+			                      test_file_root.string() };
+	}
+
+	// just here as a dummy tstr_view
+	const tstr dummy_file = TSTR_LIT("__dummy_file__impl__");
+
+	std::vector<JsonFileParseTestCase> json_file_test_cases = {
+		JsonFileParseTestCase{ .file = test_file_root / "inputs" / "NOT_PRESENT.json",
+		                       .expected =
+		                           JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		                               "Couldn't open file for reading", &dummy_file,
+		                               JsonSourcePosition{ .line = 0, .col = 0 }) } },
+		JsonFileParseTestCase{
+		    .file = test_file_root / "inputs" / "test.json",
+		    .expected = JsonParseResultCpp{ JsonValueCpp::object({
+		        { "my object key",
+		          JsonValueCpp::array({ JsonValueCpp::number((int64_t)1),
+		                                JsonValueCpp::number((int64_t)2), JsonValueCpp::null(),
+		                                JsonValueCpp::boolean(true) }) },
+		    }) } },
+	};
+
+	for(const auto& test_case : json_file_test_cases) {
+
+		INFO("Test case: ", test_case.file);
+
+		std::string defer_str = test_case.file.string();
+
+		const tstr_view file_view = helpers::tstr_view_from_str(defer_str);
+
+		const tstr file_path = tstr_from_static_cstr_with_len(file_view.data, file_view.len);
+
+		const auto parse_result = json_value_parse_from_file(&file_path);
+
+		if(!test_case.expected.has_value()) {
+
+			const auto& expected_error = test_case.expected.error();
+
+			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
+			           JsonParseResultTypeError);
+
+			JsonError result = json_parse_result_get_as_error(parse_result);
+
+			const auto actual_error = JsonErrorCpp{ result };
+
+			REQUIRE_EQ(actual_error, expected_error);
+		} else {
+
+			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
+			           JsonParseResultTypeOk);
+
+			JsonValue result = json_parse_result_get_as_ok(parse_result);
+			CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+			const auto& expected_result = test_case.expected.value();
+
+			REQUIRE_EQ(result, expected_result);
+		}
 	}
 }
 
