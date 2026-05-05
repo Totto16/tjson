@@ -9,6 +9,7 @@
 
 #include "./helpers.hpp"
 #include "./json.hpp"
+#include "./json_schema.hpp"
 
 template <typename T>
 concept is_cpp_stream_printable = requires(T val, std::ostream& os) {
@@ -96,6 +97,12 @@ template <> struct StringMaker<JsonErrorCpp> {
 template <> struct StringMaker<JsonError> {
 	static String convert(const JsonError& json_error) {
 		return ::os_stream_formattable_to_doctest(json_error);
+	}
+};
+
+template <> struct StringMaker<JsonSchema> {
+	static String convert(const JsonSchema& json_value) {
+		return ::os_stream_formattable_to_doctest(json_value);
 	}
 };
 

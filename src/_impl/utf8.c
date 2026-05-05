@@ -1,8 +1,8 @@
+#include <utf8proc.h>
 
+#include "../allocator.h"
 
 #include "./utf8.h"
-
-#include <utf8proc.h>
 
 NODISCARD static inline Utf8DataResult new_utf8_data_result_error(tstr_static const error) {
 	return (Utf8DataResult){ .is_error = true, .data = { .error = error } };
@@ -14,27 +14,28 @@ NODISCARD static inline Utf8DataResult new_utf8_data_result_ok(Utf8Data const re
 
 NODISCARD Utf8DataResult get_utf8_string(const tstr_view str_view) {
 
-	utf8proc_int32_t* buffer = malloc(sizeof(utf8proc_int32_t) * str_view.len);
+	utf8proc_int32_t* buffer = TJSON_MALLOC(sizeof(utf8proc_int32_t) * str_view.len);
 
 	if(!buffer) {
 		return new_utf8_data_result_error(TSTR_STATIC_LIT("failed malloc"));
 	}
 
 	const utf8proc_ssize_t result = utf8proc_decompose(
-	    (const uint8_t*)str_view.data, (long)str_view.len, buffer, (long)str_view.len,
+	    (const uint8_t*)str_view.data, (LibCLong)str_view.len, buffer, (LibCLong)str_view.len,
 	    (utf8proc_option_t)0); // NOLINT(cppcoreguidelines-narrowing-conversions,clang-analyzer-optin.core.EnumCastOutOfRange)
 
 	if(result < 0) {
-		free(buffer);
+		TJSON_FREE(buffer);
 		return new_utf8_data_result_error(tstr_static_from_static_cstr(utf8proc_errmsg(result)));
 	}
 
 	if(result != (utf8proc_ssize_t)str_view.len) {
 		// truncate the buffer
-		void* new_buffer = realloc(buffer, sizeof(utf8proc_int32_t) * (size_t)result);
+		void* const new_buffer = // NOLINT(totto-const-correctness-c)
+		    TJSON_REALLOC(buffer, sizeof(utf8proc_int32_t) * (size_t)result);
 
 		if(!new_buffer) {
-			free(buffer);
+			TJSON_FREE(buffer);
 			return new_utf8_data_result_error(TSTR_STATIC_LIT("failed realloc"));
 		}
 		buffer = new_buffer;
@@ -49,5 +50,5 @@ NODISCARD Utf8DataResult get_utf8_string(const tstr_view str_view) {
 }
 
 void free_utf8_data(Utf8Data data) {
-	free(data.data);
+	TJSON_FREE(data.data);
 }
