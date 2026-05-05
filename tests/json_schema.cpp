@@ -414,6 +414,112 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            },
 		        },
 		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::object(false,
+		                                  {
+		                                      json_schema::JsonSchemaObjectEntryCpp{
+		                                          .key = "obj_key",
+		                                          .value = json_schema::null(),
+		                                          .required = true,
+		                                      },
+		                                      json_schema::JsonSchemaObjectEntryCpp{
+		                                          .key = "key2",
+		                                          .value = json_schema::boolean(),
+		                                          .required = false,
+		                                      },
+		                                  }),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an object",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({}),
+		                .result = "object is missing required key 'obj_key'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() },
+		                                                { "key2", JsonValueCpp::boolean(true) } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() },
+		                                                { "key2", JsonValueCpp::null() } }),
+		                .result = "Value in object at key 'key2' is incorrect: JsonValue is not a "
+		                          "boolean",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::number(1.0) } }),
+		                .result =
+		                    "Value in object at key 'obj_key' is incorrect: JsonValue is not null",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object(
+		                    { { "obj_key", JsonValueCpp::null() },
+		                      { "additional_key", JsonValueCpp::boolean(true) } }),
+		                .result =
+		                    "object can't have additional properties: but got key 'additional_key'",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema =
+		        json_schema::object(true,
+		                            {
+		                                json_schema::JsonSchemaObjectEntryCpp{
+		                                    .key = "obj_key",
+		                                    .value = json_schema::null(),
+		                                    .required = true,
+		                                },
+		                                json_schema::JsonSchemaObjectEntryCpp{
+		                                    .key = "key2",
+		                                    .value = json_schema::boolean(),
+		                                    .required = false,
+		                                },
+		                            }),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::boolean(true),
+		                .result = "JsonValue is not an object",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({}),
+		                .result = "object is missing required key 'obj_key'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object(
+		                    { { "obj_key", JsonValueCpp::null() },
+		                      { "additional_key", JsonValueCpp::boolean(true) } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() },
+		                                                { "key2", JsonValueCpp::boolean(true) } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::null() },
+		                                                { "key2", JsonValueCpp::null() } }),
+		                .result = "Value in object at key 'key2' is incorrect: JsonValue is not a "
+		                          "boolean",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = JsonValueCpp::object({ { "obj_key", JsonValueCpp::number(1.0) } }),
+		                .result =
+		                    "Value in object at key 'obj_key' is incorrect: JsonValue is not null",
+		            },
+		        },
+		},
 	};
 
 	CAutoFreePtr<std::vector<JsonSchemaValidateTestCase>> defer_tests = {
