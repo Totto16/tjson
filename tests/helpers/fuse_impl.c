@@ -484,6 +484,57 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 	fuse_log_impl(false, level, fmt, ap);
 }
 
+typedef struct {
+	struct sigaction old_sa;
+	struct fuse_session* session;
+} GlobalSignalState;
+
+static volatile GlobalSignalState g_signal_state = { .old_sa = {}, .session = NULL };
+
+// only setting the volatile sig_atomic_t g_signal_received' in here
+static void fuse_exit_signal_received(int signal_number) {
+	(void)signal_number;
+	if(g_signal_state.session == NULL) {
+		return;
+	}
+
+	fuse_session_exit(g_signal_state.session);
+}
+
+#define SIGNAL_FOR_FUSE_EXIT_REQUEST SIGUSR2
+
+[[nodiscard]] static bool setup_signals(struct fuse_session* session) {
+
+	// set up the signal handler
+	// just create a sigaction structure, then add the handler
+	struct sigaction action = {};
+
+	action.sa_handler = fuse_exit_signal_received;
+	// initialize the mask to be empty
+	int empty_set_result = sigemptyset(&action.sa_mask);
+	sigaddset(&action.sa_mask, SIGNAL_FOR_FUSE_EXIT_REQUEST);
+
+	struct sigaction old_sa = {};
+
+	int result_act = sigaction(SIGNAL_FOR_FUSE_EXIT_REQUEST, &action, &old_sa);
+	if(result_act < 0 || empty_set_result < 0) {
+		return false;
+	}
+
+	g_signal_state = (GlobalSignalState){ .old_sa = old_sa, .session = session };
+
+	return true;
+}
+
+static void remove_signals(void) {
+
+	const struct sigaction old_sa = g_signal_state.old_sa;
+
+	sigaction(SIGNAL_FOR_FUSE_EXIT_REQUEST, &old_sa, NULL);
+
+	g_signal_state = (GlobalSignalState){ .old_sa = {}, .session = NULL };
+}
+
 // runs on a new thread
 [[nodiscard]] static FuseHandleResult fuse_start_fn(UserData* const handle) {
 
@@ -538,6 +589,13 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 		return THREAD_ERROR;
 	}
 
+	// setup signals, this accesses global data
+	bool signal_res = setup_signals(session);
+
+	if(!signal_res) {
+		return THREAD_ERROR;
+	}
+
 	// loop until we are finished
 
 	/* Block until SIGINT  or fuse_session_exit */
@@ -546,6 +604,8 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 	fuse_session_unmount(session);
 
 	fuse_remove_signal_handlers(session);
+
+	remove_signals();
 
 	fuse_session_destroy(session);
 
@@ -834,6 +894,10 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 	#undef FREE_AT_END
 
+[[nodiscard]] static int request_process_fuse_exit(pid_t pid) {
+	return kill(pid, SIGNAL_FOR_FUSE_EXIT_REQUEST);
+}
+
 [[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
 	switch(handle->fuse_state.type) {
 		case FuseStateTypeUninitialized: {
@@ -844,14 +908,18 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		}
 		case FuseStateTypeInitializedOk: {
 
-			struct fuse_session* session = handle->fuse_state.data.ok;
+			// TODO: never share the ssession, it is process or thread local to the handle!
+			// struct fuse_session* session = handle->fuse_state.data.ok;
 
-			if(session == NULL) {
-				return false;
-			}
+			/* if(session == NULL) {
+			    return false;
+			} */
 
 			// first exit the session, this is thread safe
-			fuse_session_exit(session);
+			int result = request_process_fuse_exit(handle->handler_process);
+			if(result != 0) {
+				return false;
+			}
 
 			// now force the blocking function to wake up
 			int pthread_res = kill(handle->handler_process, SIGPIPE);
@@ -860,7 +928,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 			}
 
 			int return_status = 0;
-			int result = waitpid(handle->handler_process, &return_status, 0);
+			result = waitpid(handle->handler_process, &return_status, 0);
 			if(result != handle->handler_process) {
 				return false;
 			}
