@@ -8,6 +8,8 @@ test_src += files(
     'cpp_types.hpp',
     'fuse_impl.c',
     'fuse_impl.h',
+    'fuse_impl_run.c',
+    'fuse_impl_run.h',
     'generic.cpp',
     'generic.hpp',
     'helpers.hpp',
