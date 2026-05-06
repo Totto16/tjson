@@ -31,7 +31,6 @@ typedef struct {
 	FuseStateType type;
 	union {
 		tstr_static error;
-		struct fuse_session* ok;
 	} data;
 } FuseState;
 
@@ -43,15 +42,15 @@ typedef struct {
 	return (FuseState){ .type = FuseStateTypeInitializedErr, .data = { .error = error } };
 }
 
-[[nodiscard]] static inline FuseState fuse_state_ok(struct fuse_session* fuse_session) {
-	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = { .ok = fuse_session } };
+[[nodiscard]] static inline FuseState fuse_state_ok(void) {
+	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = {} };
 }
 
 // Define the type, that we run fuse in, 0 means another thread, 1 means another process
 #define FUSE_RUN_FILESYSTEM_IN 1
 
 // see https://github.com/libfuse/libfuse/issues/410
-// obn why this is necessary
+// on why this is necessary
 
 #if !defined(FUSE_RUN_FILESYSTEM_IN)
 	#error "need 'FUSE_RUN_FILESYSTEM_IN' to be defined"
@@ -567,6 +566,13 @@ static void remove_signals(void) {
 
 	struct fuse_session* session = fuse_initialize_impl(handle, &dummy_args, &error);
 
+	// setup signals, this accesses global data
+	bool signal_res = setup_signals(session);
+
+	if(!signal_res) {
+		return THREAD_ERROR;
+	}
+
 	FuseState state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
 
 	if(session == NULL) {
@@ -576,7 +582,7 @@ static void remove_signals(void) {
 			state = fuse_state_error(error);
 		}
 	} else {
-		state = fuse_state_ok(session);
+		state = fuse_state_ok();
 	}
 
 	bool state_success = fuse_state_set(handle->run_in, state);
@@ -586,13 +592,6 @@ static void remove_signals(void) {
 	}
 
 	if(session == NULL) {
-		return THREAD_ERROR;
-	}
-
-	// setup signals, this accesses global data
-	bool signal_res = setup_signals(session);
-
-	if(!signal_res) {
 		return THREAD_ERROR;
 	}
 
@@ -767,14 +766,11 @@ struct FuseRunHandleImpl {
 		}
 		case FuseStateTypeInitializedOk: {
 
-			struct fuse_session* session = handle->fuse_state.data.ok;
-
-			if(session == NULL) {
+			// first exit the session, signal that via a signal
+			int result = pthread_kill(handle->handler_thread, SIGNAL_FOR_FUSE_EXIT_REQUEST);
+			if(result != 0) {
 				return false;
 			}
-
-			// first exit the session, this is thread safe
-			fuse_session_exit(session);
 
 			// now force the blocking function to wake up
 			int pthread_res = pthread_kill(handle->handler_thread, SIGPIPE);
@@ -783,7 +779,7 @@ struct FuseRunHandleImpl {
 			}
 
 			FuseHandleResult return_value = THREAD_SUCCESS;
-			int result = pthread_join(handle->handler_thread, &return_value);
+			result = pthread_join(handle->handler_thread, &return_value);
 			if(result != 0) {
 				return false;
 			}
@@ -894,10 +890,6 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 	#undef FREE_AT_END
 
-[[nodiscard]] static int request_process_fuse_exit(pid_t pid) {
-	return kill(pid, SIGNAL_FOR_FUSE_EXIT_REQUEST);
-}
-
 [[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
 	switch(handle->fuse_state.type) {
 		case FuseStateTypeUninitialized: {
@@ -908,15 +900,8 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		}
 		case FuseStateTypeInitializedOk: {
 
-			// TODO: never share the ssession, it is process or thread local to the handle!
-			// struct fuse_session* session = handle->fuse_state.data.ok;
-
-			/* if(session == NULL) {
-			    return false;
-			} */
-
-			// first exit the session, this is thread safe
-			int result = request_process_fuse_exit(handle->handler_process);
+			// first exit the session, signal that via a signal
+			int result = kill(handle->handler_process, SIGNAL_FOR_FUSE_EXIT_REQUEST);
 			if(result != 0) {
 				return false;
 			}
