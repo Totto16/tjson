@@ -672,14 +672,29 @@ using MockFileTest = std::tuple<JsonParseResultCpp, MockFileSystem, std::string>
 	return tests;
 }
 
-TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
-
+[[nodiscard]] static std::filesystem::path get_test_file_root() {
 	std::filesystem::path test_file_root = std::filesystem::current_path();
 
 	if(!std::filesystem::exists(test_file_root)) {
 		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
 			                      test_file_root.string() };
 	}
+
+	if(!std::filesystem::exists((test_file_root / "inputs"))) {
+		test_file_root = test_file_root / "tests" / "files";
+	}
+
+	if(!std::filesystem::exists(test_file_root)) {
+		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
+			                      test_file_root.string() };
+	}
+
+	return test_file_root;
+}
+
+TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
+
+	std::filesystem::path test_file_root = get_test_file_root();
 
 	// just here as a dummy tstr_view
 	const tstr dummy_file = TSTR_LIT("__dummy_file__impl__");
