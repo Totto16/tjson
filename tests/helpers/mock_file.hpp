@@ -25,16 +25,39 @@ struct TempDir {
 	~TempDir() noexcept(false);
 };
 
+struct FuseFilesArrayC {
+  public:
+	using FileData = std::string;
+
+  private:
+	FuseFile* m_files;
+	size_t m_size;
+
+  public:
+	FuseFilesArrayC(const std::vector<std::pair<std::string, FileData>>&);
+
+	[[nodiscard]] FuseFile* data() const;
+
+	[[nodiscard]] size_t size() const;
+
+	FuseFilesArrayC(FuseFilesArrayC const&) = delete;
+	FuseFilesArrayC& operator=(FuseFilesArrayC const&) = delete;
+
+	FuseFilesArrayC(FuseFilesArrayC&&) noexcept;
+	FuseFilesArrayC& operator=(FuseFilesArrayC&&) noexcept;
+
+	~FuseFilesArrayC();
+};
+
 struct MockFileSystem {
   public:
 	using FileData = std::string;
-	using Data = std::vector<FuseFile>;
+	using Data = FuseFilesArrayC;
 
   private:
 	FUSEHandle* m_handle;
 	TempDir m_temp_dir;
-	std::vector<std::pair<std::string, FileData>> m_data;
-	Data m_data_view_c;
+	Data m_data_c;
 
   public:
 	MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&&);

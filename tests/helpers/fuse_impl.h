@@ -22,12 +22,12 @@ typedef struct {
 } FuseCreateResult;
 
 typedef struct {
-	const void* data;
+	void* data;
 	size_t size;
 } FuseBuffer;
 
 typedef struct {
-	const char* name;
+	char* name;
 	FuseBuffer content;
 } FuseFile;
 

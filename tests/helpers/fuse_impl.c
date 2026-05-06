@@ -48,34 +48,142 @@ struct FUSEHandleImpl {
 	FuseState fuse_state;
 };
 
+typedef FUSEHandle UserData;
+
 // TODO: remove
 #define UNUSED(v) ((void)(v))
 
 static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
-	// TODO: is this correct
 
 	(void)userdata;
 
 	// Disable the receiving and processing of FUSE_INTERRUPT requests
 	conn->no_interrupt = 1;
+}
 
-	// Test setting flags the old way
-	// TODO
-	//  conn->want = FUSE_CAP_ASYNC_READ;
-	//  conn->want &= ~FUSE_CAP_ASYNC_READ;
+#define INO_ROOT_FOLDER 1
+#define INO_START_FILES 2
+
+[[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf) {
+	stbuf->st_ino = ino;
+	switch(ino) {
+		case INO_ROOT_FOLDER: {
+
+			struct fuse_context* ctx = fuse_get_context();
+
+			UserData* handle = ctx->private_data;
+
+			stbuf->st_mode = S_IFDIR | 0755;
+			stbuf->st_nlink = 1 + handle->files_size;
+			break;
+		}
+
+		default: return -1;
+	}
+	return 0;
+}
+
+[[nodiscard]] static int stat_helper_file_impl(fuse_ino_t ino, struct stat* stbuf,
+                                               const FuseBuffer* const buf) {
+	stbuf->st_ino = ino;
+	switch(ino) {
+		case INO_ROOT_FOLDER: return -1;
+
+		default: {
+			stbuf->st_mode = S_IFREG | 0444;
+			stbuf->st_nlink = 1;
+			stbuf->st_size = (off_t)buf->size;
+			break;
+		}
+	}
+	return 0;
+}
+
+static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf) {
+	stbuf->st_ino = ino;
+	switch(ino) {
+		case 1: return stat_helper_folder_impl(ino, stbuf);
+
+		default: {
+			if(ino <= INO_ROOT_FOLDER) {
+				return -1;
+			}
+
+			struct fuse_context* ctx = fuse_get_context();
+
+			UserData* handle = ctx->private_data;
+
+			if(ino >= INO_START_FILES + handle->files_size) {
+				return -1;
+			}
+
+			const size_t i = ino - INO_START_FILES;
+
+			if(i >= handle->files_size) {
+				fuse_log(FUSE_LOG_EMERG,
+				         "ino calculation implementation error: %zu is out of bounds %zu\n", i,
+				         handle->files_size);
+				return -1;
+			}
+
+			const FuseFile file = handle->files[i];
+
+			return stat_helper_file_impl(ino, stbuf, &file.content);
+		}
+	}
+	return 0;
 }
 
 static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
-	// TODO
-	UNUSED(ino);
-	UNUSED(fi);
-	fuse_reply_err(req, ENOENT);
+	fuse_log(FUSE_LOG_DEBUG, "getattr called\n");
+
+	struct stat stbuf;
+
+	(void)fi;
+
+	memset(&stbuf, 0, sizeof(stbuf));
+	if(stat_helper_ino_impl(ino, &stbuf) == -1) {
+		fuse_reply_err(req, ENOENT);
+	} else {
+		fuse_reply_attr(req, &stbuf, 1.0);
+	}
 }
 
 static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
-	// TODO
-	UNUSED(parent);
-	UNUSED(name);
+	fuse_log(FUSE_LOG_DEBUG, "lookup called\n");
+
+	if(parent != INO_ROOT_FOLDER) {
+		// the top level directory, where we mounted is inode 1, we only support files inside
+		// that
+
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	struct fuse_context* ctx = fuse_get_context();
+
+	UserData* handle = ctx->private_data;
+
+	for(size_t i = 0; i < handle->files_size; ++i) {
+		const FuseFile file = handle->files[i];
+		if(strcmp(name, file.name) != 0) {
+			struct fuse_entry_param e;
+			memset(&e, 0, sizeof(e));
+			e.ino = INO_START_FILES + i;
+			e.attr_timeout = 1.0;
+			e.entry_timeout = 1.0;
+			if(stat_helper_file_impl(e.ino, &e.attr, &file.content) != 0) {
+				fuse_reply_err(req, ENOENT);
+				fuse_log(FUSE_LOG_DEBUG, "lookup returned error : \n");
+				return;
+			}
+
+			fuse_reply_entry(req, &e);
+			fuse_log(FUSE_LOG_DEBUG, "lookup returned valid file: %s\n", file.name);
+			return;
+		}
+	}
+
 	fuse_reply_err(req, ENOENT);
 }
 
@@ -87,10 +195,15 @@ static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size
 	UNUSED(off);
 	UNUSED(fi);
 
+	fuse_log(FUSE_LOG_DEBUG, "readdir called\n");
+
 	fuse_reply_err(req, ENOTDIR);
 }
 
 static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
+
+	fuse_log(FUSE_LOG_DEBUG, "op_open called\n");
+
 	if(ino != 2)
 		fuse_reply_err(req, EISDIR);
 	else if((fi->flags & O_ACCMODE) != O_RDONLY)
@@ -107,6 +220,8 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 	UNUSED(off);
 	UNUSED(fi);
 
+	fuse_log(FUSE_LOG_DEBUG, "op_read called\n");
+
 	fuse_reply_err(req, ENODEV);
 }
 
@@ -117,6 +232,8 @@ static void fuse_lowlevel_op_getxattr(fuse_req_t req, fuse_ino_t ino, const char
 	UNUSED(ino);
 	UNUSED(size);
 	UNUSED(name);
+
+	fuse_log(FUSE_LOG_DEBUG, "getxattr called\n");
 
 	fuse_reply_err(req, ENOTSUP);
 }
@@ -131,6 +248,8 @@ static void fuse_lowlevel_op_setxattr(fuse_req_t req, fuse_ino_t ino, const char
 	UNUSED(value);
 	UNUSED(flags);
 
+	fuse_log(FUSE_LOG_DEBUG, "setxattr called\n");
+
 	fuse_reply_err(req, ENOTSUP);
 }
 
@@ -138,6 +257,8 @@ static void fuse_lowlevel_op_removexattr(fuse_req_t req, fuse_ino_t ino, const c
 	// TODO
 	UNUSED(ino);
 	UNUSED(name);
+
+	fuse_log(FUSE_LOG_DEBUG, "removexattr called\n");
 
 	fuse_reply_err(req, ENOTSUP);
 }
@@ -154,7 +275,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	.removexattr = fuse_lowlevel_op_removexattr,
 };
 
-[[nodiscard]] static struct fuse_session* fuse_initialize_impl(FUSEHandle* const handle,
+[[nodiscard]] static struct fuse_session* fuse_initialize_impl(UserData* const handle,
                                                                struct fuse_args* const args,
                                                                tstr_static* const error) {
 
@@ -229,7 +350,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 // runs on a new thread
 [[nodiscard]] static void* fuse_thread_fn(void* const thread_arg) {
 
-	FUSEHandle* handle = (FUSEHandle*)thread_arg;
+	FUSEHandle* handle = (UserData*)thread_arg;
 
 	// setup logging
 
@@ -339,7 +460,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 
 	handle->fuse_state = fuse_state_uninitialized();
 
-	result = pthread_create(&(handle->thread), NULL, fuse_thread_fn, handle);
+	result = pthread_create(&(handle->thread), NULL, fuse_thread_fn, (void*)handle);
 
 	if(result != 0) {
 		FREE_AT_END();
