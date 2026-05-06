@@ -32,7 +32,7 @@ typedef struct {
 } FuseFile;
 
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
-                                                    size_t file_amount);
+                                                    size_t file_amount, bool debug);
 
 [[nodiscard]] bool clear_fuse_file(FUSEHandle* handle);
 

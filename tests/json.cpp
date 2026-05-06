@@ -671,21 +671,22 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 	}
 }
 
-using MockFileTest = std::tuple<std::string, MockFileSystem, std::string>;
+using MockFileTest = std::tuple<JsonParseResultCpp, MockFileSystem, std::string>;
 
-[[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests() {
+[[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests(bool debug) {
 	std::vector<MockFileTest> tests = {};
 
 	{
 		const auto file = "test_file";
 
-		tests.emplace_back("TODO", MockFileSystem{ { { file, "[null]" } } }, file);
+		tests.emplace_back(JsonParseResultCpp{ JsonValueCpp::array({ JsonValueCpp::null() }) },
+		                   MockFileSystem{ { { file, "[null]" } }, debug }, file);
 	}
 
 	return tests;
 }
 
-TEST_CASE("testing json file parsing <json_file_parse>") {
+TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
 
 	std::filesystem::path test_file_root = std::filesystem::current_path();
 
@@ -714,17 +715,16 @@ TEST_CASE("testing json file parsing <json_file_parse>") {
 
 	};
 
-	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests();
+	const bool debug = false;
+
+	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
 
 	for(const auto& mock_file_test : mock_file_tests) {
 
 		auto file_path = std::get<1>(mock_file_test).root() / std::get<2>(mock_file_test);
 
-		json_file_test_cases.push_back(JsonFileParseTestCase{
-		    .file = file_path,
-		    .expected = JsonParseResultCpp::unexpected_type{
-		        JsonErrorCpp::with_file_loc(std::string{ std::get<0>(mock_file_test) }, &dummy_file,
-		                                    JsonSourcePosition{ .line = 0, .col = 0 }) } });
+		json_file_test_cases.push_back(
+		    JsonFileParseTestCase{ .file = file_path, .expected = std::get<0>(mock_file_test) });
 	}
 
 	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
@@ -742,7 +742,6 @@ TEST_CASE("testing json file parsing <json_file_parse>") {
 	};
 
 	for(const auto& test_case : json_file_test_cases) {
-
 		INFO("Test case: ", test_case.file);
 
 		std::string defer_str = test_case.file.string();

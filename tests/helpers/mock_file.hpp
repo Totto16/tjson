@@ -9,7 +9,7 @@
 
 struct TempDir {
   private:
-	std::string m_dir;
+	std::unique_ptr<std::string> m_dir;
 
   public:
 	explicit TempDir();
@@ -60,7 +60,7 @@ struct MockFileSystem {
 	Data m_data_c;
 
   public:
-	MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&&);
+	MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&&, bool debug);
 
 	[[nodiscard]] std::filesystem::path root() const;
 

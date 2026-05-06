@@ -46,6 +46,9 @@ struct FUSEHandleImpl {
 	pthread_t thread;
 	//
 	FuseState fuse_state;
+	struct fuse_session* fuse_session;
+	//
+	bool debug;
 };
 
 typedef FUSEHandle UserData;
@@ -371,7 +374,14 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	return session;
 }
 
-static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+static void fuse_log_impl(bool debug, enum fuse_log_level level, const char* fmt, va_list ap) {
+
+	if(!debug) {
+		if(level > FUSE_LOG_WARNING) {
+			return;
+		}
+	}
+
 	switch(level) {
 		case FUSE_LOG_EMERG: {
 			fprintf(stderr, "EMERG: ");
@@ -410,7 +420,15 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 		}
 	}
 	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
+	fflush(stderr);
+}
+
+static void fuse_log_debug_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+	fuse_log_impl(true, level, fmt, ap);
+}
+
+static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+	fuse_log_impl(false, level, fmt, ap);
 }
 
 #define THREAD_SUCCESS ((void*)(20))
@@ -424,7 +442,11 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 
 	// setup logging
 
-	fuse_set_log_func(fuse_log_impl);
+	if(handle->debug) {
+		fuse_set_log_func(fuse_log_debug_impl);
+	} else {
+		fuse_set_log_func(fuse_log_normal_impl);
+	}
 
 	// initialize
 
@@ -459,6 +481,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 		}
 	} else {
 		handle->fuse_state = fuse_state_ok();
+		handle->fuse_session = session;
 	}
 
 	result = pthread_mutex_unlock(&handle->mutex);
@@ -472,7 +495,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 
 	// loop until we are finished
 
-	/* Block until SIGINT */
+	/* Block until SIGINT  or fuse_session_exit*/
 	int ret = fuse_session_loop(session);
 
 	fuse_session_unmount(session);
@@ -486,7 +509,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 			// use free, as we use strdup
 			free(argv[i]);
 		}
-		TJSON_FREE(argv);
+		TJSON_FREE((void*)argv);
 	}
 
 	if(ret != 0) {
@@ -505,7 +528,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 }
 
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
-                                                    size_t file_amount) {
+                                                    size_t file_amount, bool debug) {
 
 	FUSEHandle* handle = (FUSEHandle*)TJSON_MALLOC(sizeof(FUSEHandle));
 
@@ -521,6 +544,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 	handle->dir_path = dir;
 	handle->files = files;
 	handle->files_size = file_amount;
+	handle->debug = debug;
 
 	int result = pthread_mutex_init(&handle->mutex, NULL);
 	if(result != 0) {
@@ -529,6 +553,7 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 	}
 
 	handle->fuse_state = fuse_state_uninitialized();
+	handle->fuse_session = NULL;
 
 	result = pthread_create(&(handle->thread), NULL, fuse_thread_fn, (void*)handle);
 
@@ -582,7 +607,15 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 
 [[nodiscard]] bool clear_fuse_file(FUSEHandle* const handle) {
 
-	int pthread_res = pthread_kill(handle->thread, SIGINT);
+	if(handle->fuse_session == NULL) {
+		return false;
+	}
+
+	// first exit the session, this is thread safe
+	fuse_session_exit(handle->fuse_session);
+
+	// now force the blocking function to wake up
+	int pthread_res = pthread_kill(handle->thread, SIGPIPE);
 	if(pthread_res != 0) {
 		return false;
 	}

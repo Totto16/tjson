@@ -15,43 +15,44 @@ TempDir::TempDir() {
 		throw std::runtime_error{ std::string{ "mkdtemp failed: " } + strerror(errno) };
 	}
 
-	this->m_dir = std::string{ dir_name };
+	this->m_dir = std::make_unique<std::string>(std::string{ dir_name });
 }
 
 [[nodiscard]] const std::string& TempDir::dir() const {
-	return this->m_dir;
+	return *(this->m_dir);
 }
 
 TempDir::~TempDir() noexcept(false) {
-	if(this->m_dir.empty()) {
+	if(this->m_dir == nullptr) {
 		return;
 	}
 
-	const auto res = rmdir(this->m_dir.c_str());
+	const auto res = rmdir(this->m_dir->c_str());
 
 	if(res != 0) {
 		throw std::runtime_error{ std::string{ "rmdir failed: " } + strerror(errno) };
 	}
-	this->m_dir = "";
+	this->m_dir = nullptr;
 }
 
-TempDir::TempDir(TempDir&& other) noexcept : m_dir{ other.m_dir } {
-	other.m_dir = "";
+TempDir::TempDir(TempDir&& other) noexcept : m_dir{ std::move(other.m_dir) } {
+	other.m_dir = nullptr;
 }
 
 TempDir& TempDir::TempDir::operator=(TempDir&& other) noexcept {
 
-	this->m_dir = other.m_dir;
-	other.m_dir = "";
+	this->m_dir = std::move(other.m_dir);
+	other.m_dir = nullptr;
 
 	return *this;
 }
 
-MockFileSystem::MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&& data)
+MockFileSystem::MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&& data,
+                               bool debug)
     : m_handle{ nullptr }, m_temp_dir{}, m_data_c{ std::move(data) } {
 
 	auto result = create_new_fuse_file(this->m_temp_dir.dir().c_str(), this->m_data_c.data(),
-	                                   this->m_data_c.size());
+	                                   this->m_data_c.size(), debug);
 
 	if(result.is_error) {
 		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
