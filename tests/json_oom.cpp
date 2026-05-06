@@ -7,6 +7,8 @@
 
 #include <tjson.h>
 
+#include <tjson_coverage_allocators.h>
+
 #include "helpers/allocators.hpp"
 #include "helpers/string_maker.hpp"
 
@@ -268,6 +270,76 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			    "json array add error", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 2 });
 
 			REQUIRE_EQ(actual_error, expected_error);
+		}();
+	}
+}
+
+namespace {
+struct AllocTest {
+	uint64_t value_1;
+	bool value_2;
+	char value_3[7];
+};
+} // namespace
+
+TEST_CASE("testing oom mock implementation <oom_mock_impl>") {
+
+	SUBCASE("testing fail after") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const std::vector<size_t> fail_amounts = { 1, 30, 200 };
+
+			for(const auto& fail_amount : fail_amounts) {
+
+				const bool mock_res = mock_allocator.calloc().fail_after(fail_amount);
+				REQUIRE_TRUE(mock_res);
+
+				for(size_t i = 0; i < fail_amount; ++i) {
+					AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+
+					REQUIRE_NE(allocated, nullptr);
+					TJSON_FREE(allocated);
+				}
+
+				AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+
+				REQUIRE_EQ(allocated, nullptr);
+			}
+		}();
+	}
+
+	SUBCASE("testing duplicate retireval of handle") {
+		[]() -> void {
+			auto* handle1 = tjson_coverage_allocator_get_handle(AllocatorFunctionTypeMalloc);
+
+			REQUIRE_NE(handle1, nullptr);
+
+			auto* handle2 = tjson_coverage_allocator_get_handle(AllocatorFunctionTypeMalloc);
+
+			REQUIRE_EQ(handle2, nullptr);
+
+			tjson_coverage_allocator_free_handle(handle1);
+		}();
+	}
+
+	SUBCASE("testing recovery with fail never") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const bool mock_res1 = mock_allocator.malloc().always_fail();
+			REQUIRE_TRUE(mock_res1);
+
+			AllocTest* allocated1 = (AllocTest*)TJSON_MALLOC(sizeof(AllocTest));
+
+			REQUIRE_EQ(allocated1, nullptr);
+
+			const bool mock_res2 = mock_allocator.malloc().never_fail();
+			REQUIRE_TRUE(mock_res2);
+
+			AllocTest* allocated2 = (AllocTest*)TJSON_MALLOC(sizeof(AllocTest));
+
+			REQUIRE_NE(allocated2, nullptr);
 		}();
 	}
 }
