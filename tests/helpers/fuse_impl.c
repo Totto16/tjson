@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -66,7 +67,6 @@ typedef uint8_t FuseHandleResult;
 	#define THREAD_SUCCESS ((FuseHandleResult)(0))
 
 	#define THREAD_ERROR ((FuseHandleResult)(1))
-
 #else
 	#error "'FUSE_RUN_FILESYSTEM_IN' can only be 0 or 1"
 #endif
@@ -84,6 +84,10 @@ typedef FuseHandleResult (*FuseHandleFn)(UserData* const data);
 [[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state);
 
 [[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle);
+
+[[nodiscard]] void* allocate_shared(size_t size);
+
+void free_shared(void* data);
 
 typedef struct {
 	const char* dir_path;
@@ -536,7 +540,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 	// loop until we are finished
 
-	/* Block until SIGINT  or fuse_session_exit*/
+	/* Block until SIGINT  or fuse_session_exit */
 	int ret = fuse_session_loop(session);
 
 	fuse_session_unmount(session);
@@ -571,15 +575,15 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
                                                     size_t file_amount, bool debug) {
 
-	FUSEHandle* handle = (FUSEHandle*)malloc(sizeof(FUSEHandle));
+	FUSEHandle* handle = (FUSEHandle*)allocate_shared(sizeof(FUSEHandle));
 
 	if(handle == NULL) {
-		return fuse_create_result_error(TSTR_STATIC_LIT("malloc error"));
+		return fuse_create_result_error(TSTR_STATIC_LIT("allocate error"));
 	}
 
 #define FREE_AT_END() \
 	do { \
-		free(handle); \
+		free_shared(handle); \
 	} while(false)
 
 	handle->state = (FuseStaticState){
@@ -600,7 +604,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 	do { \
 		auto _ = fuse_run_in_deinit(handle->run_in); \
 		(void)_; \
-		free(handle); \
+		free_shared(handle); \
 	} while(false)
 
 	// wait for fuse initialization
@@ -647,7 +651,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 		return false;
 	}
 
-	free(handle);
+	free_shared(handle);
 	return true;
 }
 
@@ -661,7 +665,7 @@ struct FuseRunHandleImpl {
 
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
 
-	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
+	FuseRunHandle* handle = (FuseRunHandle*)allocate_shared(sizeof(FuseRunHandle));
 
 	if(handle == NULL) {
 		return NULL;
@@ -669,10 +673,10 @@ struct FuseRunHandleImpl {
 
 	#define FREE_AT_END() \
 		do { \
-			free(handle); \
+			free_shared(handle); \
 		} while(false)
 
-	int result = pthread_mutex_init(&handle->mutex, NULL);
+	int result = pthread_mutex_init(&(handle->mutex), NULL);
 	if(result != 0) {
 		FREE_AT_END();
 		return NULL;
@@ -735,14 +739,22 @@ struct FuseRunHandleImpl {
 		}
 	}
 
-	int result = pthread_mutex_destroy(&handle->mutex);
+	int result = pthread_mutex_destroy(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
 
-	free(handle);
+	free_shared(handle);
 
 	return true;
+}
+
+[[nodiscard]] void* allocate_shared(size_t size) {
+	return malloc(size);
+}
+
+void free_shared(void* data) {
+	free(data);
 }
 
 #else
@@ -777,7 +789,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
 
-	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
+	FuseRunHandle* handle = (FuseRunHandle*)allocate_shared(sizeof(FuseRunHandle));
 
 	if(handle == NULL) {
 		return NULL;
@@ -785,7 +797,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 	#define FREE_AT_END() \
 		do { \
-			free(handle); \
+			free_shared(handle); \
 		} while(false)
 
 	pthread_mutexattr_t attr = {};
@@ -802,7 +814,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		return NULL;
 	}
 
-	result = pthread_mutex_init(&handle->mutex, &attr);
+	result = pthread_mutex_init(&(handle->mutex), &attr);
 	if(result != 0) {
 		FREE_AT_END();
 		return NULL;
@@ -874,27 +886,65 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		}
 	}
 
-	int result = pthread_mutex_destroy(&handle->mutex);
+	int result = pthread_mutex_destroy(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
 
-	free(handle);
+	free_shared(handle);
 
 	return true;
+}
+
+typedef struct {
+	size_t length;
+} SharedAllocHeader;
+
+static_assert((sizeof(SharedAllocHeader) % 8) == 0);
+
+[[nodiscard]] void* allocate_shared(size_t size) {
+
+	const size_t length = sizeof(SharedAllocHeader) + size;
+
+	void* ptr = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+	if(ptr == MAP_FAILED) {
+		return NULL;
+	}
+
+	SharedAllocHeader* header = (SharedAllocHeader*)ptr;
+
+	*header = (SharedAllocHeader){ .length = length };
+
+	return (void*)(header + 1);
+}
+
+void free_shared(void* data) {
+
+	SharedAllocHeader* header = (((SharedAllocHeader*)data) - 1);
+
+	size_t length = header->length;
+
+	int result = munmap((void*)header, length);
+
+	if(result != 0) {
+		// TODO: handle error
+		fprintf(stderr, "ERROR in munmap: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 }
 
 #endif
 
 [[nodiscard]] bool fuse_state_set(FuseRunHandle* const handle, FuseState state) {
-	int result = pthread_mutex_lock(&handle->mutex);
+	int result = pthread_mutex_lock(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
 
 	handle->fuse_state = state;
 
-	result = pthread_mutex_unlock(&handle->mutex);
+	result = pthread_mutex_unlock(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
@@ -903,14 +953,14 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 }
 
 [[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state) {
-	int result = pthread_mutex_lock(&handle->mutex);
+	int result = pthread_mutex_lock(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
 
 	*state = handle->fuse_state;
 
-	result = pthread_mutex_unlock(&handle->mutex);
+	result = pthread_mutex_unlock(&(handle->mutex));
 	if(result != 0) {
 		return false;
 	}
