@@ -18,7 +18,7 @@ TempDir::TempDir() {
 	this->m_dir = std::string{ dir_name };
 }
 
-[[nodiscard]] std::filesystem::path TempDir::dir() const {
+[[nodiscard]] const std::string& TempDir::dir() const {
 	return this->m_dir;
 }
 
@@ -27,7 +27,7 @@ TempDir::~TempDir() noexcept(false) {
 		return;
 	}
 
-	const auto res = rmdir(this->m_dir.string().c_str());
+	const auto res = rmdir(this->m_dir.c_str());
 
 	if(res != 0) {
 		throw std::runtime_error{ std::string{ "rmdir failed: " } + strerror(errno) };
@@ -47,12 +47,20 @@ TempDir& TempDir::TempDir::operator=(TempDir&& other) noexcept {
 	return *this;
 }
 
-MockFile::MockFile(MockFile::Data&& data)
-    : m_handle{ nullptr }, m_temp_dir{}, m_temp_file{}, m_data{ std::move(data) } {
+MockFileSystem::MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&& data_cpp)
+    : m_handle{ nullptr }, m_temp_dir{}, m_data{ std::move(data_cpp) }, m_data_view_c{} {
 
-	this->m_temp_file = (this->m_temp_dir.dir() / "fuse_file").string();
+	this->m_data_view_c = std::vector<FuseFile>{};
+	this->m_data_view_c.reserve(data_cpp.size());
 
-	auto result = create_new_fuse_file(this->m_temp_file.c_str(), m_data.c_str(), m_data.size());
+	for(const auto& data : this->m_data) {
+		this->m_data_view_c.emplace_back(
+		    FuseFile{ .name = data.first.c_str(),
+		              .content = { .data = data.second.c_str(), .size = data.second.size() } });
+	}
+
+	auto result = create_new_fuse_file(this->m_temp_dir.dir().c_str(), this->m_data_view_c.data(),
+	                                   this->m_data_view_c.size());
 
 	if(result.is_error) {
 		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
@@ -66,11 +74,11 @@ MockFile::MockFile(MockFile::Data&& data)
 	}
 }
 
-[[nodiscard]] std::filesystem::path MockFile::file_path() const {
-	return std::filesystem::path{ this->m_temp_file };
+[[nodiscard]] std::filesystem::path MockFileSystem::root() const {
+	return this->m_temp_dir.dir();
 }
 
-MockFile::~MockFile() noexcept(false) {
+MockFileSystem::~MockFileSystem() noexcept(false) {
 	if(this->m_handle == nullptr) {
 		return;
 	}
@@ -83,20 +91,20 @@ MockFile::~MockFile() noexcept(false) {
 	this->m_temp_dir.~TempDir();
 }
 
-MockFile::MockFile(MockFile&& other) noexcept
+MockFileSystem::MockFileSystem(MockFileSystem&& other) noexcept
     : m_handle{ other.m_handle }, m_temp_dir{ std::move(other.m_temp_dir) },
-      m_temp_file{ std::move(other.m_temp_file) }, m_data{ std::move(other.m_data) } {
+      m_data{ std::move(other.m_data) }, m_data_view_c{ std::move(other.m_data_view_c) } {
 	other.m_handle = nullptr;
 }
 
-MockFile& MockFile::MockFile::operator=(MockFile&& other) noexcept {
+MockFileSystem& MockFileSystem::MockFileSystem::operator=(MockFileSystem&& other) noexcept {
 
 	this->m_handle = other.m_handle;
 	other.m_handle = nullptr;
 
 	this->m_temp_dir = std::move(other.m_temp_dir);
-	this->m_temp_file = std::move(other.m_temp_file);
 	this->m_data = std::move(other.m_data);
+	this->m_data_view_c = std::move(other.m_data_view_c);
 
 	return *this;
 }

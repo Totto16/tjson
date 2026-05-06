@@ -671,10 +671,16 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 	}
 }
 
-[[nodiscard]] static std::vector<std::pair<std::string, MockFile>> get_mock_file_tests() {
-	std::vector<std::pair<std::string, MockFile>> tests = {};
+using MockFileTest = std::tuple<std::string, MockFileSystem, std::string>;
 
-	tests.emplace_back("TODO", MockFile{ "none" });
+[[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests() {
+	std::vector<MockFileTest> tests = {};
+
+	{
+		const auto file = "test_file";
+
+		tests.emplace_back("TODO", MockFileSystem{ { { file, "[null]" } } }, file);
+	}
 
 	return tests;
 }
@@ -708,13 +714,16 @@ TEST_CASE("testing json file parsing <json_file_parse>") {
 
 	};
 
-	std::vector<std::pair<std::string, MockFile>> mock_file_tests = get_mock_file_tests();
+	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests();
 
 	for(const auto& mock_file_test : mock_file_tests) {
+
+		auto file_path = std::get<1>(mock_file_test).root() / std::get<2>(mock_file_test);
+
 		json_file_test_cases.push_back(JsonFileParseTestCase{
-		    .file = mock_file_test.second.file_path(),
+		    .file = file_path,
 		    .expected = JsonParseResultCpp::unexpected_type{
-		        JsonErrorCpp::with_file_loc(std::string{ mock_file_test.first }, &dummy_file,
+		        JsonErrorCpp::with_file_loc(std::string{ std::get<0>(mock_file_test) }, &dummy_file,
 		                                    JsonSourcePosition{ .line = 0, .col = 0 }) } });
 	}
 

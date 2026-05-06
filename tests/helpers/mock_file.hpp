@@ -2,47 +2,50 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
+#include <vector>
 
 #include "./fuse_impl.h"
 
 struct TempDir {
   private:
-	std::filesystem::path m_dir;
+	std::string m_dir;
 
   public:
 	explicit TempDir();
 
-	[[nodiscard]] std::filesystem::path dir() const;
+	[[nodiscard]] const std::string& dir() const;
 
 	TempDir(TempDir const&) = delete;
 	TempDir& operator=(TempDir const&) = delete;
 
-	TempDir(TempDir&&) noexcept ;
-	TempDir& operator=(TempDir&&) noexcept ;
+	TempDir(TempDir&&) noexcept;
+	TempDir& operator=(TempDir&&) noexcept;
 
 	~TempDir() noexcept(false);
 };
 
-struct MockFile {
+struct MockFileSystem {
   public:
-	using Data = std::string;
+	using FileData = std::string;
+	using Data = std::vector<FuseFile>;
 
   private:
 	FUSEHandle* m_handle;
 	TempDir m_temp_dir;
-	std::string m_temp_file;
-	Data m_data;
+	std::vector<std::pair<std::string, FileData>> m_data;
+	Data m_data_view_c;
 
   public:
-	explicit MockFile(Data&& data);
+	MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&&);
 
-	[[nodiscard]] std::filesystem::path file_path() const;
+	[[nodiscard]] std::filesystem::path root() const;
 
-	MockFile(MockFile const&) = delete;
-	MockFile& operator=(MockFile const&) = delete;
+	MockFileSystem(MockFileSystem const&) = delete;
+	MockFileSystem& operator=(MockFileSystem const&) = delete;
 
-	MockFile(MockFile&&) noexcept;
-	MockFile& operator=(MockFile&&) noexcept;
+	MockFileSystem(MockFileSystem&&) noexcept;
+	MockFileSystem& operator=(MockFileSystem&&) noexcept;
 
-	~MockFile() noexcept(false);
+	~MockFileSystem() noexcept(false);
 };

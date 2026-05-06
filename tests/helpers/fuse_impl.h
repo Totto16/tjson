@@ -21,8 +21,18 @@ typedef struct {
 	} data;
 } FuseCreateResult;
 
-[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* file, const void* data,
-                                                    size_t data_size);
+typedef struct {
+	const void* data;
+	size_t size;
+} FuseBuffer;
+
+typedef struct {
+	const char* name;
+	FuseBuffer content;
+} FuseFile;
+
+[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
+                                                    size_t file_amount);
 
 [[nodiscard]] bool clear_fuse_file(FUSEHandle* handle);
 

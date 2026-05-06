@@ -11,11 +11,6 @@
 
 #include <fuse3/fuse_lowlevel.h>
 
-typedef struct {
-	const void* data;
-	size_t size;
-} Buffer;
-
 typedef enum {
 	FuseStateTypeUninitialized = 0,
 	FuseStateTypeInitializedOk,
@@ -43,8 +38,9 @@ typedef struct {
 }
 
 struct FUSEHandleImpl {
-	const char* file_path;
-	Buffer content;
+	const char* dir_path;
+	const FuseFile* files;
+	size_t files_size;
 	//
 	pthread_mutex_t mutex;
 	pthread_t thread;
@@ -175,7 +171,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 		return NULL;
 	}
 
-	if(fuse_session_mount(session, handle->file_path) != 0) {
+	if(fuse_session_mount(session, handle->dir_path) != 0) {
 		*error = TSTR_STATIC_LIT("session mount failed");
 		return NULL;
 	}
@@ -317,8 +313,8 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 	return (FuseCreateResult){ .is_error = false, .data = { .ok = ok } };
 }
 
-[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* const file, const void* const data,
-                                                    const size_t data_size) {
+[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
+                                                    size_t file_amount) {
 
 	FUSEHandle* handle = (FUSEHandle*)TJSON_MALLOC(sizeof(FUSEHandle));
 
@@ -331,8 +327,9 @@ static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap
 	} while(false)
 	}
 
-	handle->file_path = file;
-	handle->content = (Buffer){ .data = data, .size = data_size };
+	handle->dir_path = dir;
+	handle->files = files;
+	handle->files_size = file_amount;
 
 	int result = pthread_mutex_init(&handle->mutex, NULL);
 	if(result != 0) {
