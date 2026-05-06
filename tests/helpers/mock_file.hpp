@@ -17,8 +17,8 @@ struct TempDir {
 	TempDir(TempDir const&) = delete;
 	TempDir& operator=(TempDir const&) = delete;
 
-	TempDir(TempDir&&) noexcept = delete;
-	TempDir& operator=(TempDir&&) noexcept = delete;
+	TempDir(TempDir&&) noexcept ;
+	TempDir& operator=(TempDir&&) noexcept ;
 
 	~TempDir() noexcept(false);
 };
@@ -41,8 +41,8 @@ struct MockFile {
 	MockFile(MockFile const&) = delete;
 	MockFile& operator=(MockFile const&) = delete;
 
-	MockFile(MockFile&&) noexcept = delete;
-	MockFile& operator=(MockFile&&) noexcept = delete;
+	MockFile(MockFile&&) noexcept;
+	MockFile& operator=(MockFile&&) noexcept;
 
 	~MockFile() noexcept(false);
 };

@@ -674,7 +674,7 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 [[nodiscard]] static std::vector<std::pair<std::string, MockFile>> get_mock_file_tests() {
 	std::vector<std::pair<std::string, MockFile>> tests = {};
 
-	//
+	tests.emplace_back("TODO", MockFile{ "none" });
 
 	return tests;
 }

@@ -1,6 +1,6 @@
-#include "./fuse_impl.h"
-
 #include <allocator.h>
+
+#include "./fuse_impl.h"
 
 #include <errno.h>
 #include <pthread.h>
@@ -17,10 +17,30 @@ typedef struct {
 } Buffer;
 
 typedef enum {
-	FuseStateUninitialized = 0,
-	FuseStateInitializedOk,
-	FuseStateInitializedErr,
+	FuseStateTypeUninitialized = 0,
+	FuseStateTypeInitializedOk,
+	FuseStateTypeInitializedErr,
+} FuseStateType;
+
+// manual "variant", but only used internally, so it's fine
+typedef struct {
+	FuseStateType type;
+	union {
+		tstr_static error;
+	} data;
 } FuseState;
+
+[[nodiscard]] static inline FuseState fuse_state_uninitialized(void) {
+	return (FuseState){ .type = FuseStateTypeUninitialized, .data = {} };
+}
+
+[[nodiscard]] static inline FuseState fuse_state_error(tstr_static const error) {
+	return (FuseState){ .type = FuseStateTypeInitializedErr, .data = { .error = error } };
+}
+
+[[nodiscard]] static inline FuseState fuse_state_ok(void) {
+	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = {} };
+}
 
 struct FUSEHandleImpl {
 	const char* file_path;
@@ -138,26 +158,31 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	.removexattr = fuse_lowlevel_op_removexattr,
 };
 
-[[nodiscard]] static struct fuse_session* fuse_initialize_impl(FUSEHandle* const handle) {
+[[nodiscard]] static struct fuse_session* fuse_initialize_impl(FUSEHandle* const handle,
+                                                               tstr_static* const error) {
 
 	struct fuse_args dummy_args = { .argc = 0, .argv = NULL, .allocated = (int)false };
 
-	struct fuse_session* se = fuse_session_new(&dummy_args, &fuse_lowlevel_operations,
-	                                           sizeof(fuse_lowlevel_operations), (void*)handle);
+	struct fuse_session* session = fuse_session_new(
+	    &dummy_args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)handle);
 
-	if(se == NULL) {
+	if(session == NULL) {
+		*error = TSTR_STATIC_LIT("session new failed");
 		return NULL;
 	}
 
-	if(fuse_set_signal_handlers(se) != 0) {
+	if(fuse_set_signal_handlers(session) != 0) {
+		*error = TSTR_STATIC_LIT("setting signal handlers failed");
 		return NULL;
 	}
 
-	if(fuse_session_mount(se, handle->file_path) != 0) {
+	if(fuse_session_mount(session, handle->file_path) != 0) {
+		*error = TSTR_STATIC_LIT("session mount failed");
 		return NULL;
 	}
 
-	return se;
+	*error = tstr_static_null();
+	return session;
 }
 
 #define THREAD_SUCCESS ((void*)(20))
@@ -169,14 +194,23 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 
 	FUSEHandle* handle = (FUSEHandle*)thread_arg;
 
-	struct fuse_session* session = fuse_initialize_impl(handle);
+	tstr_static error = tstr_static_null();
+
+	struct fuse_session* session = fuse_initialize_impl(handle, &error);
 
 	int result = pthread_mutex_lock(&handle->mutex);
 	if(result != 0) {
 		return THREAD_ERROR;
 	}
-
-	handle->fuse_state = session == NULL ? FuseStateInitializedErr : FuseStateInitializedOk;
+	if(session == NULL) {
+		if(tstr_static_is_null(error)) {
+			handle->fuse_state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
+		} else {
+			handle->fuse_state = fuse_state_error(error);
+		}
+	} else {
+		handle->fuse_state = fuse_state_ok();
+	}
 
 	result = pthread_mutex_unlock(&handle->mutex);
 	if(result != 0) {
@@ -205,13 +239,21 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	return THREAD_SUCCESS;
 }
 
-[[nodiscard]] FUSEHandle* create_new_fuse_file(const char* const file, const void* const data,
-                                               const size_t data_size) {
+[[nodiscard]] static inline FuseCreateResult fuse_create_result_error(tstr_static const error) {
+	return (FuseCreateResult){ .is_error = true, .data = { .error = error } };
+}
+
+[[nodiscard]] static inline FuseCreateResult fuse_create_result_ok(FUSEHandle* const ok) {
+	return (FuseCreateResult){ .is_error = false, .data = { .ok = ok } };
+}
+
+[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* const file, const void* const data,
+                                                    const size_t data_size) {
 
 	FUSEHandle* handle = (FUSEHandle*)TJSON_MALLOC(sizeof(FUSEHandle));
 
 	if(handle == NULL) {
-		return NULL;
+		return fuse_create_result_error(TSTR_STATIC_LIT("malloc error"));
 
 #define FREE_AT_END() \
 	do { \
@@ -225,53 +267,57 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	int result = pthread_mutex_init(&handle->mutex, NULL);
 	if(result != 0) {
 		FREE_AT_END();
-		return NULL;
+		return fuse_create_result_error(TSTR_STATIC_LIT("mutex init error"));
 	}
 
-	handle->fuse_state = FuseStateUninitialized;
+	handle->fuse_state = fuse_state_uninitialized();
 
 	result = pthread_create(&(handle->thread), NULL, fuse_thread_fn, handle);
 
 	if(result != 0) {
 		FREE_AT_END();
-		return NULL;
+		return fuse_create_result_error(TSTR_STATIC_LIT("pthread create error"));
 	}
 
 	// wait for fuse initialization
 
 	{
 
-		FuseState state = FuseStateUninitialized;
+		FuseState state = fuse_state_uninitialized();
 
-		while(state == FuseStateUninitialized) {
+		while(state.type == FuseStateTypeUninitialized) {
 
 			result = pthread_mutex_lock(&handle->mutex);
 			if(result != 0) {
 				FREE_AT_END();
-				return NULL;
+				return fuse_create_result_error(TSTR_STATIC_LIT("mutex lock error"));
 			}
 
 			const FuseState new_state = handle->fuse_state;
 
-			if(new_state != FuseStateUninitialized) {
+			if(new_state.type != FuseStateTypeUninitialized) {
 				state = new_state;
 			}
 
 			result = pthread_mutex_unlock(&handle->mutex);
 			if(result != 0) {
 				FREE_AT_END();
-				return NULL;
+				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
 			}
 		}
 
-		if(state != FuseStateInitializedOk) {
+		if(state.type != FuseStateTypeInitializedOk) {
 
 			FREE_AT_END();
-			return NULL;
+			if(state.type == FuseStateTypeInitializedErr) {
+				return fuse_create_result_error(state.data.error);
+			} else {
+				return fuse_create_result_error(TSTR_STATIC_LIT("invalid fuse state"));
+			}
 		}
 	}
 
-	return handle;
+	return fuse_create_result_ok(handle);
 }
 
 #undef FREE_AT_END

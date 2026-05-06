@@ -1,3 +1,4 @@
+#include "./cpp_types.hpp"
 
 #include "./mock_file.hpp"
 
@@ -22,11 +23,28 @@ TempDir::TempDir() {
 }
 
 TempDir::~TempDir() noexcept(false) {
+	if(this->m_dir.empty()) {
+		return;
+	}
+
 	const auto res = rmdir(this->m_dir.string().c_str());
 
 	if(res != 0) {
 		throw std::runtime_error{ std::string{ "rmdir failed: " } + strerror(errno) };
 	}
+	this->m_dir = "";
+}
+
+TempDir::TempDir(TempDir&& other) noexcept : m_dir{ other.m_dir } {
+	other.m_dir = "";
+}
+
+TempDir& TempDir::TempDir::operator=(TempDir&& other) noexcept {
+
+	this->m_dir = other.m_dir;
+	other.m_dir = "";
+
+	return *this;
 }
 
 MockFile::MockFile(MockFile::Data&& data)
@@ -34,10 +52,17 @@ MockFile::MockFile(MockFile::Data&& data)
 
 	this->m_temp_file = (this->m_temp_dir.dir() / "fuse_file").string();
 
-	this->m_handle = create_new_fuse_file(this->m_temp_file.c_str(), m_data.c_str(), m_data.size());
+	auto result = create_new_fuse_file(this->m_temp_file.c_str(), m_data.c_str(), m_data.size());
+
+	if(result.is_error) {
+		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
+		                         string_from_tstr_static(result.data.error));
+	}
+
+	this->m_handle = result.data.ok;
 
 	if(this->m_handle == nullptr) {
-		throw std::runtime_error("Couldn't create fuse file");
+		throw std::runtime_error("Couldn't create fuse file: ok returned nullptr");
 	}
 }
 
@@ -56,4 +81,22 @@ MockFile::~MockFile() noexcept(false) {
 	this->m_handle = nullptr;
 
 	this->m_temp_dir.~TempDir();
+}
+
+MockFile::MockFile(MockFile&& other) noexcept
+    : m_handle{ other.m_handle }, m_temp_dir{ std::move(other.m_temp_dir) },
+      m_temp_file{ std::move(other.m_temp_file) }, m_data{ std::move(other.m_data) } {
+	other.m_handle = nullptr;
+}
+
+MockFile& MockFile::MockFile::operator=(MockFile&& other) noexcept {
+
+	this->m_handle = other.m_handle;
+	other.m_handle = nullptr;
+
+	this->m_temp_dir = std::move(other.m_temp_dir);
+	this->m_temp_file = std::move(other.m_temp_file);
+	this->m_data = std::move(other.m_data);
+
+	return *this;
 }
