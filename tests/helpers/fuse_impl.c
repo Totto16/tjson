@@ -159,12 +159,11 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 };
 
 [[nodiscard]] static struct fuse_session* fuse_initialize_impl(FUSEHandle* const handle,
+                                                               struct fuse_args* const args,
                                                                tstr_static* const error) {
 
-	struct fuse_args dummy_args = { .argc = 0, .argv = NULL, .allocated = (int)false };
-
 	struct fuse_session* session = fuse_session_new(
-	    &dummy_args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)handle);
+	    args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)handle);
 
 	if(session == NULL) {
 		*error = TSTR_STATIC_LIT("session new failed");
@@ -196,7 +195,21 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 
 	tstr_static error = tstr_static_null();
 
-	struct fuse_session* session = fuse_initialize_impl(handle, &error);
+	const size_t argv_count = 2;
+
+	char** const argv = TJSON_MALLOC((argv_count + 1) * sizeof(char*));
+
+	if(argv == NULL) {
+		return THREAD_ERROR;
+	}
+
+	argv[0] = strdup("fuse_impl_dummy_argv0");
+	argv[1] = strdup(handle->file_path);
+	argv[argv_count] = NULL;
+
+	struct fuse_args dummy_args = { .argc = 2, .argv = argv, .allocated = (int)false };
+
+	struct fuse_session* session = fuse_initialize_impl(handle, &dummy_args, &error);
 
 	int result = pthread_mutex_lock(&handle->mutex);
 	if(result != 0) {
@@ -231,6 +244,14 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	fuse_remove_signal_handlers(session);
 
 	fuse_session_destroy(session);
+
+	{ // free argv
+		for(size_t i = 0; i < argv_count; ++i) {
+			// use free, as we use strdup
+			free(argv[i]);
+		}
+		TJSON_FREE(argv);
+	}
 
 	if(ret != 0) {
 		return THREAD_ERROR;
