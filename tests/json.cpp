@@ -42,6 +42,7 @@ using JsonParseResultCpp = std::expected<JsonValue, JsonErrorCpp>;
 struct JsonFileParseTestCase {
 	std::filesystem::path file;
 	JsonParseResultCpp expected;
+	MockFile* raw_lock_ptr;
 };
 
 } // namespace
@@ -657,16 +658,38 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 	}
 }
 
-using MockFileTest = std::tuple<JsonParseResultCpp, MockFileSystem, std::string>;
+using MockFileTest = std::tuple<JsonParseResultCpp, std::unique_ptr<MockFile>, std::string>;
+
+// just here as a dummy tstr_view
+const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 
 [[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests(bool debug) {
 	std::vector<MockFileTest> tests = {};
 
 	{
-		const auto file = "test_file";
+		const auto file = "test_file_allow";
 
 		tests.emplace_back(JsonParseResultCpp{ json::array({ json::null() }) },
-		                   MockFileSystem{ { { file, "[null]" } }, debug }, file);
+		                   std::make_unique<MockFileFuse>(
+		                       std::initializer_list<
+		                           std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		                           { file, "[null]", MockFlagsCpp::allow_everything() } },
+		                       debug),
+		                   file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		                       "Couldn't read the correct amount of bytes from the file",
+		                       &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		                   std::make_unique<MockFileFuse>(
+		                       std::initializer_list<
+		                           std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		                           { file, "[null]", MockFlagsCpp::allow_nothing() } },
+		                       debug),
+		                   file);
 	}
 
 	return tests;
@@ -692,38 +715,47 @@ using MockFileTest = std::tuple<JsonParseResultCpp, MockFileSystem, std::string>
 	return test_file_root;
 }
 
+[[nodiscard]] static std::unique_ptr<MockFileLock> get_file_lock(MockFile* raw_ptr) {
+	if(raw_ptr == nullptr) {
+		return std::make_unique<DummyFileLock>();
+	}
+	return raw_ptr->lock();
+}
+
 TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
 
 	std::filesystem::path test_file_root = get_test_file_root();
-
-	// just here as a dummy tstr_view
-	const tstr dummy_file = TSTR_LIT("__dummy_file__impl__");
 
 	std::vector<JsonFileParseTestCase> json_file_test_cases = {
 		JsonFileParseTestCase{ .file = test_file_root / "inputs" / "NOT_PRESENT.json",
 		                       .expected =
 		                           JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
 		                               "Couldn't open file for reading", &dummy_file,
-		                               JsonSourcePosition{ .line = 0, .col = 0 }) } },
+		                               JsonSourcePosition{ .line = 0, .col = 0 }) },
+		                       .raw_lock_ptr = nullptr },
 		JsonFileParseTestCase{
 		    .file = test_file_root / "inputs" / "test.json",
 		    .expected = JsonParseResultCpp{ json::object({
 		        { "my object key", json::array({ json::number((int64_t)1), json::number((int64_t)2),
 		                                         json::null(), json::boolean(true) }) },
-		    }) } },
+		    }) },
+		    .raw_lock_ptr = nullptr },
 
 	};
 
-	const bool debug = false;
+	const bool debug = true;
 
 	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
 
 	for(const auto& mock_file_test : mock_file_tests) {
 
-		auto file_path = std::get<1>(mock_file_test).root() / std::get<2>(mock_file_test);
+		std::filesystem::path file_path =
+		    std::get<1>(mock_file_test)->root() / std::get<2>(mock_file_test);
 
 		json_file_test_cases.push_back(
-		    JsonFileParseTestCase{ .file = file_path, .expected = std::get<0>(mock_file_test) });
+		    JsonFileParseTestCase{ .file = file_path,
+		                           .expected = std::get<0>(mock_file_test),
+		                           .raw_lock_ptr = std::get<1>(mock_file_test).get() });
 	}
 
 	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
@@ -733,7 +765,7 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 			    auto* const value = &(values->at(i));
 
 			    if(value->expected.has_value()) {
-				    const auto ok_value = &(value->expected.value());
+				    JsonValue* const ok_value = &(value->expected.value());
 				    free_json_value(ok_value);
 			    }
 		    }
@@ -742,6 +774,8 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 
 	for(const auto& test_case : json_file_test_cases) {
 		INFO("Test case: ", test_case.file);
+
+		std::unique_ptr<MockFileLock> fuse_lock = get_file_lock(test_case.raw_lock_ptr);
 
 		std::string defer_str = test_case.file.string();
 

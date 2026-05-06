@@ -47,72 +47,95 @@ TempDir& TempDir::TempDir::operator=(TempDir&& other) noexcept {
 	return *this;
 }
 
-MockFileSystem::MockFileSystem(std::initializer_list<std::pair<std::string, FileData>>&& data,
-                               bool debug)
-    : m_handle{ nullptr }, m_temp_dir{}, m_data_c{ std::move(data) } {
+MockFile::MockFile() : m_temp_dir{} {}
 
-	auto result = create_new_fuse_file(this->m_temp_dir.dir().c_str(), this->m_data_c.data(),
-	                                   this->m_data_c.size(), debug);
+[[nodiscard]] std::filesystem::path MockFile::root() const {
+	return this->m_temp_dir.dir();
+}
+
+MockFile::MockFile(MockFile&& other) noexcept : m_temp_dir{ std::move(other.m_temp_dir) } {
+	//
+}
+
+MockFile& MockFile::operator=(MockFile&& other) noexcept {
+	this->m_temp_dir = std::move(other.m_temp_dir);
+
+	return *this;
+}
+
+MockFile::~MockFile() noexcept(false) {
+	this->m_temp_dir.~TempDir();
+}
+
+MockFileFuse::MockFileFuse(
+    std::initializer_list<std::tuple<std::string, FileData, MockFlagsCpp>>&& data, bool debug)
+    : m_data_c{ std::make_unique<Data>(std::move(data)) }, m_debug{ debug } {}
+
+[[nodiscard]] std::unique_ptr<ActiveFUSE> MockFileFuse::get_fuse() const {
+
+	auto result = create_new_fuse_file(this->root().c_str(), this->m_data_c->data(),
+	                                   this->m_data_c->size(), this->m_debug);
 
 	if(result.is_error) {
 		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
 		                         string_from_tstr_static(result.data.error));
 	}
+	FUSEHandle* handle = result.data.ok;
 
-	this->m_handle = result.data.ok;
-
-	if(this->m_handle == nullptr) {
+	if(handle == nullptr) {
 		throw std::runtime_error("Couldn't create fuse file: ok returned nullptr");
 	}
+
+	return std::make_unique<ActiveFUSE>(handle);
 }
 
-[[nodiscard]] std::filesystem::path MockFileSystem::root() const {
-	return this->m_temp_dir.dir();
+[[nodiscard]] std::unique_ptr<MockFileLock> MockFileFuse::lock() const {
+	return this->get_fuse();
 }
 
-MockFileSystem::~MockFileSystem() noexcept(false) {
-	if(this->m_handle == nullptr) {
+MockFileFuse::~MockFileFuse() noexcept(false) {
+	if(this->m_data_c == nullptr) {
 		return;
 	}
 
-	if(!clear_fuse_file(this->m_handle)) {
-		throw std::runtime_error("Fuse destruction failed");
-	}
-
-	this->m_handle = nullptr;
-
-	this->m_data_c.~FuseFilesArrayC();
-
-	this->m_temp_dir.~TempDir();
+	// this calls the destructor on the data
+	this->m_data_c = nullptr;
 }
 
-MockFileSystem::MockFileSystem(MockFileSystem&& other) noexcept
-    : m_handle{ other.m_handle }, m_temp_dir{ std::move(other.m_temp_dir) },
-      m_data_c{ std::move(other.m_data_c) } {
-	other.m_handle = nullptr;
+MockFileFuse::MockFileFuse(MockFileFuse&& other) noexcept
+    : m_data_c{ std::move(other.m_data_c) }, m_debug{ other.m_debug } {
+	other.m_data_c = nullptr;
 }
 
-MockFileSystem& MockFileSystem::MockFileSystem::operator=(MockFileSystem&& other) noexcept {
+MockFileFuse& MockFileFuse::MockFileFuse::operator=(MockFileFuse&& other) noexcept {
 
-	this->m_handle = other.m_handle;
-	other.m_handle = nullptr;
-
-	this->m_temp_dir = std::move(other.m_temp_dir);
 	this->m_data_c = std::move(other.m_data_c);
+	other.m_data_c = nullptr;
+
+	this->m_debug = other.m_debug;
 
 	return *this;
 }
 
-FuseFilesArrayC::FuseFilesArrayC(const std::vector<std::pair<std::string, FileData>>& data)
+[[nodiscard]] static FuseFileMockFlags c_flags_from(const MockFlagsCpp& flags) {
+	return FuseFileMockFlags{
+		.allow_stat = flags.allow_stat,
+		.allow_read = flags.allow_read,
+	};
+}
+
+FuseFilesArrayC::FuseFilesArrayC(
+    const std::vector<std::tuple<std::string, FileData, MockFlagsCpp>>& data)
     : m_size{ data.size() } {
 
 	this->m_files = (FuseFile*)TJSON_MALLOC(sizeof(FuseFile) * data.size());
 
 	for(size_t i = 0; i < data.size(); ++i) {
 		const auto& d = data.at(i);
-		this->m_files[i] =
-		    FuseFile{ .name = strdup(d.first.c_str()),
-			          .content = { .data = strdup(d.second.c_str()), .size = d.second.size() } };
+		this->m_files[i] = FuseFile{ .name = strdup(std::get<0>(d).c_str()),
+			                         .content = { .data = strdup(std::get<1>(d).c_str()),
+			                                      .size = std::get<1>(d).size() },
+			                         .flags = c_flags_from(std::get<2>(d)) };
 	}
 }
 
@@ -152,3 +175,50 @@ FuseFilesArrayC::~FuseFilesArrayC() {
 	TJSON_FREE(this->m_files);
 	this->m_files = nullptr;
 }
+
+[[nodiscard]] MockFlagsCpp MockFlagsCpp::allow_everything() {
+	return MockFlagsCpp{ .allow_stat = true, .allow_read = true };
+}
+
+[[nodiscard]] MockFlagsCpp MockFlagsCpp::allow_nothing() {
+	return MockFlagsCpp{ .allow_stat = false, .allow_read = false };
+}
+
+ActiveFUSE::ActiveFUSE(FUSEHandle* handle) : m_handle{ handle } {}
+
+ActiveFUSE::ActiveFUSE(ActiveFUSE&& other) noexcept : m_handle{ std::move(other.m_handle) } {
+	other.m_handle = nullptr;
+}
+
+ActiveFUSE& ActiveFUSE::operator=(ActiveFUSE&& other) noexcept {
+
+	this->m_handle = std::move(other.m_handle);
+	other.m_handle = nullptr;
+
+	return *this;
+}
+
+ActiveFUSE::~ActiveFUSE() noexcept(false) {
+	if(this->m_handle == nullptr) {
+		return;
+	}
+
+	if(!clear_fuse_file(this->m_handle)) {
+		throw std::runtime_error("Fuse destruction failed");
+	}
+	this->m_handle = nullptr;
+}
+
+MockFileLock::MockFileLock() = default;
+
+MockFileLock::MockFileLock(MockFileLock&&) noexcept = default;
+MockFileLock& MockFileLock::operator=(MockFileLock&&) noexcept = default;
+
+MockFileLock::~MockFileLock() noexcept(false) = default;
+
+DummyFileLock::DummyFileLock() = default;
+
+DummyFileLock::DummyFileLock(DummyFileLock&&) noexcept = default;
+DummyFileLock& DummyFileLock::operator=(DummyFileLock&&) noexcept = default;
+
+DummyFileLock::~DummyFileLock() noexcept(false) = default;

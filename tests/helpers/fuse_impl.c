@@ -184,13 +184,13 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 
 static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                      struct fuse_file_info* fi) {
+	fuse_log(FUSE_LOG_DEBUG, "readdir called\n");
 	// TODO
 	UNUSED(ino);
 	UNUSED(size);
 	UNUSED(off);
 	UNUSED(fi);
-
-	fuse_log(FUSE_LOG_DEBUG, "readdir called\n");
+	fuse_log(FUSE_LOG_DEBUG, "readdir not yet implemented\n");
 
 	fuse_reply_err(req, ENOTDIR);
 }
@@ -294,6 +294,11 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 	}
 
 	const FuseFile file = handle->files[i];
+
+	if(!file.flags.allow_read) {
+		fuse_reply_err(req, EACCES);
+		return;
+	}
 
 	reply_buf_limited(req, &file.content, size, off);
 }

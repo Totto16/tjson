@@ -27,8 +27,14 @@ typedef struct {
 } FuseBuffer;
 
 typedef struct {
+	bool allow_stat;
+	bool allow_read;
+} FuseFileMockFlags;
+
+typedef struct {
 	char* name;
 	FuseBuffer content;
+	FuseFileMockFlags flags;
 } FuseFile;
 
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
