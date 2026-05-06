@@ -11,6 +11,12 @@
 
 #include <fuse3/fuse_lowlevel.h>
 
+// don't use those here
+#undef TJSON_MALLOC
+#undef TJSON_CALLOC
+#undef TJSON_REALLOC
+#undef TJSON_FREE
+
 typedef enum {
 	FuseStateTypeUninitialized = 0,
 	FuseStateTypeInitializedOk,
@@ -489,7 +495,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 	const size_t argv_count = 1;
 
-	char** const argv = TJSON_MALLOC((argv_count + 1) * sizeof(char*));
+	char** const argv = malloc((argv_count + 1) * sizeof(char*));
 
 	if(argv == NULL) {
 		return THREAD_ERROR;
@@ -542,7 +548,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 			// use free, as we use strdup
 			free(argv[i]);
 		}
-		TJSON_FREE((void*)argv);
+		free((void*)argv);
 	}
 
 	if(ret != 0) {
@@ -563,7 +569,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
                                                     size_t file_amount, bool debug) {
 
-	FUSEHandle* handle = (FUSEHandle*)TJSON_MALLOC(sizeof(FUSEHandle));
+	FUSEHandle* handle = (FUSEHandle*)malloc(sizeof(FUSEHandle));
 
 	if(handle == NULL) {
 		return fuse_create_result_error(TSTR_STATIC_LIT("malloc error"));
@@ -571,7 +577,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 #define FREE_AT_END() \
 	do { \
-		TJSON_FREE(handle); \
+		free(handle); \
 	} while(false)
 
 	handle->state = (FuseStaticState){
@@ -592,7 +598,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 	do { \
 		auto _ = fuse_run_in_deinit(handle->run_in); \
 		(void)_; \
-		TJSON_FREE(handle); \
+		free(handle); \
 	} while(false)
 
 	// wait for fuse initialization
@@ -639,7 +645,7 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 		return false;
 	}
 
-	TJSON_FREE(handle);
+	free(handle);
 	return true;
 }
 
@@ -697,7 +703,7 @@ struct FuseRunHandleImpl {
 
 #define FREE_AT_END() \
 	do { \
-		TJSON_FREE(handle); \
+		free(handle); \
 	} while(false)
 
 	int result = pthread_mutex_init(&handle->mutex, NULL);
@@ -767,7 +773,7 @@ struct FuseRunHandleImpl {
 		return false;
 	}
 
-	TJSON_FREE(handle);
+	free(handle);
 
 	return true;
 }

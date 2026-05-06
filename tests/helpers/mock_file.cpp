@@ -6,6 +6,12 @@
 #include <string.h>
 #include <unistd.h>
 
+// don't use those here
+#undef TJSON_MALLOC
+#undef TJSON_CALLOC
+#undef TJSON_REALLOC
+#undef TJSON_FREE
+
 TempDir::TempDir() {
 
 	char temp_template[] = "/tmp/tmpdir.XXXXXX";
@@ -128,7 +134,7 @@ FuseFilesArrayC::FuseFilesArrayC(
     const std::vector<std::tuple<std::string, FileData, MockFlagsCpp>>& data)
     : m_size{ data.size() } {
 
-	this->m_files = (FuseFile*)TJSON_MALLOC(sizeof(FuseFile) * data.size());
+	this->m_files = (FuseFile*)malloc(sizeof(FuseFile) * data.size());
 
 	for(size_t i = 0; i < data.size(); ++i) {
 		const auto& d = data.at(i);
@@ -168,11 +174,11 @@ FuseFilesArrayC::~FuseFilesArrayC() {
 	for(size_t i = 0; i < this->m_size; ++i) {
 		const auto& f = this->m_files[i];
 
-		TJSON_FREE((void*)f.name);
-		TJSON_FREE((void*)f.content.data);
+		free((void*)f.name);
+		free((void*)f.content.data);
 	}
 
-	TJSON_FREE(this->m_files);
+	free(this->m_files);
 	this->m_files = nullptr;
 }
 
