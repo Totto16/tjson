@@ -51,29 +51,16 @@ test_deps += dependency(
     version: ['>=3.0', '<4'],
 )
 
+test_deps += dependency(
+    'fuse3',
+    version: ['>=3.0', '<4'],
+)
+
 test_deps += tjson_dep
 
 test_inc_dirs += include_directories('.')
 
-test_src += files(
-    'helpers/c_types.cpp',
-    'helpers/c_types.hpp',
-    'helpers/compat.cpp',
-    'helpers/compat.hpp',
-    'helpers/cpp_types.cpp',
-    'helpers/cpp_types.hpp',
-    'helpers/generic.cpp',
-    'helpers/generic.hpp',
-    'helpers/helpers.hpp',
-    'helpers/json.cpp',
-    'helpers/json.hpp',
-    'helpers/json_schema.cpp',
-    'helpers/json_schema.hpp',
-    'helpers/main.cpp',
-    'helpers/string_maker.hpp',
-    'helpers/support.hpp',
-)
-
+subdir('helpers')
 
 test_cpp_args = [
     '-DDOCTEST_CONFIG_REQUIRE_STRINGIFICATION_FOR_ALL_USED_TYPES',

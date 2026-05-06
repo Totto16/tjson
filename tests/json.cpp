@@ -5,6 +5,7 @@
 #include "./helpers/compat.hpp"
 #include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
+#include "./helpers/mock_file.hpp"
 
 #include <tjson.h>
 
@@ -670,6 +671,14 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 	}
 }
 
+[[nodiscard]] static std::vector<std::pair<std::string, MockFile>> get_mock_file_tests() {
+	std::vector<std::pair<std::string, MockFile>> tests = {};
+
+	//
+
+	return tests;
+}
+
 TEST_CASE("testing json file parsing <json_file_parse>") {
 
 	std::filesystem::path test_file_root = std::filesystem::current_path();
@@ -696,7 +705,18 @@ TEST_CASE("testing json file parsing <json_file_parse>") {
 		                                JsonValueCpp::number((int64_t)2), JsonValueCpp::null(),
 		                                JsonValueCpp::boolean(true) }) },
 		    }) } },
+
 	};
+
+	std::vector<std::pair<std::string, MockFile>> mock_file_tests = get_mock_file_tests();
+
+	for(const auto& mock_file_test : mock_file_tests) {
+		json_file_test_cases.push_back(JsonFileParseTestCase{
+		    .file = mock_file_test.second.file_path(),
+		    .expected = JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc(std::string{ mock_file_test.first }, &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) } });
+	}
 
 	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
 		&json_file_test_cases,
