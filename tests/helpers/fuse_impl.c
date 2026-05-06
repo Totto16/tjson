@@ -76,6 +76,8 @@ typedef FUSEHandle UserData;
 
 typedef FuseHandleResult (*FuseHandleFn)(UserData* const data);
 
+typedef _Atomic bool AtomicBool;
+
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata);
 
 [[nodiscard]] bool fuse_state_set(FuseRunHandle* handle, FuseState state);
@@ -83,6 +85,8 @@ typedef FuseHandleResult (*FuseHandleFn)(UserData* const data);
 [[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state);
 
 [[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle);
+
+void fuse_set_session_finished(FuseRunHandle* handle);
 
 [[nodiscard]] void* allocate_shared(size_t size);
 
@@ -493,6 +497,7 @@ static volatile GlobalSignalState g_signal_state = { .old_sa = {}, .session = NU
 // only setting the volatile sig_atomic_t g_signal_received' in here
 static void fuse_exit_signal_received(int signal_number) {
 	(void)signal_number;
+
 	if(g_signal_state.session == NULL) {
 		return;
 	}
@@ -599,6 +604,9 @@ static void remove_signals(void) {
 
 	/* Block until SIGINT  or fuse_session_exit */
 	int ret = fuse_session_loop(session);
+
+	// we are finished, set the atomic bool, so that we stop spamming SIGPIPEs
+	fuse_set_session_finished(handle->run_in);
 
 	fuse_session_unmount(session);
 
@@ -819,6 +827,8 @@ struct FuseRunHandleImpl {
 	FuseState fuse_state;
 	//
 	pid_t handler_process;
+	//
+	AtomicBool session_finished;
 };
 
 typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
@@ -876,6 +886,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		return NULL;
 	}
 
+	handle->session_finished = false;
 	handle->fuse_state = fuse_state_uninitialized();
 
 	result = create_process(&(handle->handler_process), start_fn, userdata);
@@ -890,7 +901,9 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 	#undef FREE_AT_END
 
-[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
+	#define SIGPIPE_INTERVAL_USEC (10 * 1000)
+
+[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* const handle) {
 	switch(handle->fuse_state.type) {
 		case FuseStateTypeUninitialized: {
 			break;
@@ -913,9 +926,37 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 			}
 
 			int return_status = 0;
-			result = waitpid(handle->handler_process, &return_status, 0);
-			if(result != handle->handler_process) {
-				return false;
+			// periodically check if the child exited otherwise send a SIGPIPE again
+			while(true) {
+
+				result = waitpid(handle->handler_process, &return_status, WNOHANG);
+
+				if(result == handle->handler_process) {
+					break;
+				}
+
+				if(result != 0) {
+					return false;
+				}
+
+				if(handle->session_finished) {
+					// the session finished, we wait until the rest is finished too
+					result = waitpid(handle->handler_process, &return_status, 0);
+
+					if(result != handle->handler_process) {
+						return false;
+					}
+				}
+
+				pthread_res = kill(handle->handler_process, SIGPIPE);
+				if(pthread_res != 0) {
+					return false;
+				}
+
+				result = usleep(SIGPIPE_INTERVAL_USEC);
+				if(result != 0) {
+					return false;
+				}
 			}
 
 			if(!(WIFEXITED(return_status))) {
@@ -947,6 +988,10 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 	free_shared(handle);
 
 	return true;
+}
+
+void fuse_set_session_finished(FuseRunHandle* const handle) {
+	handle->session_finished = true;
 }
 
 typedef struct {
