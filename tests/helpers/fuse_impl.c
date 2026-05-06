@@ -196,25 +196,103 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 
 	fuse_log(FUSE_LOG_DEBUG, "op_open called\n");
 
-	if(ino != 2)
+	if(ino == INO_ROOT_FOLDER) {
 		fuse_reply_err(req, EISDIR);
-	else if((fi->flags & O_ACCMODE) != O_RDONLY)
+		return;
+	}
+
+	if(ino <= INO_ROOT_FOLDER) {
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	UserData* handle = fuse_req_userdata(req);
+
+	if(ino >= INO_START_FILES + handle->files_size) {
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	const size_t i = ino - INO_START_FILES;
+
+	if(i >= handle->files_size) {
+		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
+		         i, handle->files_size);
+
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	if((fi->flags & O_ACCMODE) != O_RDONLY) {
 		fuse_reply_err(req, EACCES);
-	else
-		fuse_reply_err(req, ENODEV);
+		return;
+	}
+
+	fuse_reply_open(req, fi);
+}
+
+[[nodiscard]] static size_t min(size_t x, size_t y) {
+	return ((x) < (y) ? (x) : (y));
+}
+
+static int reply_buf_limited(fuse_req_t req, const FuseBuffer* const buf, size_t maxsize,
+                             off_t off) {
+
+	if(off < 0) {
+		fuse_reply_err(req, EFAULT);
+		return -EFAULT;
+	}
+
+	const size_t off_s = (size_t)off;
+
+	if(off_s < buf->size) {
+		return fuse_reply_buf(req, (char*)buf->data + off_s, min(buf->size - off_s, maxsize));
+	}
+
+	return fuse_reply_buf(req, NULL, 0);
 }
 
 static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                   struct fuse_file_info* fi) {
-	// TODO
-	UNUSED(ino);
-	UNUSED(size);
-	UNUSED(off);
-	UNUSED(fi);
-
 	fuse_log(FUSE_LOG_DEBUG, "op_read called\n");
 
-	fuse_reply_err(req, ENODEV);
+	(void)fi;
+
+	if(ino == INO_ROOT_FOLDER) {
+		fuse_reply_err(req, EISDIR);
+		return;
+	}
+
+	if(ino <= INO_ROOT_FOLDER) {
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	UserData* handle = fuse_req_userdata(req);
+
+	if(ino >= INO_START_FILES + handle->files_size) {
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	const size_t i = ino - INO_START_FILES;
+
+	if(i >= handle->files_size) {
+		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
+		         i, handle->files_size);
+
+		fuse_reply_err(req, ENOENT);
+		return;
+	}
+
+	if((fi->flags & O_ACCMODE) != O_RDONLY) {
+		fuse_reply_err(req, EACCES);
+		return;
+	}
+
+	const FuseFile file = handle->files[i];
+
+	reply_buf_limited(req, &file.content, size, off);
 }
 
 static void fuse_lowlevel_op_getxattr(fuse_req_t req, fuse_ino_t ino, const char* name,
