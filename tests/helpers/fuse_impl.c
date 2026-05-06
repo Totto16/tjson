@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define FUSE_USE_VERSION FUSE_MAKE_VERSION(3, 12)
 #include <fuse3/fuse.h>
@@ -45,7 +47,7 @@ typedef struct {
 }
 
 // Define the type, that we run fuse in, 0 means another thread, 1 means another process
-#define FUSE_RUN_FILESYSTEM_IN 0
+#define FUSE_RUN_FILESYSTEM_IN 1
 
 // see https://github.com/libfuse/libfuse/issues/410
 // obn why this is necessary
@@ -60,10 +62,10 @@ typedef void* FuseHandleResult;
 	#define THREAD_ERROR ((FuseHandleResult)(21))
 
 #elif FUSE_RUN_FILESYSTEM_IN == 1
-typedef bool FuseHandleResult;
-	#define THREAD_SUCCESS ((FuseHandleResult) true)
+typedef uint8_t FuseHandleResult;
+	#define THREAD_SUCCESS ((FuseHandleResult)(0))
 
-	#define THREAD_ERROR ((FuseHandleResult) false)
+	#define THREAD_ERROR ((FuseHandleResult)(1))
 
 #else
 	#error "'FUSE_RUN_FILESYSTEM_IN' can only be 0 or 1"
@@ -654,11 +656,234 @@ struct FuseRunHandleImpl {
 	pthread_mutex_t mutex;
 	FuseState fuse_state;
 	//
-	pthread_t thread;
+	pthread_t handler_thread;
 };
 
+[[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
+
+	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
+
+	if(handle == NULL) {
+		return NULL;
+	}
+
+	#define FREE_AT_END() \
+		do { \
+			free(handle); \
+		} while(false)
+
+	int result = pthread_mutex_init(&handle->mutex, NULL);
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	handle->fuse_state = fuse_state_uninitialized();
+
+	result = pthread_create(&(handle->handler_thread), NULL, (void* (*)(void*))start_fn,
+	                        (void*)userdata);
+
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	return handle;
+}
+
+	#undef FREE_AT_END
+
+[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
+	switch(handle->fuse_state.type) {
+		case FuseStateTypeUninitialized: {
+			break;
+		}
+		case FuseStateTypeInitializedErr: {
+			break;
+		}
+		case FuseStateTypeInitializedOk: {
+
+			struct fuse_session* session = handle->fuse_state.data.ok;
+
+			if(session == NULL) {
+				return false;
+			}
+
+			// first exit the session, this is thread safe
+			fuse_session_exit(session);
+
+			// now force the blocking function to wake up
+			int pthread_res = pthread_kill(handle->handler_thread, SIGPIPE);
+			if(pthread_res != 0) {
+				return false;
+			}
+
+			FuseHandleResult return_value = THREAD_SUCCESS;
+			int result = pthread_join(handle->handler_thread, &return_value);
+			if(result != 0) {
+				return false;
+			}
+
+			if(return_value != THREAD_SUCCESS) {
+				return false;
+			}
+
+			break;
+		}
+		default: {
+			return false;
+		}
+	}
+
+	int result = pthread_mutex_destroy(&handle->mutex);
+	if(result != 0) {
+		return false;
+	}
+
+	free(handle);
+
+	return true;
+}
+
 #else
-	#error "TODO"
+struct FuseRunHandleImpl {
+	pthread_mutex_t mutex;
+	FuseState fuse_state;
+	//
+	pid_t handler_process;
+};
+
+typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
+
+[[nodiscard]] static int create_process(pid_t* process_pid, ProcessCreateFn create_fn,
+                                        UserData* const userdata) {
+
+	pid_t result = fork();
+
+	if(result == 0) {
+		// we are in the child
+		FuseHandleResult fn_res = create_fn(userdata);
+		exit((int)fn_res);
+	}
+
+	if(result == -1) {
+		return -1;
+	}
+
+	*process_pid = result;
+
+	return 0;
+}
+
+[[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
+
+	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
+
+	if(handle == NULL) {
+		return NULL;
+	}
+
+	#define FREE_AT_END() \
+		do { \
+			free(handle); \
+		} while(false)
+
+	pthread_mutexattr_t attr = {};
+
+	int result = pthread_mutexattr_init(&attr);
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	result = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	result = pthread_mutex_init(&handle->mutex, &attr);
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	handle->fuse_state = fuse_state_uninitialized();
+
+	result = create_process(&(handle->handler_process), start_fn, userdata);
+
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	return handle;
+}
+
+	#undef FREE_AT_END
+
+[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
+	switch(handle->fuse_state.type) {
+		case FuseStateTypeUninitialized: {
+			break;
+		}
+		case FuseStateTypeInitializedErr: {
+			break;
+		}
+		case FuseStateTypeInitializedOk: {
+
+			struct fuse_session* session = handle->fuse_state.data.ok;
+
+			if(session == NULL) {
+				return false;
+			}
+
+			// first exit the session, this is thread safe
+			fuse_session_exit(session);
+
+			// now force the blocking function to wake up
+			int pthread_res = kill(handle->handler_process, SIGPIPE);
+			if(pthread_res != 0) {
+				return false;
+			}
+
+			int return_status = 0;
+			int result = waitpid(handle->handler_process, &return_status, 0);
+			if(result != handle->handler_process) {
+				return false;
+			}
+
+			if(!(WIFEXITED(return_status))) {
+				return false;
+			}
+
+			if(WIFSIGNALED(return_status)) {
+				return false;
+			}
+
+			FuseHandleResult return_value = (FuseHandleResult)(WEXITSTATUS(return_status));
+
+			if(return_value != THREAD_SUCCESS) {
+				return false;
+			}
+
+			break;
+		}
+		default: {
+			return false;
+		}
+	}
+
+	int result = pthread_mutex_destroy(&handle->mutex);
+	if(result != 0) {
+		return false;
+	}
+
+	free(handle);
+
+	return true;
+}
+
 #endif
 
 [[nodiscard]] bool fuse_state_set(FuseRunHandle* const handle, FuseState state) {
@@ -689,91 +914,6 @@ struct FuseRunHandleImpl {
 	if(result != 0) {
 		return false;
 	}
-
-	return true;
-}
-
-[[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
-
-	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
-
-	if(handle == NULL) {
-		return NULL;
-	}
-
-#define FREE_AT_END() \
-	do { \
-		free(handle); \
-	} while(false)
-
-	int result = pthread_mutex_init(&handle->mutex, NULL);
-	if(result != 0) {
-		FREE_AT_END();
-		return NULL;
-	}
-
-	handle->fuse_state = fuse_state_uninitialized();
-
-	result = pthread_create(&(handle->thread), NULL, (void* (*)(void*))start_fn, (void*)userdata);
-
-	if(result != 0) {
-		FREE_AT_END();
-		return NULL;
-	}
-
-	return handle;
-}
-
-#undef FREE_AT_END
-
-[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
-	switch(handle->fuse_state.type) {
-		case FuseStateTypeUninitialized: {
-			break;
-		}
-		case FuseStateTypeInitializedErr: {
-			break;
-		}
-		case FuseStateTypeInitializedOk: {
-
-			struct fuse_session* session = handle->fuse_state.data.ok;
-
-			if(session == NULL) {
-				return false;
-			}
-
-			// first exit the session, this is thread safe
-			fuse_session_exit(session);
-
-			// now force the blocking function to wake up
-			int pthread_res = pthread_kill(handle->thread, SIGPIPE);
-			if(pthread_res != 0) {
-				return false;
-			}
-
-			void* return_value = THREAD_SUCCESS;
-			int result = pthread_join(handle->thread, &return_value);
-			if(result != 0) {
-				return false;
-			}
-
-			if(return_value != THREAD_SUCCESS) {
-				return false;
-			}
-
-			break;
-		}
-		default: {
-			return false;
-		}
-	}
-
-	int result = pthread_mutex_destroy(&handle->mutex);
-	if(result != 0) {
-		return false;
-	}
-
-	free(handle);
 
 	return true;
 }
