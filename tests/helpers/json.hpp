@@ -88,23 +88,6 @@ struct JsonValueCpp {
 
 	[[nodiscard]] bool operator==(const JsonValue* json_value2) const;
 
-	// static helper fn's
-
-	[[nodiscard]] static JsonValue null();
-
-	[[nodiscard]] static JsonValue boolean(const bool& value);
-
-	[[nodiscard]] static JsonValue number(const double& value);
-
-	[[nodiscard]] static JsonValue number(const int64_t& value);
-
-	[[nodiscard]] static JsonValue string(const std::string& value);
-
-	[[nodiscard]] static JsonValue array(std::initializer_list<JsonValue>&& values);
-
-	[[nodiscard]] static JsonValue
-	object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
-
 	friend std::ostream& operator<<(std::ostream& os, const JsonValueCpp& json_error);
 };
 
@@ -142,3 +125,21 @@ struct JsonErrorCpp {
 std::ostream& operator<<(std::ostream& os, const JsonErrorCpp& json_error);
 
 std::ostream& operator<<(std::ostream& os, const JsonError& json_error);
+
+namespace json {
+
+[[nodiscard]] JsonValue null();
+
+[[nodiscard]] JsonValue boolean(const bool& value);
+
+[[nodiscard]] JsonValue number(const double& value);
+
+[[nodiscard]] JsonValue number(const int64_t& value);
+
+[[nodiscard]] JsonValue string(const std::string& value);
+
+[[nodiscard]] JsonValue array(std::initializer_list<JsonValue>&& values);
+
+[[nodiscard]] JsonValue object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
+
+}; // namespace json

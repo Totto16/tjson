@@ -51,69 +51,59 @@ TEST_SUITE_BEGIN("json" * doctest::description("json tests") * doctest::timeout(
 TEST_CASE("testing parsing of json values <json_parser>") {
 
 	std::vector<JsonParseTestCaseSuccess> json_parse_test_cases = {
-		JsonParseTestCaseSuccess{ .input = "null", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "\t			null   ",
-		                          .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "true", .expected = JsonValueCpp::boolean(true) },
-		JsonParseTestCaseSuccess{ .input = "false", .expected = JsonValueCpp::boolean(false) },
-		JsonParseTestCaseSuccess{ .input = "100", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "-100",
-		                          .expected = JsonValueCpp::number((int64_t)-100) },
-		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
-		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
-		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "-1e2",
-		                          .expected = JsonValueCpp::number((int64_t)-100) },
-		JsonParseTestCaseSuccess{ .input = "1e20", .expected = JsonValueCpp::number(1e20) },
-		JsonParseTestCaseSuccess{ .input = "1E20", .expected = JsonValueCpp::number(1E20) },
-		JsonParseTestCaseSuccess{ .input = "1.2e3",
-		                          .expected = JsonValueCpp::number((int64_t)1200) },
-		JsonParseTestCaseSuccess{ .input = "0", .expected = JsonValueCpp::number((int64_t)0) },
-		JsonParseTestCaseSuccess{ .input = "1.3E+3",
-		                          .expected = JsonValueCpp::number((int64_t)1300) },
-		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "null", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "\t			null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "true", .expected = json::boolean(true) },
+		JsonParseTestCaseSuccess{ .input = "false", .expected = json::boolean(false) },
+		JsonParseTestCaseSuccess{ .input = "100", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-100", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = json::number(-100.01) },
+		JsonParseTestCaseSuccess{ .input = "100.43", .expected = json::number(100.43) },
+		JsonParseTestCaseSuccess{ .input = "1e2", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-1e2", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "1e20", .expected = json::number(1e20) },
+		JsonParseTestCaseSuccess{ .input = "1E20", .expected = json::number(1E20) },
+		JsonParseTestCaseSuccess{ .input = "1.2e3", .expected = json::number((int64_t)1200) },
+		JsonParseTestCaseSuccess{ .input = "0", .expected = json::number((int64_t)0) },
+		JsonParseTestCaseSuccess{ .input = "1.3E+3", .expected = json::number((int64_t)1300) },
+		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = json::number(0.015) },
 		JsonParseTestCaseSuccess{ .input = "1.5E10",
-		                          .expected = JsonValueCpp::number((int64_t)15000000000) },
+		                          .expected = json::number((int64_t)15000000000) },
 		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
-		                          .expected = JsonValueCpp::number(8.98846567431158e307) },
-		JsonParseTestCaseSuccess{ .input = "1e0", .expected = JsonValueCpp::number(1.0) },
+		                          .expected = json::number(8.98846567431158e307) },
+		JsonParseTestCaseSuccess{ .input = "1e0", .expected = json::number(1.0) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
-		                          .expected = JsonValueCpp::string("hello world") },
+		                          .expected = json::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
-		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		                          .expected = json::string("hello world\n\"\f\t") },
 		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
-		                          .expected =
-		                              JsonValueCpp::string("escape chars \\/\b\r::\x10\n\n") },
-		JsonParseTestCaseSuccess{ .input = R"({})", .expected = JsonValueCpp::object({}) },
+		                          .expected = json::string("escape chars \\/\b\r::\x10\n\n") },
+		JsonParseTestCaseSuccess{ .input = R"({})", .expected = json::object({}) },
 		JsonParseTestCaseSuccess{
 		    .input = R"([null,  	1,-2,   true ])",
-		    .expected = JsonValueCpp::array(
-		        { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		          JsonValueCpp::number((int64_t)-2), JsonValueCpp::boolean(true) }) },
+		    .expected = json::array({ json::null(), json::number((int64_t)1),
+		                              json::number((int64_t)-2), json::boolean(true) }) },
 		JsonParseTestCaseSuccess{
 		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
-		    .expected = JsonValueCpp::array(
-		        { JsonValueCpp::number(1e10), JsonValueCpp::number(-2e10),
-		          JsonValueCpp::number(1e-10), JsonValueCpp::number(-2e-10),
-		          JsonValueCpp::number(-1.0), JsonValueCpp::number(1.0),
-		          JsonValueCpp::number(1.25e-10), JsonValueCpp::number(-2.25e-10) }) },
+		    .expected = json::array({ json::number(1e10), json::number(-2e10), json::number(1e-10),
+		                              json::number(-2e-10), json::number(-1.0), json::number(1.0),
+		                              json::number(1.25e-10), json::number(-2.25e-10) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
 		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
 		   true, "array": []}}})",
-		    .expected = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .expected = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonParseTestCaseSuccess>> defer_tests = {
 		&json_parse_test_cases,
@@ -423,8 +413,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			{
 				const auto key = "key_null"_tstr;
 
-				const auto add_result =
-				    json_object_add_entry_tstr(object, &key, JsonValueCpp::null());
+				const auto add_result = json_object_add_entry_tstr(object, &key, json::null());
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -437,7 +426,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 				const auto key = "key_2";
 
 				const auto add_result =
-				    json_object_add_entry_cstr(object, key, JsonValueCpp::number((int64_t)2));
+				    json_object_add_entry_cstr(object, key, json::number((int64_t)2));
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -447,9 +436,9 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			auto json_value = new_json_value_object_rc(object);
 
-			auto expected_value = JsonValueCpp::object({
-			    { "key_null", JsonValueCpp::null() },
-			    { "key_2", JsonValueCpp::number((int64_t)2) },
+			auto expected_value = json::object({
+			    { "key_null", json::null() },
+			    { "key_2", json::number((int64_t)2) },
 			});
 
 			CAutoFreePtr<JsonValue> defer = { &json_value, free_json_value };
@@ -488,39 +477,36 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 	std::vector<JsonStringifyTest> json_stringify_test_case = {
-		JsonStringifyTest{ .expected = "null", .input = JsonValueCpp::null() },
-		JsonStringifyTest{ .expected = "true", .input = JsonValueCpp::boolean(true) },
-		JsonStringifyTest{ .expected = "false", .input = JsonValueCpp::boolean(false) },
-		JsonStringifyTest{ .expected = "100", .input = JsonValueCpp::number((int64_t)100) },
-		JsonStringifyTest{ .expected = "-100", .input = JsonValueCpp::number((int64_t)-100) },
-		JsonStringifyTest{ .expected = "-100.01", .input = JsonValueCpp::number(-100.01) },
-		JsonStringifyTest{ .expected = "100.43", .input = JsonValueCpp::number(100.43) },
-		JsonStringifyTest{ .expected = R"("hello world")",
-		                   .input = JsonValueCpp::string("hello world") },
+		JsonStringifyTest{ .expected = "null", .input = json::null() },
+		JsonStringifyTest{ .expected = "true", .input = json::boolean(true) },
+		JsonStringifyTest{ .expected = "false", .input = json::boolean(false) },
+		JsonStringifyTest{ .expected = "100", .input = json::number((int64_t)100) },
+		JsonStringifyTest{ .expected = "-100", .input = json::number((int64_t)-100) },
+		JsonStringifyTest{ .expected = "-100.01", .input = json::number(-100.01) },
+		JsonStringifyTest{ .expected = "100.43", .input = json::number(100.43) },
+		JsonStringifyTest{ .expected = R"("hello world")", .input = json::string("hello world") },
 		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t")",
-		                   .input = JsonValueCpp::string("hello world\n\"\f\t") },
-		JsonStringifyTest{
-		    .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
-		    .input = JsonValueCpp::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		                   .input = json::string("hello world\n\"\f\t") },
+		JsonStringifyTest{ .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
+		                   .input = json::string("smiley: 🙃 is not escapable as it is U+1F643") },
 		JsonStringifyTest{ .expected = R"([null, 1, 2, true])",
-		                   .input = JsonValueCpp::array(
-		                       { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		                         JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		                   .input =
+		                       json::array({ json::null(), json::number((int64_t)1),
+		                                     json::number((int64_t)2), json::boolean(true) }) },
 		JsonStringifyTest{
 		    .expected =
 		        R"({"key1": "hello", "key2": null, "nested": {"nested_key": {"array": [], "nested_key2": true}}})",
-		    .input = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .input = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonStringifyTest>> defer_tests = {
 		&json_stringify_test_case,
@@ -679,7 +665,7 @@ using MockFileTest = std::tuple<JsonParseResultCpp, MockFileSystem, std::string>
 	{
 		const auto file = "test_file";
 
-		tests.emplace_back(JsonParseResultCpp{ JsonValueCpp::array({ JsonValueCpp::null() }) },
+		tests.emplace_back(JsonParseResultCpp{ json::array({ json::null() }) },
 		                   MockFileSystem{ { { file, "[null]" } }, debug }, file);
 	}
 
@@ -706,11 +692,9 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 		                               JsonSourcePosition{ .line = 0, .col = 0 }) } },
 		JsonFileParseTestCase{
 		    .file = test_file_root / "inputs" / "test.json",
-		    .expected = JsonParseResultCpp{ JsonValueCpp::object({
-		        { "my object key",
-		          JsonValueCpp::array({ JsonValueCpp::number((int64_t)1),
-		                                JsonValueCpp::number((int64_t)2), JsonValueCpp::null(),
-		                                JsonValueCpp::boolean(true) }) },
+		    .expected = JsonParseResultCpp{ json::object({
+		        { "my object key", json::array({ json::number((int64_t)1), json::number((int64_t)2),
+		                                         json::null(), json::boolean(true) }) },
 		    }) } },
 
 	};

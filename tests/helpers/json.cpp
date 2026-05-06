@@ -214,23 +214,23 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return json_value_eq_impl(&json_value1, &json_value2);
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::null() {
+[[nodiscard]] JsonValue json::null() {
 	return new_json_value_null();
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::boolean(const bool& value) {
+[[nodiscard]] JsonValue json::boolean(const bool& value) {
 	return new_json_value_boolean(JsonBoolean{ .value = value });
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::number(const double& value) {
+[[nodiscard]] JsonValue json::number(const double& value) {
 	return new_json_value_number(JsonNumber{ .value = value });
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::number(const int64_t& value) {
+[[nodiscard]] JsonValue json::number(const int64_t& value) {
 	return number(static_cast<double>(value));
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::string(const std::string& value) {
+[[nodiscard]] JsonValue json::string(const std::string& value) {
 	JsonString* const string = json_get_string_from_tstr_view(helpers::tstr_view_from_str(value));
 
 	if(string == nullptr) {
@@ -240,7 +240,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return new_json_value_string_rc(string);
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::array(std::initializer_list<JsonValue>&& values) {
+[[nodiscard]] JsonValue json::array(std::initializer_list<JsonValue>&& values) {
 	JsonArray* const array = json_array_get_empty();
 
 	if(array == nullptr) {
@@ -259,7 +259,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 }
 
 [[nodiscard]] JsonValue
-JsonValueCpp::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
 	JsonObject* const object = json_object_get_empty();
 
 	if(object == nullptr) {
