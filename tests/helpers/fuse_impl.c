@@ -84,7 +84,7 @@ typedef _Atomic bool AtomicBool;
 
 [[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state);
 
-[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle);
+[[nodiscard]] int fuse_run_in_deinit(FuseRunHandle* handle);
 
 void fuse_set_session_finished(FuseRunHandle* handle);
 
@@ -712,14 +712,16 @@ static void remove_signals(void) {
 
 #undef FREE_AT_END
 
-[[nodiscard]] bool clear_fuse_file(FUSEHandle* const handle) {
+[[nodiscard]] int clear_fuse_file(FUSEHandle* const handle) {
 
-	if(!fuse_run_in_deinit(handle->run_in)) {
-		return false;
+	const int run_result = fuse_run_in_deinit(handle->run_in);
+
+	if(run_result != 0) {
+		return run_result;
 	}
 
 	free_shared(handle);
-	return true;
+	return 0;
 }
 
 #if FUSE_RUN_FILESYSTEM_IN == 0
@@ -728,6 +730,8 @@ struct FuseRunHandleImpl {
 	FuseState fuse_state;
 	//
 	pthread_t handler_thread;
+	//
+	AtomicBool session_finished;
 };
 
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
@@ -749,6 +753,7 @@ struct FuseRunHandleImpl {
 		return NULL;
 	}
 
+	handle->session_finished = false;
 	handle->fuse_state = fuse_state_uninitialized();
 
 	result = pthread_create(&(handle->handler_thread), NULL, (void* (*)(void*))start_fn,
@@ -764,7 +769,7 @@ struct FuseRunHandleImpl {
 
 	#undef FREE_AT_END
 
-[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
+[[nodiscard]] int fuse_run_in_deinit(FuseRunHandle* handle) {
 	switch(handle->fuse_state.type) {
 		case FuseStateTypeUninitialized: {
 			break;
@@ -777,40 +782,44 @@ struct FuseRunHandleImpl {
 			// first exit the session, signal that via a signal
 			int result = pthread_kill(handle->handler_thread, SIGNAL_FOR_FUSE_EXIT_REQUEST);
 			if(result != 0) {
-				return false;
+				return -1;
 			}
 
 			// now force the blocking function to wake up
 			int pthread_res = pthread_kill(handle->handler_thread, SIGPIPE);
 			if(pthread_res != 0) {
-				return false;
+				return -2;
 			}
 
 			FuseHandleResult return_value = THREAD_SUCCESS;
 			result = pthread_join(handle->handler_thread, &return_value);
 			if(result != 0) {
-				return false;
+				return -3;
 			}
 
 			if(return_value != THREAD_SUCCESS) {
-				return false;
+				return -4;
 			}
 
 			break;
 		}
 		default: {
-			return false;
+			return -5;
 		}
 	}
 
 	int result = pthread_mutex_destroy(&(handle->mutex));
 	if(result != 0) {
-		return false;
+		return -6;
 	}
 
 	free_shared(handle);
 
-	return true;
+	return 0;
+}
+
+void fuse_set_session_finished(FuseRunHandle* const handle) {
+	handle->session_finished = true;
 }
 
 [[nodiscard]] void* allocate_shared(size_t size) {
@@ -903,7 +912,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 	#define SIGPIPE_INTERVAL_USEC (10 * 1000)
 
-[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* const handle) {
+[[nodiscard]] int fuse_run_in_deinit(FuseRunHandle* const handle) {
 	switch(handle->fuse_state.type) {
 		case FuseStateTypeUninitialized: {
 			break;
@@ -916,13 +925,13 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 			// first exit the session, signal that via a signal
 			int result = kill(handle->handler_process, SIGNAL_FOR_FUSE_EXIT_REQUEST);
 			if(result != 0) {
-				return false;
+				return -1;
 			}
 
 			// now force the blocking function to wake up
 			int pthread_res = kill(handle->handler_process, SIGPIPE);
 			if(pthread_res != 0) {
-				return false;
+				return -2;
 			}
 
 			int return_status = 0;
@@ -936,7 +945,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 				}
 
 				if(result != 0) {
-					return false;
+					return -3;
 				}
 
 				if(handle->session_finished) {
@@ -944,50 +953,52 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 					result = waitpid(handle->handler_process, &return_status, 0);
 
 					if(result != handle->handler_process) {
-						return false;
+						return -4;
 					}
+
+					break;
 				}
 
 				pthread_res = kill(handle->handler_process, SIGPIPE);
 				if(pthread_res != 0) {
-					return false;
+					return -5;
 				}
 
 				result = usleep(SIGPIPE_INTERVAL_USEC);
 				if(result != 0) {
-					return false;
+					return -6;
 				}
 			}
 
 			if(!(WIFEXITED(return_status))) {
-				return false;
+				return -7;
 			}
 
 			if(WIFSIGNALED(return_status)) {
-				return false;
+				return -8;
 			}
 
 			FuseHandleResult return_value = (FuseHandleResult)(WEXITSTATUS(return_status));
 
 			if(return_value != THREAD_SUCCESS) {
-				return false;
+				return -9;
 			}
 
 			break;
 		}
 		default: {
-			return false;
+			return -10;
 		}
 	}
 
 	int result = pthread_mutex_destroy(&(handle->mutex));
 	if(result != 0) {
-		return false;
+		return -11;
 	}
 
 	free_shared(handle);
 
-	return true;
+	return 0;
 }
 
 void fuse_set_session_finished(FuseRunHandle* const handle) {

@@ -209,8 +209,11 @@ ActiveFUSE::~ActiveFUSE() noexcept(false) {
 		return;
 	}
 
-	if(!clear_fuse_file(this->m_handle)) {
-		throw std::runtime_error("Fuse destruction failed");
+	int fuse_result = clear_fuse_file(this->m_handle);
+
+	if(fuse_result != 0) {
+		throw std::runtime_error(std::string{ "Fuse destruction failed: " } +
+		                         std::to_string(fuse_result));
 	}
 	this->m_handle = nullptr;
 }
