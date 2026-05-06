@@ -64,14 +64,11 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 #define INO_ROOT_FOLDER 1
 #define INO_START_FILES 2
 
-[[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf) {
+[[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf,
+                                                 UserData* const handle) {
 	stbuf->st_ino = ino;
 	switch(ino) {
 		case INO_ROOT_FOLDER: {
-
-			struct fuse_context* ctx = fuse_get_context();
-
-			UserData* handle = ctx->private_data;
 
 			stbuf->st_mode = S_IFDIR | 0755;
 			stbuf->st_nlink = 1 + handle->files_size;
@@ -99,19 +96,15 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 	return 0;
 }
 
-static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf) {
+static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf, UserData* handle) {
 	stbuf->st_ino = ino;
 	switch(ino) {
-		case 1: return stat_helper_folder_impl(ino, stbuf);
+		case 1: return stat_helper_folder_impl(ino, stbuf, handle);
 
 		default: {
 			if(ino <= INO_ROOT_FOLDER) {
 				return -1;
 			}
-
-			struct fuse_context* ctx = fuse_get_context();
-
-			UserData* handle = ctx->private_data;
 
 			if(ino >= INO_START_FILES + handle->files_size) {
 				return -1;
@@ -141,8 +134,10 @@ static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse
 
 	(void)fi;
 
+	UserData* handle = fuse_req_userdata(req);
+
 	memset(&stbuf, 0, sizeof(stbuf));
-	if(stat_helper_ino_impl(ino, &stbuf) == -1) {
+	if(stat_helper_ino_impl(ino, &stbuf, handle) == -1) {
 		fuse_reply_err(req, ENOENT);
 	} else {
 		fuse_reply_attr(req, &stbuf, 1.0);
@@ -160,13 +155,12 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 		return;
 	}
 
-	struct fuse_context* ctx = fuse_get_context();
-
-	UserData* handle = ctx->private_data;
+	UserData* handle = fuse_req_userdata(req);
 
 	for(size_t i = 0; i < handle->files_size; ++i) {
 		const FuseFile file = handle->files[i];
-		if(strcmp(name, file.name) != 0) {
+
+		if(strcmp(name, file.name) == 0) {
 			struct fuse_entry_param e;
 			memset(&e, 0, sizeof(e));
 			e.ino = INO_START_FILES + i;
@@ -174,12 +168,10 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 			e.entry_timeout = 1.0;
 			if(stat_helper_file_impl(e.ino, &e.attr, &file.content) != 0) {
 				fuse_reply_err(req, ENOENT);
-				fuse_log(FUSE_LOG_DEBUG, "lookup returned error : \n");
 				return;
 			}
 
 			fuse_reply_entry(req, &e);
-			fuse_log(FUSE_LOG_DEBUG, "lookup returned valid file: %s\n", file.name);
 			return;
 		}
 	}
