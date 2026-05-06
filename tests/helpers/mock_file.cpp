@@ -49,7 +49,10 @@ MockFile::~MockFile() noexcept(false) {
 	if(this->m_handle == nullptr) {
 		return;
 	}
-	clear_fuse_file(this->m_handle);
+	if(!clear_fuse_file(this->m_handle)) {
+		throw std::runtime_error("Fuse destruction failed");
+	}
+
 	this->m_handle = nullptr;
 
 	this->m_temp_dir.~TempDir();
