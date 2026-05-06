@@ -22,6 +22,7 @@ typedef struct {
 	FuseStateType type;
 	union {
 		tstr_static error;
+		struct fuse_session* ok;
 	} data;
 } FuseState;
 
@@ -33,25 +34,60 @@ typedef struct {
 	return (FuseState){ .type = FuseStateTypeInitializedErr, .data = { .error = error } };
 }
 
-[[nodiscard]] static inline FuseState fuse_state_ok(void) {
-	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = {} };
+[[nodiscard]] static inline FuseState fuse_state_ok(struct fuse_session* fuse_session) {
+	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = { .ok = fuse_session } };
 }
 
-struct FUSEHandleImpl {
+// Define the type, that we run fuse in, 0 means another thread, 1 means another process
+#define FUSE_RUN_FILESYSTEM_IN 0
+
+// see https://github.com/libfuse/libfuse/issues/410
+// obn why this is necessary
+
+#if !defined(FUSE_RUN_FILESYSTEM_IN)
+	#error "need 'FUSE_RUN_FILESYSTEM_IN' to be defined"
+#elif FUSE_RUN_FILESYSTEM_IN == 0
+
+typedef void* FuseHandleResult;
+	#define THREAD_SUCCESS ((FuseHandleResult)(20))
+
+	#define THREAD_ERROR ((FuseHandleResult)(21))
+
+#elif FUSE_RUN_FILESYSTEM_IN == 1
+typedef bool FuseHandleResult;
+	#define THREAD_SUCCESS ((FuseHandleResult) true)
+
+	#define THREAD_ERROR ((FuseHandleResult) false)
+
+#else
+	#error "'FUSE_RUN_FILESYSTEM_IN' can only be 0 or 1"
+#endif
+
+typedef struct FuseRunHandleImpl FuseRunHandle;
+
+typedef FUSEHandle UserData;
+
+typedef FuseHandleResult (*FuseHandleFn)(UserData* const data);
+
+[[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata);
+
+[[nodiscard]] bool fuse_state_set(FuseRunHandle* handle, FuseState state);
+
+[[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state);
+
+[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle);
+
+typedef struct {
 	const char* dir_path;
 	const FuseFile* files;
 	size_t files_size;
-	//
-	pthread_mutex_t mutex;
-	pthread_t thread;
-	//
-	FuseState fuse_state;
-	struct fuse_session* fuse_session;
-	//
 	bool debug;
-};
+} FuseStaticState;
 
-typedef FUSEHandle UserData;
+struct FUSEHandleImpl {
+	FuseStaticState state;
+	FuseRunHandle* run_in;
+};
 
 // TODO: remove
 #define UNUSED(v) ((void)(v))
@@ -74,7 +110,7 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 		case INO_ROOT_FOLDER: {
 
 			stbuf->st_mode = S_IFDIR | 0755;
-			stbuf->st_nlink = 1 + handle->files_size;
+			stbuf->st_nlink = 1 + handle->state.files_size;
 			break;
 		}
 
@@ -109,20 +145,20 @@ static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf, UserData* ha
 				return -1;
 			}
 
-			if(ino >= INO_START_FILES + handle->files_size) {
+			if(ino >= INO_START_FILES + handle->state.files_size) {
 				return -1;
 			}
 
 			const size_t i = ino - INO_START_FILES;
 
-			if(i >= handle->files_size) {
+			if(i >= handle->state.files_size) {
 				fuse_log(FUSE_LOG_EMERG,
 				         "ino calculation implementation error: %zu is out of bounds %zu\n", i,
-				         handle->files_size);
+				         handle->state.files_size);
 				return -1;
 			}
 
-			const FuseFile file = handle->files[i];
+			const FuseFile file = handle->state.files[i];
 
 			return stat_helper_file_impl(ino, stbuf, &file.content);
 		}
@@ -160,8 +196,8 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 
 	UserData* handle = fuse_req_userdata(req);
 
-	for(size_t i = 0; i < handle->files_size; ++i) {
-		const FuseFile file = handle->files[i];
+	for(size_t i = 0; i < handle->state.files_size; ++i) {
+		const FuseFile file = handle->state.files[i];
 
 		if(strcmp(name, file.name) == 0) {
 			struct fuse_entry_param e;
@@ -211,16 +247,16 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 
 	UserData* handle = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + handle->files_size) {
+	if(ino >= INO_START_FILES + handle->state.files_size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= handle->files_size) {
+	if(i >= handle->state.files_size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, handle->files_size);
+		         i, handle->state.files_size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -273,16 +309,16 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 
 	UserData* handle = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + handle->files_size) {
+	if(ino >= INO_START_FILES + handle->state.files_size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= handle->files_size) {
+	if(i >= handle->state.files_size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, handle->files_size);
+		         i, handle->state.files_size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -293,7 +329,7 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	const FuseFile file = handle->files[i];
+	const FuseFile file = handle->state.files[i];
 
 	if(!file.flags.allow_read) {
 		fuse_reply_err(req, EACCES);
@@ -370,7 +406,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 		return NULL;
 	}
 
-	if(fuse_session_mount(session, handle->dir_path) != 0) {
+	if(fuse_session_mount(session, handle->state.dir_path) != 0) {
 		*error = TSTR_STATIC_LIT("session mount failed");
 		return NULL;
 	}
@@ -436,18 +472,12 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 	fuse_log_impl(false, level, fmt, ap);
 }
 
-#define THREAD_SUCCESS ((void*)(20))
-
-#define THREAD_ERROR ((void*)(21))
-
 // runs on a new thread
-[[nodiscard]] static void* fuse_thread_fn(void* const thread_arg) {
-
-	FUSEHandle* handle = (UserData*)thread_arg;
+[[nodiscard]] static FuseHandleResult fuse_start_fn(UserData* const handle) {
 
 	// setup logging
 
-	if(handle->debug) {
+	if(handle->state.debug) {
 		fuse_set_log_func(fuse_log_debug_impl);
 	} else {
 		fuse_set_log_func(fuse_log_normal_impl);
@@ -474,23 +504,21 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 	struct fuse_session* session = fuse_initialize_impl(handle, &dummy_args, &error);
 
-	int result = pthread_mutex_lock(&handle->mutex);
-	if(result != 0) {
-		return THREAD_ERROR;
-	}
+	FuseState state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
+
 	if(session == NULL) {
 		if(tstr_static_is_null(error)) {
-			handle->fuse_state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
+			state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
 		} else {
-			handle->fuse_state = fuse_state_error(error);
+			state = fuse_state_error(error);
 		}
 	} else {
-		handle->fuse_state = fuse_state_ok();
-		handle->fuse_session = session;
+		state = fuse_state_ok(session);
 	}
 
-	result = pthread_mutex_unlock(&handle->mutex);
-	if(result != 0) {
+	bool state_success = fuse_state_set(handle->run_in, state);
+
+	if(!state_success) {
 		return THREAD_ERROR;
 	}
 
@@ -539,33 +567,33 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 	if(handle == NULL) {
 		return fuse_create_result_error(TSTR_STATIC_LIT("malloc error"));
+	}
 
 #define FREE_AT_END() \
 	do { \
 		TJSON_FREE(handle); \
 	} while(false)
-	}
 
-	handle->dir_path = dir;
-	handle->files = files;
-	handle->files_size = file_amount;
-	handle->debug = debug;
+	handle->state = (FuseStaticState){
+		.dir_path = dir, .files = files, .files_size = file_amount, .debug = debug
+	};
 
-	int result = pthread_mutex_init(&handle->mutex, NULL);
-	if(result != 0) {
+	FuseRunHandle* const run_in = fuse_run_in_init(fuse_start_fn, handle);
+
+	if(run_in == NULL) {
 		FREE_AT_END();
-		return fuse_create_result_error(TSTR_STATIC_LIT("mutex init error"));
+		return fuse_create_result_error(TSTR_STATIC_LIT("run inm handle create error"));
 	}
 
-	handle->fuse_state = fuse_state_uninitialized();
-	handle->fuse_session = NULL;
+	handle->run_in = run_in;
 
-	result = pthread_create(&(handle->thread), NULL, fuse_thread_fn, (void*)handle);
-
-	if(result != 0) {
-		FREE_AT_END();
-		return fuse_create_result_error(TSTR_STATIC_LIT("pthread create error"));
-	}
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		auto _ = fuse_run_in_deinit(handle->run_in); \
+		(void)_; \
+		TJSON_FREE(handle); \
+	} while(false)
 
 	// wait for fuse initialization
 
@@ -575,20 +603,15 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 		while(state.type == FuseStateTypeUninitialized) {
 
-			result = pthread_mutex_lock(&handle->mutex);
-			if(result != 0) {
-				FREE_AT_END();
-				return fuse_create_result_error(TSTR_STATIC_LIT("mutex lock error"));
-			}
+			FuseState new_state = state;
 
-			const FuseState new_state = handle->fuse_state;
+			bool get_ok = fuse_state_get(handle->run_in, &new_state);
 
 			if(new_state.type != FuseStateTypeUninitialized) {
 				state = new_state;
 			}
 
-			result = pthread_mutex_unlock(&handle->mutex);
-			if(result != 0) {
+			if(!get_ok) {
 				FREE_AT_END();
 				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
 			}
@@ -612,34 +635,139 @@ static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_
 
 [[nodiscard]] bool clear_fuse_file(FUSEHandle* const handle) {
 
-	if(handle->fuse_session == NULL) {
+	if(!fuse_run_in_deinit(handle->run_in)) {
 		return false;
 	}
 
-	// first exit the session, this is thread safe
-	fuse_session_exit(handle->fuse_session);
+	TJSON_FREE(handle);
+	return true;
+}
 
-	// now force the blocking function to wake up
-	int pthread_res = pthread_kill(handle->thread, SIGPIPE);
-	if(pthread_res != 0) {
-		return false;
-	}
+#if FUSE_RUN_FILESYSTEM_IN == 0
+struct FuseRunHandleImpl {
+	pthread_mutex_t mutex;
+	FuseState fuse_state;
+	//
+	pthread_t thread;
+};
 
-	void* return_value = THREAD_SUCCESS;
-	int result = pthread_join(handle->thread, &return_value);
+#else
+	#error "TODO"
+#endif
+
+[[nodiscard]] bool fuse_state_set(FuseRunHandle* const handle, FuseState state) {
+	int result = pthread_mutex_lock(&handle->mutex);
 	if(result != 0) {
 		return false;
 	}
 
-	if(return_value != THREAD_SUCCESS) {
+	handle->fuse_state = state;
+
+	result = pthread_mutex_unlock(&handle->mutex);
+	if(result != 0) {
 		return false;
 	}
 
-	result = pthread_mutex_destroy(&handle->mutex);
+	return true;
+}
+
+[[nodiscard]] bool fuse_state_get(FuseRunHandle* handle, FuseState* state) {
+	int result = pthread_mutex_lock(&handle->mutex);
+	if(result != 0) {
+		return false;
+	}
+
+	*state = handle->fuse_state;
+
+	result = pthread_mutex_unlock(&handle->mutex);
+	if(result != 0) {
+		return false;
+	}
+
+	return true;
+}
+
+[[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
+
+	FuseRunHandle* handle = (FuseRunHandle*)malloc(sizeof(FuseRunHandle));
+
+	if(handle == NULL) {
+		return NULL;
+	}
+
+#define FREE_AT_END() \
+	do { \
+		TJSON_FREE(handle); \
+	} while(false)
+
+	int result = pthread_mutex_init(&handle->mutex, NULL);
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	handle->fuse_state = fuse_state_uninitialized();
+
+	result = pthread_create(&(handle->thread), NULL, (void* (*)(void*))start_fn, (void*)userdata);
+
+	if(result != 0) {
+		FREE_AT_END();
+		return NULL;
+	}
+
+	return handle;
+}
+
+#undef FREE_AT_END
+
+[[nodiscard]] bool fuse_run_in_deinit(FuseRunHandle* handle) {
+	switch(handle->fuse_state.type) {
+		case FuseStateTypeUninitialized: {
+			break;
+		}
+		case FuseStateTypeInitializedErr: {
+			break;
+		}
+		case FuseStateTypeInitializedOk: {
+
+			struct fuse_session* session = handle->fuse_state.data.ok;
+
+			if(session == NULL) {
+				return false;
+			}
+
+			// first exit the session, this is thread safe
+			fuse_session_exit(session);
+
+			// now force the blocking function to wake up
+			int pthread_res = pthread_kill(handle->thread, SIGPIPE);
+			if(pthread_res != 0) {
+				return false;
+			}
+
+			void* return_value = THREAD_SUCCESS;
+			int result = pthread_join(handle->thread, &return_value);
+			if(result != 0) {
+				return false;
+			}
+
+			if(return_value != THREAD_SUCCESS) {
+				return false;
+			}
+
+			break;
+		}
+		default: {
+			return false;
+		}
+	}
+
+	int result = pthread_mutex_destroy(&handle->mutex);
 	if(result != 0) {
 		return false;
 	}
 
 	TJSON_FREE(handle);
+
 	return true;
 }
