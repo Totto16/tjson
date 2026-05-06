@@ -184,6 +184,48 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	return session;
 }
 
+static void fuse_log_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+	switch(level) {
+		case FUSE_LOG_EMERG: {
+			fprintf(stderr, "EMERG: ");
+			break;
+		}
+		case FUSE_LOG_ALERT: {
+			fprintf(stderr, "ALERT: ");
+			break;
+		}
+		case FUSE_LOG_CRIT: {
+			fprintf(stderr, "CRIT: ");
+			break;
+		}
+		case FUSE_LOG_ERR: {
+			fprintf(stderr, "ERR: ");
+			break;
+		}
+		case FUSE_LOG_WARNING: {
+			fprintf(stderr, "WARNING: ");
+			break;
+		}
+		case FUSE_LOG_NOTICE: {
+			fprintf(stderr, "NOTICE: ");
+			break;
+		}
+		case FUSE_LOG_INFO: {
+			fprintf(stderr, "INFO: ");
+			break;
+		}
+		case FUSE_LOG_DEBUG: {
+			fprintf(stderr, "DEBUG: ");
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+}
+
 #define THREAD_SUCCESS ((void*)(20))
 
 #define THREAD_ERROR ((void*)(21))
@@ -193,9 +235,15 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 
 	FUSEHandle* handle = (FUSEHandle*)thread_arg;
 
+	// setup logging
+
+	fuse_set_log_func(fuse_log_impl);
+
+	// initialize
+
 	tstr_static error = tstr_static_null();
 
-	const size_t argv_count = 2;
+	const size_t argv_count = 1;
 
 	char** const argv = TJSON_MALLOC((argv_count + 1) * sizeof(char*));
 
@@ -204,10 +252,11 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	}
 
 	argv[0] = strdup("fuse_impl_dummy_argv0");
-	argv[1] = strdup(handle->file_path);
 	argv[argv_count] = NULL;
 
-	struct fuse_args dummy_args = { .argc = 2, .argv = argv, .allocated = (int)false };
+	struct fuse_args dummy_args = { .argc = (int)argv_count,
+		                            .argv = argv,
+		                            .allocated = (int)false };
 
 	struct fuse_session* session = fuse_initialize_impl(handle, &dummy_args, &error);
 
@@ -234,7 +283,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 		return THREAD_ERROR;
 	}
 
-	// loop untile we are finished
+	// loop until we are finished
 
 	/* Block until SIGINT */
 	int ret = fuse_session_loop(session);

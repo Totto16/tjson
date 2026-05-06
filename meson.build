@@ -150,6 +150,7 @@ internal_c_args += cc.get_supported_arguments(
     '-Wsign-conversion',
     '-Waddress',
     '-Wfloat-equal',
+    '-Wno-suggest-attribute=format'
 )
 
 if cc.get_id() == 'gcc'
