@@ -6,6 +6,8 @@ test_src += files(
     'compat.hpp',
     'cpp_types.cpp',
     'cpp_types.hpp',
+    'fuse_impl.c',
+    'fuse_impl.h',
     'generic.cpp',
     'generic.hpp',
     'helpers.hpp',

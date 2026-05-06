@@ -3,6 +3,8 @@
 
 #include <filesystem>
 
+#include "./fuse_impl.h"
+
 struct TempDir {
   private:
 	std::filesystem::path m_dir;
@@ -21,16 +23,18 @@ struct TempDir {
 	~TempDir() noexcept(false);
 };
 
-using FUSEHandle = struct FUSEHandle;
-
 struct MockFile {
+  public:
+	using Data = std::string;
+
   private:
 	FUSEHandle* m_handle;
 	TempDir m_temp_dir;
-    std::string m_temp_file;
+	std::string m_temp_file;
+	Data m_data;
 
-    public:
-	explicit MockFile();
+  public:
+	explicit MockFile(Data&& data);
 
 	[[nodiscard]] std::filesystem::path file_path() const;
 

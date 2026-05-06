@@ -5,8 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <allocator.h>
-
 TempDir::TempDir() {
 
 	char temp_template[] = "/tmp/tmpdir.XXXXXX";
@@ -31,15 +29,12 @@ TempDir::~TempDir() noexcept(false) {
 	}
 }
 
-[[nodiscard]] static FUSEHandle* create_new_fuse_file(const char* file);
-
-static void clear_fuse_file(FUSEHandle* handle);
-
-MockFile::MockFile() : m_handle{ nullptr }, m_temp_dir{}, m_temp_file{} {
+MockFile::MockFile(MockFile::Data&& data)
+    : m_handle{ nullptr }, m_temp_dir{}, m_temp_file{}, m_data{ std::move(data) } {
 
 	this->m_temp_file = (this->m_temp_dir.dir() / "fuse_file").string();
 
-	this->m_handle = create_new_fuse_file(this->m_temp_file.c_str());
+	this->m_handle = create_new_fuse_file(this->m_temp_file.c_str(), m_data.c_str(), m_data.size());
 
 	if(this->m_handle == nullptr) {
 		throw std::runtime_error("Couldn't create fuse file");
@@ -58,30 +53,4 @@ MockFile::~MockFile() noexcept(false) {
 	this->m_handle = nullptr;
 
 	this->m_temp_dir.~TempDir();
-}
-
-#define FUSE_USE_VERSION 31
-
-#include <fuse.h>
-
-struct FUSEHandle {
-	const char* file_path;
-};
-
-[[nodiscard]] static FUSEHandle* create_new_fuse_file(const char* const file) {
-
-	FUSEHandle* handle = (FUSEHandle*)TJSON_MALLOC(sizeof(FUSEHandle));
-
-	handle->file_path = file;
-
-	// TODO
-
-	return handle;
-}
-
-static void clear_fuse_file(FUSEHandle* const handle) {
-
-	// TODO
-
-	TJSON_FREE(handle);
 }
