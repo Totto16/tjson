@@ -6,6 +6,8 @@
 
 #include <tstr.h>
 
+#include "./fuse_shared.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,22 +22,6 @@ typedef struct {
 		tstr_static error;
 	} data;
 } FuseCreateResult;
-
-typedef struct {
-	void* data;
-	size_t size;
-} FuseBuffer;
-
-typedef struct {
-	bool allow_stat;
-	bool allow_read;
-} FuseFileMockFlags;
-
-typedef struct {
-	char* name;
-	FuseBuffer content;
-	FuseFileMockFlags flags;
-} FuseFile;
 
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
                                                     size_t file_amount, bool debug);

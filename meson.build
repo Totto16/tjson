@@ -56,7 +56,8 @@ deps += dependency(
 )
 
 #note: this lib is compiled, so it hasn't custom allocators, so we can't test against that, but that is no problem, as this lib has a custom type for json strings and therefore no testing is needed atm
-public_deps += dependency(
+
+tstr_dep = dependency(
     'tstr.h',
     allow_fallback: true,
     default_options: {
@@ -64,6 +65,8 @@ public_deps += dependency(
     },
     version: ['>=1.0.0', '<2'],
 )
+
+public_deps += tstr_dep
 
 #note: this lib is compiled, so it hasn't custom allocators, except for the public macros, that allow dynamic formatting into the buffer, but atm we dobn#t test that
 deps += dependency(
@@ -150,7 +153,7 @@ internal_c_args += cc.get_supported_arguments(
     '-Wsign-conversion',
     '-Waddress',
     '-Wfloat-equal',
-    '-Wno-suggest-attribute=format'
+    '-Wno-suggest-attribute=format',
 )
 
 if cc.get_id() == 'gcc'

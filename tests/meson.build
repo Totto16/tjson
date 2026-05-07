@@ -51,10 +51,6 @@ test_deps += dependency(
     version: ['>=3.0', '<4'],
 )
 
-test_deps += dependency(
-    'fuse3',
-    version: ['>=3.0', '<4'],
-)
 
 test_deps += tjson_dep
 

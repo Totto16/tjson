@@ -7,6 +7,8 @@
 // TODO: remove
 #define UNUSED(v) ((void)(v))
 
+typedef FuseFiles UserData;
+
 static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 
 	(void)userdata;
@@ -19,13 +21,13 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 #define INO_START_FILES 2
 
 [[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf,
-                                                 UserData* const handle) {
+                                                 const UserData* const userdata) {
 	stbuf->st_ino = ino;
 	switch(ino) {
 		case INO_ROOT_FOLDER: {
 
 			stbuf->st_mode = S_IFDIR | 0755;
-			stbuf->st_nlink = 1 + handle->state.files_size;
+			stbuf->st_nlink = 1 + userdata->size;
 			break;
 		}
 
@@ -50,30 +52,31 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 	return 0;
 }
 
-static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf, UserData* handle) {
+static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf,
+                                const UserData* const userdata) {
 	stbuf->st_ino = ino;
 	switch(ino) {
-		case 1: return stat_helper_folder_impl(ino, stbuf, handle);
+		case 1: return stat_helper_folder_impl(ino, stbuf, userdata);
 
 		default: {
 			if(ino <= INO_ROOT_FOLDER) {
 				return -1;
 			}
 
-			if(ino >= INO_START_FILES + handle->state.files_size) {
+			if(ino >= INO_START_FILES + userdata->size) {
 				return -1;
 			}
 
 			const size_t i = ino - INO_START_FILES;
 
-			if(i >= handle->state.files_size) {
+			if(i >= userdata->size) {
 				fuse_log(FUSE_LOG_EMERG,
 				         "ino calculation implementation error: %zu is out of bounds %zu\n", i,
-				         handle->state.files_size);
+				         userdata->size);
 				return -1;
 			}
 
-			const FuseFile file = handle->state.files[i];
+			const FuseFile file = userdata->data[i];
 
 			return stat_helper_file_impl(ino, stbuf, &file.content);
 		}
@@ -88,10 +91,10 @@ static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse
 
 	(void)fi;
 
-	UserData* handle = fuse_req_userdata(req);
+	const UserData* const userdata = fuse_req_userdata(req);
 
 	memset(&stbuf, 0, sizeof(stbuf));
-	if(stat_helper_ino_impl(ino, &stbuf, handle) == -1) {
+	if(stat_helper_ino_impl(ino, &stbuf, userdata) == -1) {
 		fuse_reply_err(req, ENOENT);
 	} else {
 		fuse_reply_attr(req, &stbuf, 1.0);
@@ -109,10 +112,10 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 		return;
 	}
 
-	UserData* handle = fuse_req_userdata(req);
+	const UserData* const userdata = fuse_req_userdata(req);
 
-	for(size_t i = 0; i < handle->state.files_size; ++i) {
-		const FuseFile file = handle->state.files[i];
+	for(size_t i = 0; i < userdata->size; ++i) {
+		const FuseFile file = userdata->data[i];
 
 		if(strcmp(name, file.name) == 0) {
 			struct fuse_entry_param e;
@@ -160,18 +163,18 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 		return;
 	}
 
-	UserData* handle = fuse_req_userdata(req);
+	const UserData* const userdata = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + handle->state.files_size) {
+	if(ino >= INO_START_FILES + userdata->size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= handle->state.files_size) {
+	if(i >= userdata->size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, handle->state.files_size);
+		         i, userdata->size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -222,18 +225,18 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	UserData* handle = fuse_req_userdata(req);
+	const UserData* const userdata = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + handle->state.files_size) {
+	if(ino >= INO_START_FILES + userdata->size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= handle->state.files_size) {
+	if(i >= userdata->size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, handle->state.files_size);
+		         i, userdata->size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -244,7 +247,7 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	const FuseFile file = handle->state.files[i];
+	const FuseFile file = userdata->data[i];
 
 	if(!file.flags.allow_read) {
 		fuse_reply_err(req, EACCES);
@@ -304,12 +307,15 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	.removexattr = fuse_lowlevel_op_removexattr,
 };
 
-[[nodiscard]] static struct fuse_session* fuse_initialize_impl(UserData* const handle,
-                                                               struct fuse_args* const args,
-                                                               tstr_static* const error) {
+[[nodiscard]] static struct fuse_session*
+fuse_initialize_impl(const FuseStaticData* const fuse_data, struct fuse_args* const args,
+                     tstr_static* const error) {
 
-	struct fuse_session* session = fuse_session_new(
-	    args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)handle);
+	const UserData* const userdata = &(fuse_data->files);
+
+	struct fuse_session* session =
+	    fuse_session_new(args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations),
+	                     (void*)((uintptr_t)userdata));
 
 	if(session == NULL) {
 		*error = TSTR_STATIC_LIT("session new failed");
@@ -321,7 +327,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 		return NULL;
 	}
 
-	if(fuse_session_mount(session, handle->state.dir_path) != 0) {
+	if(fuse_session_mount(session, fuse_data->dir_path) != 0) {
 		*error = TSTR_STATIC_LIT("session mount failed");
 		return NULL;
 	}
@@ -438,11 +444,12 @@ static void remove_signals(void) {
 }
 
 // runs on a new thread
-[[nodiscard]] FuseHandleResult fuse_start_fn(UserData* const handle) {
+[[nodiscard]] FuseHandleResult fuse_start_fn(FuseSharedState* const shared_state,
+                                             const FuseStaticData* const data) {
 
 	// setup logging
 
-	if(handle->state.debug) {
+	if(data->debug) {
 		fuse_set_log_func(fuse_log_debug_impl);
 	} else {
 		fuse_set_log_func(fuse_log_normal_impl);
@@ -465,7 +472,7 @@ static void remove_signals(void) {
 
 	struct fuse_args args = { .argc = (int)argv_count, .argv = argv, .allocated = (int)false };
 
-	struct fuse_session* session = fuse_initialize_impl(handle, &args, &error);
+	struct fuse_session* session = fuse_initialize_impl(data, &args, &error);
 
 	// setup signals, this accesses global data
 	bool signal_res = setup_signals(session);
@@ -486,7 +493,7 @@ static void remove_signals(void) {
 		state = fuse_state_ok();
 	}
 
-	bool state_success = fuse_state_set(handle->run_in, state);
+	bool state_success = fuse_shared_state_set_state(shared_state, state);
 
 	if(!state_success) {
 		return THREAD_ERROR;
@@ -502,7 +509,7 @@ static void remove_signals(void) {
 	int ret = fuse_session_loop(session);
 
 	// we are finished, set the atomic bool, so that we stop spamming SIGPIPEs
-	fuse_set_session_finished(handle->run_in);
+	fuse_shared_state_set_session_finished(shared_state);
 
 	fuse_session_unmount(session);
 

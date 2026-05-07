@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "./fuse_impl.h"
+#include "./fuse/fuse_impl.h"
 
 struct TempDir final {
   private:

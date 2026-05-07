@@ -6,10 +6,6 @@ test_src += files(
     'compat.hpp',
     'cpp_types.cpp',
     'cpp_types.hpp',
-    'fuse_impl.c',
-    'fuse_impl.h',
-    'fuse_impl_run.c',
-    'fuse_impl_run.h',
     'generic.cpp',
     'generic.hpp',
     'helpers.hpp',
@@ -23,3 +19,6 @@ test_src += files(
     'string_maker.hpp',
     'support.hpp',
 )
+
+
+subdir('fuse')
