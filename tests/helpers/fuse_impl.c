@@ -43,7 +43,7 @@ typedef _Atomic bool AtomicBool;
 
 	if(run_in == NULL) {
 		FREE_AT_END();
-		return fuse_create_result_error(TSTR_STATIC_LIT("run inm handle create error"));
+		return fuse_create_result_error(TSTR_STATIC_LIT("run_in handle create error"));
 	}
 
 	handle->run_in = run_in;
@@ -225,21 +225,58 @@ void free_shared(void* data) {
 }
 
 #else
+typedef struct {
+	pid_t pid;
+	void* stack;
+} ProcessInfo;
+
 struct FuseRunHandleImpl {
 	pthread_mutex_t mutex;
 	FuseState fuse_state;
 	//
-	pid_t handler_process;
+	ProcessInfo process_info;
 	//
 	AtomicBool session_finished;
 };
 
 typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
-[[nodiscard]] static int create_process(pid_t* process_pid, ProcessCreateFn create_fn,
+	#include <linux/sched.h> /* Definition of struct clone_args */
+	#include <sched.h>       /* Definition of CLONE_* constants */
+	#include <sys/syscall.h> /* Definition of SYS_* constants */
+	#include <unistd.h>
+
+[[nodiscard]] static pid_t clone3(struct clone_args* cl_args) {
+	return (pid_t)syscall(SYS_clone3, cl_args, sizeof(*cl_args));
+}
+
+	#define STACK_SIZE (1024 * 1024)
+
+[[nodiscard]] static int create_process(ProcessInfo* out_info, ProcessCreateFn create_fn,
                                         UserData* const userdata) {
 
-	pid_t result = fork();
+	uint8_t* stack = (uint8_t*)malloc(STACK_SIZE);
+	if(!stack) {
+		return -2;
+	}
+
+	uint8_t* stack_top = stack + STACK_SIZE;
+
+	struct clone_args cl_args = {
+		.flags = CLONE_VM | CLONE_CLEAR_SIGHAND,
+		.pidfd = 0,
+		.child_tid = 0,
+		.parent_tid = 0,
+		.exit_signal = SIGCHLD,
+		.stack = (uintptr_t)stack_top,
+		.stack_size = STACK_SIZE,
+		.tls = 0,
+		.set_tid = 0,
+		.set_tid_size = 0,
+		.cgroup = 0,
+	};
+
+	pid_t result = clone3(&cl_args);
 
 	if(result == 0) {
 		// we are in the child
@@ -251,9 +288,13 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		return -1;
 	}
 
-	*process_pid = result;
+	*out_info = (ProcessInfo){ .pid = result, .stack = stack };
 
 	return 0;
+}
+
+static void destroy_process_info(ProcessInfo info) {
+	free(info.stack);
 }
 
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
@@ -292,7 +333,7 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 	handle->session_finished = false;
 	handle->fuse_state = fuse_state_uninitialized();
 
-	result = create_process(&(handle->handler_process), start_fn, userdata);
+	result = create_process(&(handle->process_info), start_fn, userdata);
 
 	if(result != 0) {
 		FREE_AT_END();
@@ -317,13 +358,13 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		case FuseStateTypeInitializedOk: {
 
 			// first exit the session, signal that via a signal
-			int result = kill(handle->handler_process, SIGNAL_FOR_FUSE_EXIT_REQUEST);
+			int result = kill(handle->process_info.pid, SIGNAL_FOR_FUSE_EXIT_REQUEST);
 			if(result != 0) {
 				return -1;
 			}
 
 			// now force the blocking function to wake up
-			int pthread_res = kill(handle->handler_process, SIGPIPE);
+			int pthread_res = kill(handle->process_info.pid, SIGPIPE);
 			if(pthread_res != 0) {
 				return -2;
 			}
@@ -332,9 +373,9 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 			// periodically check if the child exited otherwise send a SIGPIPE again
 			while(true) {
 
-				result = waitpid(handle->handler_process, &return_status, WNOHANG);
+				result = waitpid(handle->process_info.pid, &return_status, WNOHANG);
 
-				if(result == handle->handler_process) {
+				if(result == handle->process_info.pid) {
 					break;
 				}
 
@@ -344,16 +385,16 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
 				if(handle->session_finished) {
 					// the session finished, we wait until the rest is finished too
-					result = waitpid(handle->handler_process, &return_status, 0);
+					result = waitpid(handle->process_info.pid, &return_status, 0);
 
-					if(result != handle->handler_process) {
+					if(result != handle->process_info.pid) {
 						return -4;
 					}
 
 					break;
 				}
 
-				pthread_res = kill(handle->handler_process, SIGPIPE);
+				pthread_res = kill(handle->process_info.pid, SIGPIPE);
 				if(pthread_res != 0) {
 					return -5;
 				}
@@ -389,6 +430,8 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 	if(result != 0) {
 		return -11;
 	}
+
+	destroy_process_info(handle->process_info);
 
 	free_shared(handle);
 
