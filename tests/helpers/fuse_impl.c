@@ -227,7 +227,6 @@ void free_shared(void* data) {
 #else
 typedef struct {
 	pid_t pid;
-	void* stack;
 } ProcessInfo;
 
 struct FuseRunHandleImpl {
@@ -241,42 +240,10 @@ struct FuseRunHandleImpl {
 
 typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 
-	#include <linux/sched.h> /* Definition of struct clone_args */
-	#include <sched.h>       /* Definition of CLONE_* constants */
-	#include <sys/syscall.h> /* Definition of SYS_* constants */
-	#include <unistd.h>
-
-[[nodiscard]] static pid_t clone3(struct clone_args* cl_args) {
-	return (pid_t)syscall(SYS_clone3, cl_args, sizeof(*cl_args));
-}
-
-	#define STACK_SIZE (1024 * 1024)
-
 [[nodiscard]] static int create_process(ProcessInfo* out_info, ProcessCreateFn create_fn,
                                         UserData* const userdata) {
 
-	uint8_t* stack = (uint8_t*)malloc(STACK_SIZE);
-	if(!stack) {
-		return -2;
-	}
-
-	uint8_t* stack_top = stack + STACK_SIZE;
-
-	struct clone_args cl_args = {
-		.flags = CLONE_VM | CLONE_CLEAR_SIGHAND,
-		.pidfd = 0,
-		.child_tid = 0,
-		.parent_tid = 0,
-		.exit_signal = SIGCHLD,
-		.stack = (uintptr_t)stack_top,
-		.stack_size = STACK_SIZE,
-		.tls = 0,
-		.set_tid = 0,
-		.set_tid_size = 0,
-		.cgroup = 0,
-	};
-
-	pid_t result = clone3(&cl_args);
+	pid_t result = fork();
 
 	if(result == 0) {
 		// we are in the child
@@ -288,13 +255,14 @@ typedef FuseHandleResult(ProcessCreateFn)(UserData* const);
 		return -1;
 	}
 
-	*out_info = (ProcessInfo){ .pid = result, .stack = stack };
+	*out_info = (ProcessInfo){ .pid = result };
 
 	return 0;
 }
 
 static void destroy_process_info(ProcessInfo info) {
-	free(info.stack);
+	(void)info;
+	// NOOP
 }
 
 [[nodiscard]] FuseRunHandle* fuse_run_in_init(FuseHandleFn start_fn, UserData* const userdata) {
