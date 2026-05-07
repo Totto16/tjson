@@ -463,11 +463,9 @@ static void remove_signals(void) {
 	argv[0] = strdup("fuse_impl_dummy_argv0");
 	argv[argv_count] = NULL;
 
-	struct fuse_args dummy_args = { .argc = (int)argv_count,
-		                            .argv = argv,
-		                            .allocated = (int)false };
+	struct fuse_args args = { .argc = (int)argv_count, .argv = argv, .allocated = (int)false };
 
-	struct fuse_session* session = fuse_initialize_impl(handle, &dummy_args, &error);
+	struct fuse_session* session = fuse_initialize_impl(handle, &args, &error);
 
 	// setup signals, this accesses global data
 	bool signal_res = setup_signals(session);
@@ -513,6 +511,8 @@ static void remove_signals(void) {
 	remove_signals();
 
 	fuse_session_destroy(session);
+
+	fuse_opt_free_args(&args);
 
 	{ // free argv
 		for(size_t i = 0; i < argv_count; ++i) {
