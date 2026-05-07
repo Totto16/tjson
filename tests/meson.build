@@ -58,6 +58,8 @@ test_inc_dirs += include_directories('.')
 
 subdir('helpers')
 
+test_deps += shared_deps
+
 test_cpp_args = [
     '-DDOCTEST_CONFIG_REQUIRE_STRINGIFICATION_FOR_ALL_USED_TYPES',
     '-DDOCTEST_CONFIG_TREAT_CHAR_STAR_AS_STRING',

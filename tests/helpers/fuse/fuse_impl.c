@@ -34,8 +34,8 @@ struct FUSEHandleImpl {
 [[nodiscard]] int fuse_shared_state_deinit(FuseSharedState* shared_state,
                                            const ProcessInfo* process_info);
 
-[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
-                                                    size_t file_amount, bool debug) {
+[[nodiscard]] FuseCreateResult create_new_fuse_file(char* dir, FuseFile* files, size_t file_amount,
+                                                    bool debug) {
 
 	const FuseStaticData static_data = { .dir_path = dir,
 		                                 .files = (FuseFiles){ .data = files, .size = file_amount },

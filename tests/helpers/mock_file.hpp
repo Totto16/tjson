@@ -110,9 +110,10 @@ struct ActiveFUSE final : MockFileLock {
 
   private:
 	FUSEHandle* m_handle;
+	char* m_path;
 
   public:
-	explicit ActiveFUSE(FUSEHandle* handle);
+	explicit ActiveFUSE(FUSEHandle* handle, char* path_dup);
 
 	ActiveFUSE(ActiveFUSE const&) = delete;
 	ActiveFUSE& operator=(ActiveFUSE const&) = delete;

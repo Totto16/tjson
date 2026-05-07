@@ -79,8 +79,10 @@ MockFileFuse::MockFileFuse(
 
 [[nodiscard]] std::unique_ptr<ActiveFUSE> MockFileFuse::get_fuse() const {
 
-	auto result = create_new_fuse_file(this->root().c_str(), this->m_data_c->data(),
-	                                   this->m_data_c->size(), this->m_debug);
+	char* path_dup = strdup(this->root().string().c_str());
+
+	auto result = create_new_fuse_file(path_dup, this->m_data_c->data(), this->m_data_c->size(),
+	                                   this->m_debug);
 
 	if(result.is_error) {
 		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
@@ -92,7 +94,7 @@ MockFileFuse::MockFileFuse(
 		throw std::runtime_error("Couldn't create fuse file: ok returned nullptr");
 	}
 
-	return std::make_unique<ActiveFUSE>(handle);
+	return std::make_unique<ActiveFUSE>(handle, path_dup);
 }
 
 [[nodiscard]] std::unique_ptr<MockFileLock> MockFileFuse::lock() const {
@@ -190,16 +192,22 @@ FuseFilesArrayC::~FuseFilesArrayC() {
 	return MockFlagsCpp{ .allow_stat = false, .allow_read = false };
 }
 
-ActiveFUSE::ActiveFUSE(FUSEHandle* handle) : m_handle{ handle } {}
+ActiveFUSE::ActiveFUSE(FUSEHandle* handle, char* path_dup)
+    : m_handle{ handle }, m_path{ path_dup } {}
 
-ActiveFUSE::ActiveFUSE(ActiveFUSE&& other) noexcept : m_handle{ std::move(other.m_handle) } {
+ActiveFUSE::ActiveFUSE(ActiveFUSE&& other) noexcept
+    : m_handle{ std::move(other.m_handle) }, m_path{ std::move(other.m_path) } {
 	other.m_handle = nullptr;
+	other.m_path = nullptr;
 }
 
 ActiveFUSE& ActiveFUSE::operator=(ActiveFUSE&& other) noexcept {
 
 	this->m_handle = std::move(other.m_handle);
 	other.m_handle = nullptr;
+
+	this->m_path = std::move(other.m_path);
+	other.m_path = nullptr;
 
 	return *this;
 }
@@ -216,6 +224,9 @@ ActiveFUSE::~ActiveFUSE() noexcept(false) {
 		                         std::to_string(fuse_result));
 	}
 	this->m_handle = nullptr;
+
+	free(this->m_path);
+	this->m_path = nullptr;
 }
 
 MockFileLock::MockFileLock() = default;

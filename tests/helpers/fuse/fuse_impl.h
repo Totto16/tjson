@@ -23,8 +23,8 @@ typedef struct {
 	} data;
 } FuseCreateResult;
 
-[[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
-                                                    size_t file_amount, bool debug);
+[[nodiscard]] FuseCreateResult create_new_fuse_file(char* dir, FuseFile* files, size_t file_amount,
+                                                    bool debug);
 
 [[nodiscard]] int clear_fuse_file(FUSEHandle* handle);
 

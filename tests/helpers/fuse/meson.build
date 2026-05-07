@@ -10,6 +10,7 @@ shared_files = files(
     'fuse_shared.c',
     'fuse_shared.h',
 )
+shared_deps = [tvec_dep]
 
 test_src += shared_files
 
@@ -22,7 +23,7 @@ fuse_helper_deps += dependency(
 
 fuse_helper_deps += tstr_dep
 
-fuse_helper_deps += tvec_dep
+fuse_helper_deps += shared_deps
 
 fuse_helper_exe = executable(
     'fuse_helper_exe',

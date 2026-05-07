@@ -757,3 +757,5 @@ void free_allocated_data(AllocatedDataArray* allocated_things) {
 	}
 	TVEC_FREE(AllocatedData, allocated_things);
 }
+
+TVEC_IMPLEMENT_VEC_TYPE(AllocatedData)
