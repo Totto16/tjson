@@ -41,11 +41,13 @@ deps += dependency(
 )
 
 # allocators are defined, as this is a header only library
-deps += dependency(
+tvec_dep = dependency(
     'tvec.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
 )
+
+deps += tvec_dep
 
 # allocators are defined, as this is a header only library
 # the lib only includes some helper function for hashes

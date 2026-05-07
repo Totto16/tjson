@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <tstr.h>
+#include <tvec.h>
 
 // don't use those here
 #undef TJSON_MALLOC
@@ -44,12 +45,12 @@ typedef struct {
 } FuseFile;
 
 typedef struct {
-	const FuseFile* data;
+	FuseFile* data;
 	size_t size;
 } FuseFiles;
 
 typedef struct {
-	const char* dir_path;
+	char* dir_path;
 	FuseFiles files;
 	bool debug;
 } FuseStaticData;
@@ -80,8 +81,13 @@ typedef struct {
 static_assert(sizeof(FuseSharedState) != 0);
 
 typedef struct {
+	void* ptr;
+	size_t size;
+} MemoryBlock;
+
+typedef struct {
 	FuseSharedState* state;
-	void* rest; // is the "FuseStaticData" encoded into a flat array
+	MemoryBlock rest; // is the "FuseStaticData" encoded into a flat array
 } FuseSharedMemory;
 
 [[nodiscard]] FuseState fuse_state_uninitialized(void);
@@ -114,6 +120,25 @@ typedef struct {
 void shared_allocator_deinit(SharedAllocator* allocator);
 
 #define SIGNAL_FOR_FUSE_EXIT_REQUEST SIGUSR2
+
+// serialize / deserialize static data
+
+[[nodiscard]] size_t get_serialize_size_for_static_data(const FuseStaticData* data);
+
+[[nodiscard]] tstr_static serialize_static_data(MemoryBlock memory, const FuseStaticData* data);
+
+typedef struct {
+	void* data;
+} AllocatedData;
+
+TVEC_DEFINE_VEC_TYPE(AllocatedData)
+
+typedef TVEC_TYPENAME(AllocatedData) AllocatedDataArray;
+
+[[nodiscard]] tstr_static deserialize_static_data(MemoryBlock memory, FuseStaticData* data,
+                                                  AllocatedDataArray* allocated_things);
+
+void free_allocated_data(AllocatedDataArray* allocated_things);
 
 #ifdef __cplusplus
 }

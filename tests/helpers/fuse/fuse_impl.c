@@ -37,15 +37,27 @@ struct FUSEHandleImpl {
 [[nodiscard]] FuseCreateResult create_new_fuse_file(const char* dir, const FuseFile* files,
                                                     size_t file_amount, bool debug) {
 
-	const size_t TODO = (size_t)-1;
+	const FuseStaticData static_data = { .dir_path = dir,
+		                                 .files = (FuseFiles){ .data = files, .size = file_amount },
+		                                 .debug = debug };
 
-	SharedAllocatorResult allocator_result = new_shared_allocator(TODO);
+	const size_t static_data_size = get_serialize_size_for_static_data(&static_data);
+
+	SharedAllocatorResult allocator_result = new_shared_allocator(static_data_size);
 
 	if(allocator_result.allocator == NULL || allocator_result.memory.state == NULL) {
 		return fuse_create_result_error(TSTR_STATIC_LIT("shared allocator error"));
 	}
 
+	MemoryBlock rest_block = allocator_result.memory.rest;
 	SharedAllocator* allocator = allocator_result.allocator;
+	FuseSharedState* shared_state = allocator_result.memory.state;
+
+	tstr_static serial_result = serialize_static_data(rest_block, &static_data);
+
+	if(!tstr_static_is_null(serial_result)) {
+		return fuse_create_result_error(TSTR_STATIC_LIT("serialize static data failed"));
+	}
 
 	FUSEHandle* handle = (FUSEHandle*)malloc(sizeof(FUSEHandle));
 
@@ -53,7 +65,7 @@ struct FUSEHandleImpl {
 		return fuse_create_result_error(TSTR_STATIC_LIT("allocate error"));
 	}
 
-	handle->state = allocator_result.memory.state;
+	handle->state = shared_state;
 	handle->allocator = allocator;
 	handle->process_info = (ProcessInfo){ .pid = 0 };
 
@@ -63,9 +75,7 @@ struct FUSEHandleImpl {
 		free(handle); \
 	} while(false)
 
-	handle->data = (FuseStaticData){ .dir_path = dir,
-		                             .files = (FuseFiles){ .data = files, .size = file_amount },
-		                             .debug = debug };
+	handle->data = static_data;
 
 	int result = fuse_shared_init(handle->allocator, handle->state, &(handle->process_info));
 

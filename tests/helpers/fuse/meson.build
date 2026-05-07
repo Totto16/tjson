@@ -7,7 +7,6 @@ test_src += files(
 )
 
 shared_files = files(
-    'fuse_private.h',
     'fuse_shared.c',
     'fuse_shared.h',
 )
@@ -22,6 +21,8 @@ fuse_helper_deps += dependency(
 )
 
 fuse_helper_deps += tstr_dep
+
+fuse_helper_deps += tvec_dep
 
 fuse_helper_exe = executable(
     'fuse_helper_exe',
