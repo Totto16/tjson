@@ -190,7 +190,7 @@ static const uint8_t size_of_random_name_chars =
 		return SHARED_ALLOCATOR_ERROR();
 	}
 
-	void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0);
+	void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	if(ptr == MAP_FAILED) {
 		FREE_AT_END();
@@ -281,7 +281,7 @@ static const uint8_t size_of_random_name_chars =
 
 	const size_t additional_data_size = size - sizeof(FuseSharedState);
 
-	void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0);
+	void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	if(ptr == MAP_FAILED) {
 		FREE_AT_END();
