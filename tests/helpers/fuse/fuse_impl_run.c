@@ -19,20 +19,6 @@ typedef struct {
 	size_t size;
 } FileMetadatas;
 
-[[nodiscard]] static FileMetadata get_file_metadata_for_ino(FileMetadatas metadatas,
-                                                            fuse_ino_t ino) {
-
-	if(ino == 0) {
-		return EMPTY_FILE_METADATA();
-	}
-
-	if(ino >= metadatas.size) {
-		return EMPTY_FILE_METADATA();
-	}
-
-	return metadatas.data[ino - 1];
-}
-
 typedef struct {
 	FileMetadatas metadata;
 	Time start_time;
@@ -55,6 +41,37 @@ typedef struct {
 
 	return time;
 }
+
+[[nodiscard]] static FileMetadata get_file_metadata_for_ino(const FileMetadatas* const metadatas,
+                                                            fuse_ino_t ino) {
+
+	if(ino == 0) {
+		return EMPTY_FILE_METADATA();
+	}
+
+	if(ino > metadatas->size) {
+		return EMPTY_FILE_METADATA();
+	}
+
+	return metadatas->data[ino - 1];
+}
+
+static void set_file_metadata_for_ino(FileMetadatas* const metadatas, fuse_ino_t ino) {
+
+	if(ino == 0) {
+		return;
+	}
+
+	if(ino > metadatas->size) {
+		return;
+	}
+
+	FileMetadata* metadata = &(metadatas->data[ino - 1]);
+
+	metadata->access_time = get_current_time();
+}
+
+//
 
 static void fuse_lowlevel_op_init(void* userdata_arg, struct fuse_conn_info* conn) {
 
@@ -107,7 +124,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 			stbuf->st_nlink = 1 + userdata->files->size;
 			stbuf->st_size = 0;
 
-			FileMetadata metadata = get_file_metadata_for_ino(userdata->data->metadata, ino);
+			FileMetadata metadata = get_file_metadata_for_ino(&(userdata->data->metadata), ino);
 
 			stbuf->st_atim = metadata.access_time;
 			stbuf->st_ctim = userdata->data->start_time;
@@ -134,7 +151,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 			stbuf->st_nlink = 1;
 			stbuf->st_size = (off_t)buf->size;
 
-			FileMetadata metadata = get_file_metadata_for_ino(data->metadata, ino);
+			FileMetadata metadata = get_file_metadata_for_ino(&(data->metadata), ino);
 
 			stbuf->st_atim = metadata.access_time;
 			stbuf->st_ctim = data->start_time;
@@ -313,6 +330,8 @@ static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size
 
 	reply_buf_limited(req, &final_buffer, size, off);
 
+	set_file_metadata_for_ino(&(userdata->data->metadata), ino);
+
 	free(b.p);
 }
 
@@ -397,6 +416,8 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		fuse_reply_err(req, EACCES);
 		return;
 	}
+
+	set_file_metadata_for_ino(&(userdata->data->metadata), ino);
 
 	reply_buf_limited(req, &file.content, size, off);
 }
