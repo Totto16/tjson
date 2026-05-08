@@ -162,7 +162,11 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
 			stbuf->st_nlink = 1;
 
-			stbuf->st_size = (off_t)file->content.size;
+			if(file->flags.scenario == FailScenarioStatNegativeFileSize) {
+				stbuf->st_size = -1;
+			} else {
+				stbuf->st_size = (off_t)file->content.size;
+			}
 
 			FileMetadata metadata = get_file_metadata_for_ino(&(data->metadata), ino);
 
@@ -435,6 +439,21 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 	}
 
 	set_file_metadata_for_ino(&(userdata->data->metadata), ino);
+
+	if(file.flags.scenario == FailScenarioReadFailsLessData) {
+		FuseBuffer content = file.content;
+		if(content.size == 0) {
+			fuse_log(FUSE_LOG_EMERG, "can't decrement size of file, as size is already 0\n");
+
+			fuse_reply_err(req, ENOENT);
+			return;
+		}
+
+		content.size -= 1;
+
+		reply_buf_limited(req, &content, size, off);
+		return;
+	}
 
 	reply_buf_limited(req, &file.content, size, off);
 }

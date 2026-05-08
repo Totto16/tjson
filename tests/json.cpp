@@ -696,8 +696,9 @@ const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 		const auto file = "test_file_deny";
 
 		tests.emplace_back(
-		    JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
-		        "TODO 2", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc("Couldn't open file for reading", &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) },
 		    std::make_unique<MockFileFuse>(
 		        std::initializer_list<
 		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
@@ -712,25 +713,11 @@ const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 
 		tests.emplace_back(
 		    JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
-		        "TODO 3", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		        "Read to few data", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
 		    std::make_unique<MockFileFuse>(
 		        std::initializer_list<
 		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
 		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadFailsLessData } } },
-		        debug),
-		    file);
-	}
-
-	{
-		const auto file = "test_file_deny";
-
-		tests.emplace_back(
-		    JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
-		        "TODO 4", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
-		    std::make_unique<MockFileFuse>(
-		        std::initializer_list<
-		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
-		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadIntr } } },
 		        debug),
 		    file);
 	}

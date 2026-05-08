@@ -38,7 +38,6 @@ typedef enum {
 	FailScenarioReadFailsGeneric,
 	FailScenarioStatNegativeFileSize,
 	FailScenarioReadFailsLessData,
-	FailScenarioReadIntr,
 } FailScenario;
 
 [[nodiscard]] char get_char_for_fail_scenario(FailScenario scenario);

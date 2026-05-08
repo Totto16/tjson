@@ -838,9 +838,6 @@ TVEC_IMPLEMENT_VEC_TYPE(AllocatedData)
 		case FailScenarioReadFailsLessData: {
 			return 'l';
 		}
-		case FailScenarioReadIntr: {
-			return 'i';
-		}
 		default: {
 			return 'x';
 		}
