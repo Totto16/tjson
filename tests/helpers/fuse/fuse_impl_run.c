@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct timespec Time;
 
@@ -22,6 +23,8 @@ typedef struct {
 typedef struct {
 	FileMetadatas metadata;
 	Time start_time;
+	gid_t user_gid;
+	uid_t user_uid;
 } FuseData;
 
 typedef struct {
@@ -96,6 +99,9 @@ static void fuse_lowlevel_op_init(void* userdata_arg, struct fuse_conn_info* con
 
 	data->metadata = (FileMetadatas){ .data = metadatas_ptr, .size = metadatas_size };
 
+	data->user_gid = getgid();
+	data->user_uid = getuid();
+
 	// Disable the receiving and processing of FUSE_INTERRUPT requests
 	conn->no_interrupt = 1;
 }
@@ -121,6 +127,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 		case INO_ROOT_FOLDER: {
 
 			stbuf->st_mode = S_IFDIR | FOLDER_PERMISSIONS;
+
 			stbuf->st_nlink = 1 + userdata->files->size;
 			stbuf->st_size = 0;
 
@@ -129,6 +136,9 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 			stbuf->st_atim = metadata.access_time;
 			stbuf->st_ctim = userdata->data->start_time;
 			stbuf->st_mtim = userdata->data->start_time;
+
+			stbuf->st_gid = userdata->data->user_gid;
+			stbuf->st_uid = userdata->data->user_uid;
 			break;
 		}
 
@@ -148,6 +158,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
 		default: {
 			stbuf->st_mode = S_IFREG | FILE_PERMISSIONS;
+
 			stbuf->st_nlink = 1;
 			stbuf->st_size = (off_t)buf->size;
 
@@ -156,6 +167,9 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 			stbuf->st_atim = metadata.access_time;
 			stbuf->st_ctim = data->start_time;
 			stbuf->st_mtim = data->start_time;
+
+			stbuf->st_gid = data->user_gid;
+			stbuf->st_uid = data->user_uid;
 			break;
 		}
 	}
@@ -461,6 +475,20 @@ static void fuse_lowlevel_op_removexattr(fuse_req_t req, fuse_ino_t ino, const c
 	fuse_reply_err(req, ENOSYS);
 }
 
+static void fuse_lowlevel_op_lseek(fuse_req_t req, fuse_ino_t ino, off_t off, int whence,
+                                   struct fuse_file_info* fi) {
+
+	fuse_log(FUSE_LOG_DEBUG, "lseek called\n");
+	fuse_log(FUSE_LOG_EMERG, "lseek not yet implemented\n");
+
+	(void)ino;
+	(void)off;
+	(void)whence;
+	(void)fi;
+
+	fuse_reply_err(req, ENOSYS);
+}
+
 // see: https://libfuse.github.io/doxygen/structfuse__lowlevel__ops.html
 static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	.init = fuse_lowlevel_op_init,
@@ -506,7 +534,7 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	// fallocate,
 	// readdirplus,
 	// copy_file_range,
-	// lseek,
+	.lseek = fuse_lowlevel_op_lseek,
 	// tmpfile,
 	// statx,
 };
