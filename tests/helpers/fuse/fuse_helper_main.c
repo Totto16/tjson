@@ -36,6 +36,20 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	if(static_data.debug) {
+
+		fprintf(stdout, "Mounting custom fuse file system on path: '%s'\n", static_data.dir_path);
+		fprintf(stdout, "files:\n");
+		for(size_t i = 0; i < static_data.files.size; ++i) {
+			const FuseFile file = static_data.files.data[i];
+			fprintf(stdout, "[%zu]\n", i);
+			fprintf(stdout, "\tname: %s\n", file.name);
+			fprintf(stdout, "\tcontent: %.*s\n", (int)file.content.size, (char*)file.content.data);
+			fprintf(stdout, "\flags: %s %s\n", file.flags.allow_read ? "ra" : "rn",
+			        file.flags.allow_stat ? "sa" : "sn");
+		}
+	}
+
 	const FuseHandleResult fuse_result = fuse_start_fn(shared_state, &static_data);
 
 	free_allocated_data(&allocated_things);
