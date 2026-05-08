@@ -45,13 +45,13 @@ struct FUSEHandleImpl {
 
 	SharedAllocatorResult allocator_result = new_shared_allocator(static_data_size);
 
-	if(allocator_result.allocator == NULL || allocator_result.memory.state == NULL) {
-		return fuse_create_result_error(TSTR_STATIC_LIT("shared allocator error"));
-	}
-
 	MemoryBlock rest_block = allocator_result.memory.rest;
 	SharedAllocator* allocator = allocator_result.allocator;
 	FuseSharedState* shared_state = allocator_result.memory.state;
+
+	if(allocator == NULL || shared_state == NULL || rest_block.ptr == NULL) {
+		return fuse_create_result_error(TSTR_STATIC_LIT("shared allocator error"));
+	}
 
 	tstr_static serial_result = serialize_static_data(rest_block, &static_data);
 

@@ -15,14 +15,14 @@ int main(int argc, char** argv) {
 
 	SharedAllocatorResult allocator_result = shared_allocator_from_path(path);
 
-	if(allocator_result.allocator == NULL || allocator_result.memory.state == NULL) {
-		fprintf(stderr, "shared allocator error\n");
-		return EXIT_FAILURE;
-	}
-
 	MemoryBlock rest_block = allocator_result.memory.rest;
 	SharedAllocator* allocator = allocator_result.allocator;
 	FuseSharedState* shared_state = allocator_result.memory.state;
+
+	if(allocator == NULL || shared_state == NULL || rest_block.ptr == NULL) {
+		fprintf(stderr, "shared allocator error\n");
+		return EXIT_FAILURE;
+	}
 
 	FuseStaticData static_data = {};
 

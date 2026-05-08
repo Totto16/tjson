@@ -405,7 +405,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 //
 
 static void memory_advance(MemoryBlock* block, size_t size) {
-	if(block->size >= size) {
+	if(block->size < size) {
 		fprintf(stderr, "ERROR in memory_advance: not enough memory to advance: %zu < %zu\n",
 		        block->size, size);
 		exit(EXIT_FAILURE);
