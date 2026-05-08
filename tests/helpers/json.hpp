@@ -126,6 +126,12 @@ std::ostream& operator<<(std::ostream& os, const JsonErrorCpp& json_error);
 
 std::ostream& operator<<(std::ostream& os, const JsonError& json_error);
 
+[[nodiscard]] bool operator==(const JsonParseResult& result, JsonParseResultType result_type);
+
+std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result);
+
+std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type);
+
 namespace json {
 
 [[nodiscard]] JsonValue null();

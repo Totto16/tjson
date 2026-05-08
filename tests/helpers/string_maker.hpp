@@ -106,4 +106,16 @@ template <> struct StringMaker<JsonSchema> {
 	}
 };
 
+template <> struct StringMaker<JsonParseResult> {
+	static String convert(const JsonParseResult& result) {
+		return ::os_stream_formattable_to_doctest(result);
+	}
+};
+
+template <> struct StringMaker<JsonParseResultType> {
+	static String convert(const JsonParseResultType& result_type) {
+		return ::os_stream_formattable_to_doctest(result_type);
+	}
+};
+
 } // namespace doctest

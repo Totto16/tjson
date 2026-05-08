@@ -29,8 +29,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -59,8 +58,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -89,8 +87,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -119,8 +116,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -197,8 +193,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -227,8 +222,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -257,8 +251,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 

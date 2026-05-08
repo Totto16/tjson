@@ -124,7 +124,7 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result), JsonParseResultTypeOk);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 		JsonValue result = json_parse_result_get_as_ok(parse_result);
 		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
@@ -373,8 +373,7 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-		           JsonParseResultTypeError);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 		JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -538,8 +537,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeOk);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 			JsonValue result = json_parse_result_get_as_ok(parse_result);
 			CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
@@ -645,7 +643,7 @@ TEST_CASE("testing json compatibility with other json library (nlohmann_json) <j
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result), JsonParseResultTypeOk);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 		JsonValue result = json_parse_result_get_as_ok(parse_result);
 		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
@@ -743,7 +741,7 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 
 	};
 
-	const bool debug = false;
+	const bool debug = true;
 
 	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
 
@@ -789,8 +787,7 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 
 			const auto& expected_error = test_case.expected.error();
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeError);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 			JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -799,8 +796,7 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 			REQUIRE_EQ(actual_error, expected_error);
 		} else {
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeOk);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 			JsonValue result = json_parse_result_get_as_ok(parse_result);
 			CAutoFreePtr<JsonValue> defer = { &result, free_json_value };

@@ -419,3 +419,51 @@ std::ostream& operator<<(std::ostream& os, const JsonError& json_error) {
 	tstr_free(&error);
 	return os;
 }
+
+[[nodiscard]] bool operator==(const JsonParseResult& result, JsonParseResultType result_type) {
+	return get_current_tag_type_for_json_parse_result(result) == result_type;
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result) {
+
+	SWITCH_JSON_PARSE_RESULT(parse_result) {
+		CASE_JSON_PARSE_RESULT_IS_ERROR_CONST(parse_result) {
+			os << "JsonParseResult::Error -> ";
+
+			os << error;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PARSE_RESULT_IS_OK_CONST(parse_result) {
+			os << "JsonParseResult::Ok -> ";
+
+			os << ok;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		default: {
+			return os;
+		}
+	}
+}
+
+std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type) {
+
+	switch(result_type) {
+		case JsonParseResultTypeError: {
+			os << "JsonParseResult::Error";
+
+			return os;
+		}
+		case JsonParseResultTypeOk: {
+			os << "JsonParseResult::Ok";
+
+			return os;
+		}
+		default: {
+			return os;
+		}
+	}
+}
