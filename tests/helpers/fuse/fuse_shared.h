@@ -33,8 +33,18 @@ typedef struct {
 	size_t size;
 } FuseBuffer;
 
+typedef enum {
+	FailScenarioNone = 0,
+	FailScenarioReadFailsGeneric,
+	FailScenarioStatNegativeFileSize,
+	FailScenarioReadFailsLessData,
+	FailScenarioReadIntr,
+} FailScenario;
+
+[[nodiscard]] char get_char_for_fail_scenario(FailScenario scenario);
+
 typedef struct {
-	bool allow_read;
+	FailScenario scenario;
 } FuseFileMockFlags;
 
 typedef struct {

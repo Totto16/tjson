@@ -352,6 +352,8 @@ void shared_allocator_deinit(SharedAllocator* allocator) {
 
 [[nodiscard]] static size_t serialize_fuse_buffer_size(const FuseBuffer* buffer);
 
+[[nodiscard]] static size_t serialize_fail_scenario_size(const FailScenario* scenario);
+
 static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 #define SERIALIZE_FIELD_SIZE(value) \
@@ -361,7 +363,8 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char*: serialize_str_size, \
 	    const FuseFile*: serialize_fuse_file_size, \
 	    const FuseBuffer*: serialize_fuse_buffer_size, \
-	    const FuseFileMockFlags*: serialize_fuse_mock_flags_size)((value))
+	    const FuseFileMockFlags*: serialize_fuse_mock_flags_size, \
+	    const FailScenario*: serialize_fail_scenario_size)((value))
 
 [[nodiscard]] static size_t serialize_fuse_file_size(const FuseFile* const file) {
 
@@ -376,10 +379,10 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	return size;
 }
 
-[[nodiscard]] static size_t serialize_fuse_mock_flags_size(const FuseFileMockFlags* flags) {
+[[nodiscard]] static size_t serialize_fuse_mock_flags_size(const FuseFileMockFlags* const flags) {
 	size_t size = 0;
 
-	size += SERIALIZE_FIELD_SIZE(flags->allow_read);
+	size += SERIALIZE_FIELD_SIZE(&(flags->scenario));
 
 	return size;
 }
@@ -392,6 +395,11 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	size += buffer->size;
 
 	return size;
+}
+
+[[nodiscard]] static size_t serialize_fail_scenario_size(const FailScenario* scenario) {
+	(void)scenario;
+	return sizeof(FailScenario);
 }
 
 [[nodiscard]] size_t get_serialize_size_for_static_data(const FuseStaticData* const data) {
@@ -486,6 +494,9 @@ static void memory_advance(MemoryBlock* block, size_t size) {
 [[nodiscard]] static tstr_static serialize_fuse_buffer(MemoryBlock* block,
                                                        const FuseBuffer* buffer);
 
+[[nodiscard]] static tstr_static serialize_fail_scenario(MemoryBlock* block,
+                                                         const FailScenario* scenario);
+
 static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 #define SERIALIZE_FIELD(block, value) \
@@ -495,7 +506,8 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char*: serialize_str, \
 	    const FuseFile*: serialize_fuse_file, \
 	    const FuseBuffer*: serialize_fuse_buffer, \
-	    const FuseFileMockFlags*: serialize_fuse_mock_flags)((block), (value))
+	    const FuseFileMockFlags*: serialize_fuse_mock_flags, \
+	    const FailScenario*: serialize_fail_scenario)((block), (value))
 
 [[nodiscard]] static tstr_static serialize_fuse_file(MemoryBlock* block,
                                                      const FuseFile* const file) {
@@ -524,7 +536,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 [[nodiscard]] static tstr_static serialize_fuse_mock_flags(MemoryBlock* block,
                                                            const FuseFileMockFlags* flags) {
 
-	tstr_static result = SERIALIZE_FIELD(block, flags->allow_read);
+	tstr_static result = SERIALIZE_FIELD(block, &(flags->scenario));
 
 	if(!tstr_static_is_null(result)) {
 		return result;
@@ -549,6 +561,11 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	}
 
 	return tstr_static_null();
+}
+
+[[nodiscard]] static tstr_static serialize_fail_scenario(MemoryBlock* block,
+                                                         const FailScenario* scenario) {
+	return serialize_slice(block, sizeof(FailScenario), scenario);
 }
 
 [[nodiscard]] tstr_static serialize_static_data(const MemoryBlock memory,
@@ -653,6 +670,9 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 [[nodiscard]] static tstr_static deserialize_fuse_buffer(MemoryBlock* block, FuseBuffer* buffer);
 
+[[nodiscard]] static tstr_static deserialize_fail_scenario(MemoryBlock* block,
+                                                           FailScenario* scenario);
+
 static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 #define DESERIALIZE_FIELD(block, value) \
@@ -662,7 +682,8 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char**: deserialize_str, \
 	    FuseFile*: deserialize_fuse_file, \
 	    FuseBuffer*: deserialize_fuse_buffer, \
-	    FuseFileMockFlags*: deserialize_fuse_mock_flags)((block), (value))
+	    FuseFileMockFlags*: deserialize_fuse_mock_flags, \
+	    FailScenario*: deserialize_fail_scenario)((block), (value))
 
 [[nodiscard]] static tstr_static deserialize_fuse_file(MemoryBlock* block, FuseFile* const file) {
 
@@ -690,7 +711,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 [[nodiscard]] static tstr_static deserialize_fuse_mock_flags(MemoryBlock* block,
                                                              FuseFileMockFlags* flags) {
 
-	tstr_static result = DESERIALIZE_FIELD(block, &(flags->allow_read));
+	tstr_static result = DESERIALIZE_FIELD(block, &(flags->scenario));
 
 	if(!tstr_static_is_null(result)) {
 		return result;
@@ -722,6 +743,11 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	memory_advance(block, buffer->size);
 
 	return tstr_static_null();
+}
+
+[[nodiscard]] static tstr_static deserialize_fail_scenario(MemoryBlock* block,
+                                                           FailScenario* scenario) {
+	return deserialize_slice(block, sizeof(FailScenario), scenario);
 }
 
 [[nodiscard]] tstr_static deserialize_static_data(const MemoryBlock memory, FuseStaticData* data,
@@ -797,3 +823,26 @@ void free_allocated_data(AllocatedDataArray* allocated_things) {
 }
 
 TVEC_IMPLEMENT_VEC_TYPE(AllocatedData)
+
+[[nodiscard]] char get_char_for_fail_scenario(FailScenario scenario) {
+	switch(scenario) {
+		case FailScenarioNone: {
+			return '-';
+		}
+		case FailScenarioReadFailsGeneric: {
+			return 'g';
+		}
+		case FailScenarioStatNegativeFileSize: {
+			return 'n';
+		}
+		case FailScenarioReadFailsLessData: {
+			return 'l';
+		}
+		case FailScenarioReadIntr: {
+			return 'i';
+		}
+		default: {
+			return 'x';
+		}
+	}
+}

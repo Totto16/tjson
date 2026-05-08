@@ -127,7 +127,7 @@ MockFileFuse& MockFileFuse::MockFileFuse::operator=(MockFileFuse&& other) noexce
 
 [[nodiscard]] static FuseFileMockFlags c_flags_from(const MockFlagsCpp& flags) {
 	return FuseFileMockFlags{
-		.allow_read = flags.allow_read,
+		.scenario = flags.scenario,
 	};
 }
 
@@ -181,14 +181,6 @@ FuseFilesArrayC::~FuseFilesArrayC() {
 
 	free(this->m_files);
 	this->m_files = nullptr;
-}
-
-[[nodiscard]] MockFlagsCpp MockFlagsCpp::allow_everything() {
-	return MockFlagsCpp{ .allow_read = true };
-}
-
-[[nodiscard]] MockFlagsCpp MockFlagsCpp::allow_nothing() {
-	return MockFlagsCpp{ .allow_read = false };
 }
 
 ActiveFUSE::ActiveFUSE(FUSEHandle* handle, char* path_dup)

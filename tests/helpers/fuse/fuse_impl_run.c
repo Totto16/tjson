@@ -429,7 +429,7 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 
 	const FuseFile file = userdata->files->data[i];
 
-	if(!file.flags.allow_read) {
+	if(file.flags.scenario == FailScenarioReadFailsGeneric) {
 		fuse_reply_err(req, EACCES);
 		return;
 	}
@@ -692,8 +692,8 @@ static void remove_signals(void) {
 		fprintf(stderr, "/ (%zu)\n", INO_ROOT_FOLDER);
 		for(size_t i = 0; i < data->files.size; ++i) {
 			const FuseFile file = data->files.data[i];
-			fprintf(stderr, "\t%s (%zu) [%zu] f%c\n", file.name, INO_START_FILES + i,
-			        file.content.size, file.flags.allow_read ? 'r' : '-');
+			fprintf(stderr, "\t%s (%zu) [%zu] s%c\n", file.name, INO_START_FILES + i,
+			        file.content.size, get_char_for_fail_scenario(file.flags.scenario));
 		}
 		fprintf(stderr, "\n");
 

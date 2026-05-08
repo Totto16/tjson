@@ -26,11 +26,7 @@ struct TempDir final {
 };
 
 struct MockFlagsCpp final {
-	bool allow_read;
-
-	[[nodiscard]] static MockFlagsCpp allow_everything();
-
-	[[nodiscard]] static MockFlagsCpp allow_nothing();
+	FailScenario scenario;
 };
 
 struct FuseFilesArrayC final {
