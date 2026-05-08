@@ -59,7 +59,7 @@ void fuse_shared_state_set_session_finished(FuseSharedState* const shared_state)
 	shared_state->session_finished = true;
 }
 
-static void* get_random_data(size_t length) {
+static uint8_t* get_random_data(size_t length) {
 
 	int fd = open("/dev/urandom", O_RDONLY);
 
@@ -111,6 +111,15 @@ struct SharedAllocatorImpl {
 
 #define SHARED_MEMORY_NAME_LENGTH 128
 
+static const char random_name_chars[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+	                                      'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+	                                      'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+	                                      'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+	                                      'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '_', '-' };
+
+static const uint8_t size_of_random_name_chars =
+    sizeof(random_name_chars) / sizeof(*random_name_chars);
+
 [[nodiscard]] SharedAllocatorResult new_shared_allocator(size_t additional_data_size) {
 	SharedAllocator* allocator = (SharedAllocator*)malloc(sizeof(SharedAllocator));
 
@@ -123,33 +132,30 @@ struct SharedAllocatorImpl {
 		free(allocator); \
 	} while(false)
 
-	void* data = get_random_data(SHARED_MEMORY_NAME_LENGTH + 2);
+	uint8_t* data = get_random_data(SHARED_MEMORY_NAME_LENGTH + 2);
 
 	if(data == NULL) {
 		FREE_AT_END();
 		return SHARED_ALLOCATOR_ERROR();
 	}
 
-	char* path = data;
-	path[0] = '/';
-	path[SHARED_MEMORY_NAME_LENGTH + 1] = '\0';
+	for(size_t i = 0; i < SHARED_MEMORY_NAME_LENGTH; ++i) {
+		uint8_t value = data[i + 1];
 
-	for(size_t i = 0; ++i < SHARED_MEMORY_NAME_LENGTH; ++i) {
-		char* value = (path + i + 1);
-		if(!isprint(*value)) {
-			*value = '_';
-		}
-		if(*value == '/') {
-			*value = '_';
-		}
+		const uint8_t index = value % size_of_random_name_chars;
+
+		data[i + 1] = (uint8_t)random_name_chars[index];
 	}
 
-	allocator->path = path;
+	data[0] = '/';
+	data[SHARED_MEMORY_NAME_LENGTH + 1] = '\0';
+
+	allocator->path = (char*)data;
 
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		free(path); \
+		free(data); \
 		free(allocator); \
 	} while(false)
 
@@ -157,9 +163,11 @@ struct SharedAllocatorImpl {
 
 	size_t size = sizeof(FuseSharedState) + additional_data_size;
 
-	int fd = shm_open(path, O_CREAT | O_RDWR, 0666);
+	int fd = shm_open(allocator->path, O_CREAT | O_RDWR, 0666);
 
 	if(fd < 0) {
+		fprintf(stderr, "FATAL: shm_open path was generated wrongly: '%s', error: %s\n",
+		        allocator->path, strerror(errno));
 		FREE_AT_END();
 		return SHARED_ALLOCATOR_ERROR();
 	}
@@ -171,7 +179,7 @@ struct SharedAllocatorImpl {
 #define FREE_AT_END() \
 	do { \
 		close(fd); \
-		free(path); \
+		free(data); \
 		free(allocator); \
 	} while(false)
 
