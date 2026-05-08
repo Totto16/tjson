@@ -680,8 +680,8 @@ const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 		const auto file = "test_file_deny";
 
 		tests.emplace_back(JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
-		                       "Couldn't read the correct amount of bytes from the file",
-		                       &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		                       "Couldn't read from the file", &dummy_file,
+		                       JsonSourcePosition{ .line = 0, .col = 0 }) },
 		                   std::make_unique<MockFileFuse>(
 		                       std::initializer_list<
 		                           std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
