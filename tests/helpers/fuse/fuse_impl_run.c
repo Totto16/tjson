@@ -4,9 +4,6 @@
 #include <errno.h>
 #include <signal.h>
 
-// TODO: remove
-#define UNUSED(v) ((void)(v))
-
 typedef FuseFiles UserData;
 
 static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
@@ -139,19 +136,19 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                      struct fuse_file_info* fi) {
 	fuse_log(FUSE_LOG_DEBUG, "readdir called\n");
-	// TODO
-	UNUSED(ino);
-	UNUSED(size);
-	UNUSED(off);
-	UNUSED(fi);
-	fuse_log(FUSE_LOG_DEBUG, "readdir not yet implemented\n");
+	fuse_log(FUSE_LOG_EMERG, "readdir not yet implemented\n");
+
+	(void)ino;
+	(void)size;
+	(void)off;
+	(void)fi;
 
 	fuse_reply_err(req, ENOTDIR);
 }
 
 static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 
-	fuse_log(FUSE_LOG_DEBUG, "op_open called\n");
+	fuse_log(FUSE_LOG_DEBUG, "open called\n");
 
 	if(ino == INO_ROOT_FOLDER) {
 		fuse_reply_err(req, EISDIR);
@@ -211,7 +208,7 @@ static int reply_buf_limited(fuse_req_t req, const FuseBuffer* const buf, size_t
 
 static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                   struct fuse_file_info* fi) {
-	fuse_log(FUSE_LOG_DEBUG, "op_read called\n");
+	fuse_log(FUSE_LOG_DEBUG, "read called\n");
 
 	(void)fi;
 
@@ -260,12 +257,12 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 static void fuse_lowlevel_op_getxattr(fuse_req_t req, fuse_ino_t ino, const char* name,
                                       size_t size) {
 
-	// TODO
-	UNUSED(ino);
-	UNUSED(size);
-	UNUSED(name);
-
 	fuse_log(FUSE_LOG_DEBUG, "getxattr called\n");
+	fuse_log(FUSE_LOG_EMERG, "getxattr not yet implemented\n");
+
+	(void)ino;
+	(void)size;
+	(void)name;
 
 	fuse_reply_err(req, ENOTSUP);
 }
@@ -273,24 +270,25 @@ static void fuse_lowlevel_op_getxattr(fuse_req_t req, fuse_ino_t ino, const char
 static void fuse_lowlevel_op_setxattr(fuse_req_t req, fuse_ino_t ino, const char* name,
                                       const char* value, size_t size, int flags) {
 
-	// TODO
-	UNUSED(ino);
-	UNUSED(size);
-	UNUSED(name);
-	UNUSED(value);
-	UNUSED(flags);
-
 	fuse_log(FUSE_LOG_DEBUG, "setxattr called\n");
+	fuse_log(FUSE_LOG_EMERG, "setxattr not yet implemented\n");
+
+	(void)ino;
+	(void)size;
+	(void)name;
+	(void)value;
+	(void)flags;
 
 	fuse_reply_err(req, ENOTSUP);
 }
 
 static void fuse_lowlevel_op_removexattr(fuse_req_t req, fuse_ino_t ino, const char* name) {
-	// TODO
-	UNUSED(ino);
-	UNUSED(name);
 
 	fuse_log(FUSE_LOG_DEBUG, "removexattr called\n");
+	fuse_log(FUSE_LOG_EMERG, "removexattr not yet implemented\n");
+
+	(void)ino;
+	(void)name;
 
 	fuse_reply_err(req, ENOTSUP);
 }
