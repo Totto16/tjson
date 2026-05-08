@@ -34,7 +34,6 @@ typedef struct {
 } FuseBuffer;
 
 typedef struct {
-	bool allow_stat;
 	bool allow_read;
 } FuseFileMockFlags;
 

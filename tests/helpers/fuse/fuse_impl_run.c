@@ -150,8 +150,9 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 #define FILE_PERMISSIONS (S_IRUSR | S_IRGRP | S_IROTH)
 
 [[nodiscard]] static int stat_helper_file_impl(fuse_ino_t ino, struct stat* stbuf,
-                                               const FuseBuffer* const buf,
+                                               const FuseFile* const file,
                                                const FuseData* const data) {
+
 	stbuf->st_ino = ino;
 	switch(ino) {
 		case INO_ROOT_FOLDER: return -1;
@@ -160,7 +161,8 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 			stbuf->st_mode = S_IFREG | FILE_PERMISSIONS;
 
 			stbuf->st_nlink = 1;
-			stbuf->st_size = (off_t)buf->size;
+
+			stbuf->st_size = (off_t)file->content.size;
 
 			FileMetadata metadata = get_file_metadata_for_ino(&(data->metadata), ino);
 
@@ -170,6 +172,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
 			stbuf->st_gid = data->user_gid;
 			stbuf->st_uid = data->user_uid;
+
 			break;
 		}
 	}
@@ -202,7 +205,7 @@ static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf,
 
 			const FuseFile file = userdata->files->data[i];
 
-			return stat_helper_file_impl(ino, stbuf, &file.content, userdata->data);
+			return stat_helper_file_impl(ino, stbuf, &file, userdata->data);
 		}
 	}
 	return 0;
@@ -260,7 +263,7 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 			e.ino = INO_START_FILES + i;
 			e.attr_timeout = 1.0;
 			e.entry_timeout = 1.0;
-			if(stat_helper_file_impl(e.ino, &e.attr, &file.content, userdata->data) != 0) {
+			if(stat_helper_file_impl(e.ino, &e.attr, &file, userdata->data) != 0) {
 				fuse_reply_err(req, ENOENT);
 				return;
 			}
@@ -689,9 +692,8 @@ static void remove_signals(void) {
 		fprintf(stderr, "/ (%zu)\n", INO_ROOT_FOLDER);
 		for(size_t i = 0; i < data->files.size; ++i) {
 			const FuseFile file = data->files.data[i];
-			fprintf(stderr, "\t%s (%zu) [%zu] f%c%c\n", file.name, INO_START_FILES + i,
-			        file.content.size, file.flags.allow_read ? 'r' : '-',
-			        file.flags.allow_stat ? 's' : '-');
+			fprintf(stderr, "\t%s (%zu) [%zu] f%c\n", file.name, INO_START_FILES + i,
+			        file.content.size, file.flags.allow_read ? 'r' : '-');
 		}
 		fprintf(stderr, "\n");
 

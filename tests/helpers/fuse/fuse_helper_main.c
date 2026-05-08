@@ -44,8 +44,7 @@ int main(int argc, char** argv) {
 			fprintf(stdout, "[%zu]\n", i);
 			fprintf(stdout, "\tname: %s\n", file.name);
 			fprintf(stdout, "\tcontent: %.*s\n", (int)file.content.size, (char*)file.content.data);
-			fprintf(stdout, "\tflags: %s %s\n", file.flags.allow_read ? "ra" : "rn",
-			        file.flags.allow_stat ? "sa" : "sn");
+			fprintf(stdout, "\tflags: %s\n", file.flags.allow_read ? "ra" : "rn");
 		}
 	}
 

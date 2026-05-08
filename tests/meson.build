@@ -115,6 +115,7 @@ foreach test_file : test_files_manual
         test_name,
         this_test,
         protocol: 'exitcode',
+        depends: [fuse_helper_exe],
         workdir: workdir,
         is_parallel: true,
         timeout: 30,

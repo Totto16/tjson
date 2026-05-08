@@ -741,7 +741,7 @@ TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)
 
 	};
 
-	const bool debug = true;
+	const bool debug = false;
 
 	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
 

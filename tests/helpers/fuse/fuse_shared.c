@@ -379,8 +379,6 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 [[nodiscard]] static size_t serialize_fuse_mock_flags_size(const FuseFileMockFlags* flags) {
 	size_t size = 0;
 
-	size += SERIALIZE_FIELD_SIZE(flags->allow_stat);
-
 	size += SERIALIZE_FIELD_SIZE(flags->allow_read);
 
 	return size;
@@ -526,13 +524,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 [[nodiscard]] static tstr_static serialize_fuse_mock_flags(MemoryBlock* block,
                                                            const FuseFileMockFlags* flags) {
 
-	tstr_static result = SERIALIZE_FIELD(block, flags->allow_stat);
-
-	if(!tstr_static_is_null(result)) {
-		return result;
-	}
-
-	result = SERIALIZE_FIELD(block, flags->allow_read);
+	tstr_static result = SERIALIZE_FIELD(block, flags->allow_read);
 
 	if(!tstr_static_is_null(result)) {
 		return result;
@@ -698,13 +690,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 [[nodiscard]] static tstr_static deserialize_fuse_mock_flags(MemoryBlock* block,
                                                              FuseFileMockFlags* flags) {
 
-	tstr_static result = DESERIALIZE_FIELD(block, &(flags->allow_stat));
-
-	if(!tstr_static_is_null(result)) {
-		return result;
-	}
-
-	result = DESERIALIZE_FIELD(block, &(flags->allow_read));
+	tstr_static result = DESERIALIZE_FIELD(block, &(flags->allow_read));
 
 	if(!tstr_static_is_null(result)) {
 		return result;
@@ -763,7 +749,6 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	if(!tstr_static_is_null(result)) {
 		return result;
 	}
-
 
 	FuseFile* files = malloc(data->files.size * sizeof(FuseFile));
 
