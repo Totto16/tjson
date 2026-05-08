@@ -361,7 +361,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char*: serialize_str_size, \
 	    const FuseFile*: serialize_fuse_file_size, \
 	    const FuseBuffer*: serialize_fuse_buffer_size, \
-	    const FuseFileMockFlags*: serialize_fuse_mock_flags_size)(value)
+	    const FuseFileMockFlags*: serialize_fuse_mock_flags_size)((value))
 
 [[nodiscard]] static size_t serialize_fuse_file_size(const FuseFile* const file) {
 
@@ -497,7 +497,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char*: serialize_str, \
 	    const FuseFile*: serialize_fuse_file, \
 	    const FuseBuffer*: serialize_fuse_buffer, \
-	    const FuseFileMockFlags*: serialize_fuse_mock_flags)(block, value)
+	    const FuseFileMockFlags*: serialize_fuse_mock_flags)((block), (value))
 
 [[nodiscard]] static tstr_static serialize_fuse_file(MemoryBlock* block,
                                                      const FuseFile* const file) {
@@ -612,8 +612,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 //
 
-[[nodiscard]] static tstr_static deserialize_slice(MemoryBlock* block, size_t size,
-                                                   void** const data) {
+[[nodiscard]] static tstr_static deserialize_slice(MemoryBlock* block, size_t size, void* data) {
 	if(block->size < size) {
 		return TSTR_STATIC_LIT("Not enough memory");
 	}
@@ -648,11 +647,11 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 }
 
 [[nodiscard]] static tstr_static deserialize_bool(MemoryBlock* block, bool* value) {
-	return deserialize_slice(block, sizeof(bool), (void**)&value);
+	return deserialize_slice(block, sizeof(bool), value);
 }
 
 [[nodiscard]] static tstr_static deserialize_u64(MemoryBlock* block, uint64_t* value) {
-	return deserialize_slice(block, sizeof(uint64_t), (void**)&value);
+	return deserialize_slice(block, sizeof(uint64_t), value);
 }
 
 [[nodiscard]] static tstr_static deserialize_fuse_file(MemoryBlock* block, FuseFile* file);
@@ -671,7 +670,7 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 	    char**: deserialize_str, \
 	    FuseFile*: deserialize_fuse_file, \
 	    FuseBuffer*: deserialize_fuse_buffer, \
-	    FuseFileMockFlags*: deserialize_fuse_mock_flags)(block, value)
+	    FuseFileMockFlags*: deserialize_fuse_mock_flags)((block), (value))
 
 [[nodiscard]] static tstr_static deserialize_fuse_file(MemoryBlock* block, FuseFile* const file) {
 
@@ -716,17 +715,25 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 [[nodiscard]] static tstr_static deserialize_fuse_buffer(MemoryBlock* block, FuseBuffer* buffer) {
 
-	tstr_static result = DESERIALIZE_FIELD(block, &buffer->size);
+	tstr_static result = DESERIALIZE_FIELD(block, &(buffer->size));
 
 	if(!tstr_static_is_null(result)) {
 		return result;
 	}
 
-	result = deserialize_slice(block, buffer->size, &(buffer->data));
+	// We have two options, either just copy the pointer to the data into the field or we need to
+	// malloc a buffer large enough, if the buffer is const, we don't need to malloc it (like we do
+	// with files), but if it would be reused with realloc, we would need to do that!
 
-	if(!tstr_static_is_null(result)) {
-		return result;
+	// we just copy the ptr to the data, and treat it as "const"
+
+	if(block->size < buffer->size) {
+		return TSTR_STATIC_LIT("Not enough memory");
 	}
+
+	buffer->data = block->ptr;
+
+	memory_advance(block, buffer->size);
 
 	return tstr_static_null();
 }
@@ -757,11 +764,14 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 		return result;
 	}
 
+
 	FuseFile* files = malloc(data->files.size * sizeof(FuseFile));
 
 	if(files == NULL) {
 		return TSTR_STATIC_LIT("OOM in additional data allocation");
 	}
+
+	data->files.data = files;
 
 	TvecResult push_res =
 	    TVEC_PUSH(AllocatedData, allocated_things, (AllocatedData){ .data = files });

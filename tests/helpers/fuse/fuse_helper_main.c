@@ -30,14 +30,13 @@ int main(int argc, char** argv) {
 
 	tstr_static result = deserialize_static_data(rest_block, &static_data, &allocated_things);
 
-	if(tstr_static_is_null(result)) {
+	if(!tstr_static_is_null(result)) {
 		fprintf(stderr, "deserialize static data failed: " TSTR_FMT "\n",
 		        TSTR_STATIC_FMT_ARGS(result));
 		return EXIT_FAILURE;
 	}
 
 	if(static_data.debug) {
-
 		fprintf(stdout, "Mounting custom fuse file system on path: '%s'\n", static_data.dir_path);
 		fprintf(stdout, "files:\n");
 		for(size_t i = 0; i < static_data.files.size; ++i) {
@@ -45,7 +44,7 @@ int main(int argc, char** argv) {
 			fprintf(stdout, "[%zu]\n", i);
 			fprintf(stdout, "\tname: %s\n", file.name);
 			fprintf(stdout, "\tcontent: %.*s\n", (int)file.content.size, (char*)file.content.data);
-			fprintf(stdout, "\flags: %s %s\n", file.flags.allow_read ? "ra" : "rn",
+			fprintf(stdout, "\tflags: %s %s\n", file.flags.allow_read ? "ra" : "rn",
 			        file.flags.allow_stat ? "sa" : "sn");
 		}
 	}

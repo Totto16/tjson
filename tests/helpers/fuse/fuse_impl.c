@@ -151,8 +151,6 @@ struct FUSEHandleImpl {
 				}
 			}
 
-			fprintf(stderr, "getting state: %d\n", state.type);
-
 			result = usleep(STATE_GET_INTERVAL_USEC);
 			if(result != 0) {
 				return fuse_create_result_error(TSTR_STATIC_LIT("usleep error"));
