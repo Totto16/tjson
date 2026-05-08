@@ -24,9 +24,9 @@ extern "C" {
 // on why this is necessary
 
 typedef uint8_t FuseHandleResult;
-#define THREAD_SUCCESS ((FuseHandleResult)(0))
+#define PROCESS_SUCCESS ((FuseHandleResult)(0))
 
-#define THREAD_ERROR ((FuseHandleResult)(1))
+#define PROCESS_ERROR ((FuseHandleResult)(1))
 
 typedef struct {
 	void* data;

@@ -464,7 +464,7 @@ static void remove_signals(void) {
 	char** const argv = malloc((argv_count + 1) * sizeof(char*));
 
 	if(argv == NULL) {
-		return THREAD_ERROR;
+		return PROCESS_ERROR;
 	}
 
 	argv[0] = strdup("fuse_impl_dummy_argv0");
@@ -478,7 +478,7 @@ static void remove_signals(void) {
 	bool signal_res = setup_signals(session);
 
 	if(!signal_res) {
-		return THREAD_ERROR;
+		return PROCESS_ERROR;
 	}
 
 	FuseState state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
@@ -496,11 +496,11 @@ static void remove_signals(void) {
 	bool state_success = fuse_shared_state_set_state(shared_state, state);
 
 	if(!state_success) {
-		return THREAD_ERROR;
+		return PROCESS_ERROR;
 	}
 
 	if(session == NULL) {
-		return THREAD_ERROR;
+		return PROCESS_ERROR;
 	}
 
 	// loop until we are finished
@@ -530,8 +530,8 @@ static void remove_signals(void) {
 	}
 
 	if(ret != 0) {
-		return THREAD_ERROR;
+		return PROCESS_ERROR;
 	}
 
-	return THREAD_SUCCESS;
+	return PROCESS_SUCCESS;
 }

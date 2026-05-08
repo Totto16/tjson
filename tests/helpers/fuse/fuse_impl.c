@@ -34,6 +34,8 @@ struct FUSEHandleImpl {
 [[nodiscard]] int fuse_shared_state_deinit(FuseSharedState* shared_state,
                                            const ProcessInfo* process_info);
 
+#define STATE_GET_INTERVAL_USEC (10 * 1000)
+
 [[nodiscard]] FuseCreateResult create_new_fuse_file(char* dir, FuseFile* files, size_t file_amount,
                                                     bool debug) {
 
@@ -105,13 +107,55 @@ struct FUSEHandleImpl {
 
 			bool get_ok = fuse_shared_state_get_state(handle->state, &new_state);
 
+			if(!get_ok) {
+				FREE_AT_END();
+				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
+			}
+
 			if(new_state.type != FuseStateTypeUninitialized) {
 				state = new_state;
 			}
 
-			if(!get_ok) {
-				FREE_AT_END();
-				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
+			{ // check if the process exited, when he didn't set the state before doing that, we got
+			  // a fatal error
+
+				int return_status = 0;
+
+				result = waitpid(handle->process_info.pid, &return_status, WNOHANG);
+
+				if(result == handle->process_info.pid) {
+					if((WIFEXITED(return_status))) {
+
+						FuseHandleResult return_value =
+						    (FuseHandleResult)(WEXITSTATUS(return_status));
+
+						if(return_value != PROCESS_SUCCESS) {
+							return fuse_create_result_error(TSTR_STATIC_LIT(
+							    "process exited (error) before setting the state!"));
+						}
+						return fuse_create_result_error(
+						    TSTR_STATIC_LIT("process exited (success) before setting the state!"));
+					}
+
+					if(WIFSIGNALED(return_status)) {
+						return fuse_create_result_error(
+						    TSTR_STATIC_LIT("process received a signal before setting the state!"));
+					}
+
+					return fuse_create_result_error(
+					    TSTR_STATIC_LIT("process terminated before setting the state!"));
+				}
+
+				if(result != 0) {
+					return fuse_create_result_error(TSTR_STATIC_LIT("waitpid error!"));
+				}
+			}
+
+			fprintf(stderr, "getting state: %d\n", state.type);
+
+			result = usleep(STATE_GET_INTERVAL_USEC);
+			if(result != 0) {
+				return fuse_create_result_error(TSTR_STATIC_LIT("usleep error"));
 			}
 		}
 
@@ -281,7 +325,7 @@ struct FUSEHandleImpl {
 
 			FuseHandleResult return_value = (FuseHandleResult)(WEXITSTATUS(return_status));
 
-			if(return_value != THREAD_SUCCESS) {
+			if(return_value != PROCESS_SUCCESS) {
 				return -9;
 			}
 
