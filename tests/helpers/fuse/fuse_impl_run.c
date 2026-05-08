@@ -19,8 +19,8 @@ static void fuse_lowlevel_op_destroy(void* userdata) {
 	(void)userdata;
 }
 
-#define INO_ROOT_FOLDER 1
-#define INO_START_FILES 2
+#define INO_ROOT_FOLDER ((fuse_ino_t)(1))
+#define INO_START_FILES ((fuse_ino_t)(2))
 
 [[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf,
                                                  const UserData* const userdata) {
@@ -87,7 +87,7 @@ static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf,
 }
 
 static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
-	fuse_log(FUSE_LOG_DEBUG, "getattr called\n");
+	fuse_log(FUSE_LOG_DEBUG, "getattr called: inode: %zu\n", ino);
 
 	struct stat stbuf;
 
@@ -117,7 +117,7 @@ static void fuse_lowlevel_op_setattr(fuse_req_t req, fuse_ino_t ino, struct stat
 }
 
 static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
-	fuse_log(FUSE_LOG_DEBUG, "lookup called\n");
+	fuse_log(FUSE_LOG_DEBUG, "lookup called: parent: %zu name: %s\n", parent, name);
 
 	if(parent != INO_ROOT_FOLDER) {
 		// the top level directory, where we mounted is inode 1, we only support files inside
@@ -151,22 +151,83 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 	fuse_reply_err(req, ENOENT);
 }
 
+[[nodiscard]] static size_t min(size_t x, size_t y) {
+	return ((x) < (y) ? (x) : (y));
+}
+
+static int reply_buf_limited(fuse_req_t req, const FuseBuffer* const buf, size_t maxsize,
+                             off_t off) {
+
+	if(off < 0) {
+		fuse_reply_err(req, EFAULT);
+		return -EFAULT;
+	}
+
+	const size_t off_s = (size_t)off;
+
+	if(off_s < buf->size) {
+		return fuse_reply_buf(req, (char*)buf->data + off_s, min(buf->size - off_s, maxsize));
+	}
+
+	return fuse_reply_buf(req, NULL, 0);
+}
+
+struct dirbuf {
+	char* p;
+	size_t size;
+};
+
+static void dirbuf_add(fuse_req_t req, struct dirbuf* b, const char* name, fuse_ino_t ino) {
+	struct stat stbuf;
+
+	size_t oldsize = b->size;
+
+	b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+
+	b->p = (char*)realloc(b->p, b->size);
+
+	memset(&stbuf, 0, sizeof(stbuf));
+
+	stbuf.st_ino = ino;
+
+	fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf, (off_t)b->size);
+}
+
 static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                      struct fuse_file_info* fi) {
-	fuse_log(FUSE_LOG_DEBUG, "readdir called\n");
-	fuse_log(FUSE_LOG_EMERG, "readdir not yet implemented\n");
+	fuse_log(FUSE_LOG_DEBUG, "readdir called: inode: %zu\n", ino);
 
-	(void)ino;
-	(void)size;
-	(void)off;
 	(void)fi;
 
-	fuse_reply_err(req, ENOTDIR);
+	if(ino != INO_ROOT_FOLDER) {
+		fuse_reply_err(req, ENOTDIR);
+		return;
+	}
+
+	const UserData* const userdata = fuse_req_userdata(req);
+
+	struct dirbuf b;
+	memset(&b, 0, sizeof(b));
+
+	dirbuf_add(req, &b, ".", INO_ROOT_FOLDER);
+	dirbuf_add(req, &b, "..", INO_ROOT_FOLDER);
+
+	for(size_t i = 0; i < userdata->size; ++i) {
+		const FuseFile file = userdata->data[i];
+
+		dirbuf_add(req, &b, file.name, INO_START_FILES + i);
+	}
+
+	FuseBuffer final_buffer = { .data = b.p, .size = b.size };
+
+	reply_buf_limited(req, &final_buffer, size, off);
+
+	free(b.p);
 }
 
 static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 
-	fuse_log(FUSE_LOG_DEBUG, "open called\n");
+	fuse_log(FUSE_LOG_DEBUG, "open called: inode: %zu\n", ino);
 
 	if(ino == INO_ROOT_FOLDER) {
 		fuse_reply_err(req, EISDIR);
@@ -203,32 +264,9 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 	fuse_reply_open(req, fi);
 }
 
-[[nodiscard]] static size_t min(size_t x, size_t y) {
-	return ((x) < (y) ? (x) : (y));
-}
-
-static int reply_buf_limited(fuse_req_t req, const FuseBuffer* const buf, size_t maxsize,
-                             off_t off) {
-
-	if(off < 0) {
-		fuse_reply_err(req, EFAULT);
-		return -EFAULT;
-	}
-
-	const size_t off_s = (size_t)off;
-
-	if(off_s < buf->size) {
-		return fuse_reply_buf(req, (char*)buf->data + off_s, min(buf->size - off_s, maxsize));
-	}
-
-	return fuse_reply_buf(req, NULL, 0);
-}
-
 static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                                   struct fuse_file_info* fi) {
-	fuse_log(FUSE_LOG_DEBUG, "read called\n");
-
-	(void)fi;
+	fuse_log(FUSE_LOG_DEBUG, "read called: inode: %zu\n", ino);
 
 	if(ino == INO_ROOT_FOLDER) {
 		fuse_reply_err(req, EISDIR);
@@ -505,6 +543,17 @@ static void remove_signals(void) {
 
 	if(data->debug) {
 		fuse_set_log_func(fuse_log_debug_impl);
+
+		fprintf(stderr, "file system hierarchy:\n");
+		fprintf(stderr, "/ (%zu)\n", INO_ROOT_FOLDER);
+		for(size_t i = 0; i < data->files.size; ++i) {
+			const FuseFile file = data->files.data[i];
+			fprintf(stderr, "\t%s (%zu) [%zu] f%c%c\n", file.name, INO_START_FILES + i,
+			        file.content.size, file.flags.allow_read ? 'r' : '-',
+			        file.flags.allow_stat ? 's' : '-');
+		}
+		fprintf(stderr, "\n");
+
 	} else {
 		fuse_set_log_func(fuse_log_normal_impl);
 	}
