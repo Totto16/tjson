@@ -14,6 +14,11 @@ static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
 	conn->no_interrupt = 1;
 }
 
+static void fuse_lowlevel_op_destroy(void* userdata) {
+
+	(void)userdata;
+}
+
 #define INO_ROOT_FOLDER 1
 #define INO_START_FILES 2
 
@@ -96,6 +101,19 @@ static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse
 	} else {
 		fuse_reply_attr(req, &stbuf, 1.0);
 	}
+}
+
+static void fuse_lowlevel_op_setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int to_set,
+                                     struct fuse_file_info* fi) {
+	fuse_log(FUSE_LOG_DEBUG, "setattr called\n");
+	fuse_log(FUSE_LOG_EMERG, "setattr not yet implemented\n");
+
+	(void)ino;
+	(void)attr;
+	(void)to_set;
+	(void)fi;
+
+	fuse_reply_err(req, ENOTDIR);
 }
 
 static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
@@ -264,7 +282,7 @@ static void fuse_lowlevel_op_getxattr(fuse_req_t req, fuse_ino_t ino, const char
 	(void)size;
 	(void)name;
 
-	fuse_reply_err(req, ENOTSUP);
+	fuse_reply_err(req, ENOSYS);
 }
 
 static void fuse_lowlevel_op_setxattr(fuse_req_t req, fuse_ino_t ino, const char* name,
@@ -279,7 +297,7 @@ static void fuse_lowlevel_op_setxattr(fuse_req_t req, fuse_ino_t ino, const char
 	(void)value;
 	(void)flags;
 
-	fuse_reply_err(req, ENOTSUP);
+	fuse_reply_err(req, ENOSYS);
 }
 
 static void fuse_lowlevel_op_removexattr(fuse_req_t req, fuse_ino_t ino, const char* name) {
@@ -290,19 +308,57 @@ static void fuse_lowlevel_op_removexattr(fuse_req_t req, fuse_ino_t ino, const c
 	(void)ino;
 	(void)name;
 
-	fuse_reply_err(req, ENOTSUP);
+	fuse_reply_err(req, ENOSYS);
 }
 
+// see: https://libfuse.github.io/doxygen/structfuse__lowlevel__ops.html
 static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 	.init = fuse_lowlevel_op_init,
+	.destroy = fuse_lowlevel_op_destroy,
 	.lookup = fuse_lowlevel_op_lookup,
+	// forget,
 	.getattr = fuse_lowlevel_op_getattr,
-	.readdir = fuse_lowlevel_op_readdir,
+	.setattr = fuse_lowlevel_op_setattr,
+	// readlink,
+	// mknod,
+	// mkdir,
+	// unlink,
+	// rmdir,
+	// symlink,
+	// rename,
+	// link,
 	.open = fuse_lowlevel_op_open,
 	.read = fuse_lowlevel_op_read,
+	// write,
+	// flush,
+	// release,
+	// fsync,
+	// opendir,
+	.readdir = fuse_lowlevel_op_readdir,
+	// releasedir,
+	// fsyncdir,
+	// statfs,
 	.setxattr = fuse_lowlevel_op_setxattr,
 	.getxattr = fuse_lowlevel_op_getxattr,
+	// listxattr,
 	.removexattr = fuse_lowlevel_op_removexattr,
+	// access,
+	// create,
+	// getlk,
+	// setlk,
+	// bmap,
+	// ioctl,
+	// poll,
+	// write_buf,
+	// retrieve_reply,
+	// forget_multi,
+	// flock,
+	// fallocate,
+	// readdirplus,
+	// copy_file_range,
+	// lseek,
+	// tmpfile,
+	// statx,
 };
 
 [[nodiscard]] static struct fuse_session*
