@@ -265,6 +265,40 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			REQUIRE_EQ(actual_error, expected_error);
 		}();
 	}
+
+	SUBCASE("parsing: string parsing fails") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const bool mock_res = mock_allocator.realloc().always_fail();
+			REQUIRE_TRUE(mock_res);
+
+			std::string json_str = R"("hello world")";
+
+			const tstr_view str_view = helpers::tstr_view_from_str(json_str);
+
+			auto parse_result = json_value_parse_from_str(str_view);
+
+			CAutoFreePtr<JsonParseResult> defer_parse_result = { &parse_result, [](JsonParseResult* res) -> void {
+				                                                    // noop, as the error is a
+				                                                    // tstr_static
+				                                                    free_json_parse_result(*res);
+				                                                } };
+
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+			JsonError result = json_parse_result_get_as_error(parse_result);
+
+			const auto actual_error = JsonErrorCpp{ result };
+
+			// just here as a dummy tstr_view
+			const auto dummy_str_view = tstr_view_from("__dummy_str_view__impl__");
+			auto expected_error = JsonErrorCpp::with_string_loc(
+			    "json string add error", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 2 });
+
+			REQUIRE_EQ(actual_error, expected_error);
+		}();
+	}
 }
 
 namespace {
