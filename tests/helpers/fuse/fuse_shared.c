@@ -109,7 +109,7 @@ struct SharedAllocatorImpl {
 	    .allocator = NULL, \
 	    .memory = (FuseSharedMemory){ .state = NULL, .rest = { .ptr = NULL, .size = 0 } } })
 
-#define SHARED_MEMORY_NAME_LENGTH 256
+#define SHARED_MEMORY_NAME_LENGTH 128
 
 [[nodiscard]] SharedAllocatorResult new_shared_allocator(size_t additional_data_size) {
 	SharedAllocator* allocator = (SharedAllocator*)malloc(sizeof(SharedAllocator));
@@ -137,6 +137,9 @@ struct SharedAllocatorImpl {
 	for(size_t i = 0; ++i < SHARED_MEMORY_NAME_LENGTH; ++i) {
 		char* value = (path + i + 1);
 		if(!isprint(*value)) {
+			*value = '_';
+		}
+		if(*value == '/') {
 			*value = '_';
 		}
 	}
