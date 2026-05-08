@@ -1,26 +1,101 @@
-
 #include "./fuse_impl_run.h"
 
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 
-typedef FuseFiles UserData;
+typedef struct timespec Time;
 
-static void fuse_lowlevel_op_init(void* userdata, struct fuse_conn_info* conn) {
+#define EMPTY_TIME() ((Time){ .tv_sec = 0, .tv_nsec = 0 })
 
-	(void)userdata;
+typedef struct {
+	Time access_time;
+} FileMetadata;
+
+#define EMPTY_FILE_METADATA() ((FileMetadata){ .access_time = EMPTY_TIME() })
+
+typedef struct {
+	FileMetadata* data;
+	size_t size;
+} FileMetadatas;
+
+[[nodiscard]] static FileMetadata get_file_metadata_for_ino(FileMetadatas metadatas,
+                                                            fuse_ino_t ino) {
+
+	if(ino == 0) {
+		return EMPTY_FILE_METADATA();
+	}
+
+	if(ino >= metadatas.size) {
+		return EMPTY_FILE_METADATA();
+	}
+
+	return metadatas.data[ino - 1];
+}
+
+typedef struct {
+	FileMetadatas metadata;
+	Time start_time;
+} FuseData;
+
+typedef struct {
+	const FuseFiles* files;
+	FuseData* data;
+} UserData;
+
+[[nodiscard]] static Time get_current_time(void) {
+
+	Time time = {};
+
+	int result = clock_gettime(CLOCK_REALTIME, &time);
+
+	if(result != 0) {
+		return EMPTY_TIME();
+	}
+
+	return time;
+}
+
+static void fuse_lowlevel_op_init(void* userdata_arg, struct fuse_conn_info* conn) {
+
+	UserData* const userdata = userdata_arg;
+
+	FuseData* data = malloc(sizeof(FuseData));
+	assert(data);
+
+	userdata->data = data;
+
+	Time current_time = get_current_time();
+
+	data->start_time = current_time;
+
+	const size_t metadatas_size = userdata->files->size + 1;
+	FileMetadata* metadatas_ptr = malloc(sizeof(FileMetadata) * metadatas_size);
+	assert(metadatas_ptr);
+
+	for(size_t i = 0; i < metadatas_size; ++i) {
+		metadatas_ptr[i] = (FileMetadata){ .access_time = current_time };
+	}
+
+	data->metadata = (FileMetadatas){ .data = metadatas_ptr, .size = metadatas_size };
 
 	// Disable the receiving and processing of FUSE_INTERRUPT requests
 	conn->no_interrupt = 1;
 }
 
-static void fuse_lowlevel_op_destroy(void* userdata) {
+static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
-	(void)userdata;
+	UserData* const userdata = userdata_arg;
+
+	free(userdata->data->metadata.data);
+	free(userdata->data);
+	free(userdata);
 }
 
 #define INO_ROOT_FOLDER ((fuse_ino_t)(1))
 #define INO_START_FILES ((fuse_ino_t)(2))
+
+#define FOLDER_PERMISSIONS (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
 [[nodiscard]] static int stat_helper_folder_impl(fuse_ino_t ino, struct stat* stbuf,
                                                  const UserData* const userdata) {
@@ -28,8 +103,15 @@ static void fuse_lowlevel_op_destroy(void* userdata) {
 	switch(ino) {
 		case INO_ROOT_FOLDER: {
 
-			stbuf->st_mode = S_IFDIR | 0755;
-			stbuf->st_nlink = 1 + userdata->size;
+			stbuf->st_mode = S_IFDIR | FOLDER_PERMISSIONS;
+			stbuf->st_nlink = 1 + userdata->files->size;
+			stbuf->st_size = 0;
+
+			FileMetadata metadata = get_file_metadata_for_ino(userdata->data->metadata, ino);
+
+			stbuf->st_atim = metadata.access_time;
+			stbuf->st_ctim = userdata->data->start_time;
+			stbuf->st_mtim = userdata->data->start_time;
 			break;
 		}
 
@@ -38,16 +120,25 @@ static void fuse_lowlevel_op_destroy(void* userdata) {
 	return 0;
 }
 
+#define FILE_PERMISSIONS (S_IRUSR | S_IRGRP | S_IROTH)
+
 [[nodiscard]] static int stat_helper_file_impl(fuse_ino_t ino, struct stat* stbuf,
-                                               const FuseBuffer* const buf) {
+                                               const FuseBuffer* const buf,
+                                               const FuseData* const data) {
 	stbuf->st_ino = ino;
 	switch(ino) {
 		case INO_ROOT_FOLDER: return -1;
 
 		default: {
-			stbuf->st_mode = S_IFREG | 0444;
+			stbuf->st_mode = S_IFREG | FILE_PERMISSIONS;
 			stbuf->st_nlink = 1;
 			stbuf->st_size = (off_t)buf->size;
+
+			FileMetadata metadata = get_file_metadata_for_ino(data->metadata, ino);
+
+			stbuf->st_atim = metadata.access_time;
+			stbuf->st_ctim = data->start_time;
+			stbuf->st_mtim = data->start_time;
 			break;
 		}
 	}
@@ -65,22 +156,22 @@ static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf,
 				return -1;
 			}
 
-			if(ino >= INO_START_FILES + userdata->size) {
+			if(ino >= INO_START_FILES + userdata->files->size) {
 				return -1;
 			}
 
 			const size_t i = ino - INO_START_FILES;
 
-			if(i >= userdata->size) {
+			if(i >= userdata->files->size) {
 				fuse_log(FUSE_LOG_EMERG,
 				         "ino calculation implementation error: %zu is out of bounds %zu\n", i,
-				         userdata->size);
+				         userdata->files->size);
 				return -1;
 			}
 
-			const FuseFile file = userdata->data[i];
+			const FuseFile file = userdata->files->data[i];
 
-			return stat_helper_file_impl(ino, stbuf, &file.content);
+			return stat_helper_file_impl(ino, stbuf, &file.content, userdata->data);
 		}
 	}
 	return 0;
@@ -93,7 +184,7 @@ static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse
 
 	(void)fi;
 
-	const UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = fuse_req_userdata(req);
 
 	memset(&stbuf, 0, sizeof(stbuf));
 	if(stat_helper_ino_impl(ino, &stbuf, userdata) == -1) {
@@ -127,10 +218,10 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 		return;
 	}
 
-	const UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = fuse_req_userdata(req);
 
-	for(size_t i = 0; i < userdata->size; ++i) {
-		const FuseFile file = userdata->data[i];
+	for(size_t i = 0; i < userdata->files->size; ++i) {
+		const FuseFile file = userdata->files->data[i];
 
 		if(strcmp(name, file.name) == 0) {
 			struct fuse_entry_param e;
@@ -138,7 +229,7 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 			e.ino = INO_START_FILES + i;
 			e.attr_timeout = 1.0;
 			e.entry_timeout = 1.0;
-			if(stat_helper_file_impl(e.ino, &e.attr, &file.content) != 0) {
+			if(stat_helper_file_impl(e.ino, &e.attr, &file.content, userdata->data) != 0) {
 				fuse_reply_err(req, ENOENT);
 				return;
 			}
@@ -204,7 +295,7 @@ static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size
 		return;
 	}
 
-	const UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = fuse_req_userdata(req);
 
 	struct dirbuf b;
 	memset(&b, 0, sizeof(b));
@@ -212,8 +303,8 @@ static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size
 	dirbuf_add(req, &b, ".", INO_ROOT_FOLDER);
 	dirbuf_add(req, &b, "..", INO_ROOT_FOLDER);
 
-	for(size_t i = 0; i < userdata->size; ++i) {
-		const FuseFile file = userdata->data[i];
+	for(size_t i = 0; i < userdata->files->size; ++i) {
+		const FuseFile file = userdata->files->data[i];
 
 		dirbuf_add(req, &b, file.name, INO_START_FILES + i);
 	}
@@ -239,18 +330,18 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 		return;
 	}
 
-	const UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + userdata->size) {
+	if(ino >= INO_START_FILES + userdata->files->size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= userdata->size) {
+	if(i >= userdata->files->size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, userdata->size);
+		         i, userdata->files->size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -278,18 +369,18 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	const UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = fuse_req_userdata(req);
 
-	if(ino >= INO_START_FILES + userdata->size) {
+	if(ino >= INO_START_FILES + userdata->files->size) {
 		fuse_reply_err(req, ENOENT);
 		return;
 	}
 
 	const size_t i = ino - INO_START_FILES;
 
-	if(i >= userdata->size) {
+	if(i >= userdata->files->size) {
 		fuse_log(FUSE_LOG_EMERG, "ino calculation implementation error: %zu is out of bounds %zu\n",
-		         i, userdata->size);
+		         i, userdata->files->size);
 
 		fuse_reply_err(req, ENOENT);
 		return;
@@ -300,7 +391,7 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	const FuseFile file = userdata->data[i];
+	const FuseFile file = userdata->files->data[i];
 
 	if(!file.flags.allow_read) {
 		fuse_reply_err(req, EACCES);
@@ -403,11 +494,12 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 fuse_initialize_impl(const FuseStaticData* const fuse_data, struct fuse_args* const args,
                      tstr_static* const error) {
 
-	const UserData* const userdata = &(fuse_data->files);
+	UserData* const userdata = malloc(sizeof(UserData));
+	userdata->files = &(fuse_data->files);
+	userdata->data = NULL;
 
-	struct fuse_session* session =
-	    fuse_session_new(args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations),
-	                     (void*)((uintptr_t)userdata));
+	struct fuse_session* session = fuse_session_new(
+	    args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)userdata);
 
 	if(session == NULL) {
 		*error = TSTR_STATIC_LIT("session new failed");
