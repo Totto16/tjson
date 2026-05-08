@@ -7,6 +7,8 @@
 
 #include <tjson_schema.h>
 
+#include <functional>
+
 #include "helpers/string_maker.hpp"
 
 namespace {
@@ -19,6 +21,11 @@ struct JsonSchemaValidateTestCaseSingle {
 struct JsonSchemaValidateTestCase {
 	JsonSchemaCpp schema;
 	std::vector<JsonSchemaValidateTestCaseSingle> tests;
+};
+
+struct JsonSchemaErrorThrows {
+	std::function<JsonSchemaCpp(void)> schema_fn;
+	std::string throw_msg;
 };
 
 } // namespace
@@ -551,6 +558,77 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 
 			REQUIRE_EQ(actual_result, expected_result);
 		}
+	}
+}
+
+TEST_CASE("testing invalid json schema construction <json_schema_errors>") {
+
+	std::vector<JsonSchemaErrorThrows> json_schema_error_tests = {
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp { return json_schema::string().regex("\\").get(); },
+		    .throw_msg = "Regex was invalid!" },
+		//
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          return json_schema::string().min(2).max(1).get();
+		                      },
+		                       .throw_msg = "string prop error: max is smaller than min!" },
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          return json_schema::string().max(1).min(2).get();
+		                      },
+		                       .throw_msg = "string prop error: min is larger than max!" },
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          auto result = json_schema::string().min(1).max(1).get();
+		                          throw std::runtime_error("Nothing wrong");
+		                      },
+		                       .throw_msg = "Nothing wrong" },
+		//
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp {
+		        return json_schema::array(json_schema::null(), true).min(2).max(1).get();
+		    },
+		    .throw_msg = "array prop error: max is smaller than min!" },
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp {
+		        return json_schema::array(json_schema::null(), true).max(1).min(2).get();
+		    },
+		    .throw_msg = "array prop error: min is larger than max!" },
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp {
+		        auto result = json_schema::array(json_schema::null(), true).min(1).max(1).get();
+		        throw std::runtime_error("Nothing wrong");
+		    },
+		    .throw_msg = "Nothing wrong" },
+		//
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp {
+		        return json_schema::array(json_schema::null(), true).max(1).max(1).get();
+		    },
+		    .throw_msg = "array prop error: max already set!" },
+		JsonSchemaErrorThrows{
+		    .schema_fn = []() -> JsonSchemaCpp {
+		        return json_schema::array(json_schema::null(), true).min(1).min(1).get();
+		    },
+		    .throw_msg = "array prop error: min already set!" },
+		//
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          return json_schema::string().max(1).max(1).get();
+		                      },
+		                       .throw_msg = "string prop error: max already set!" },
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          return json_schema::string().min(1).min(1).get();
+		                      },
+		                       .throw_msg = "string prop error: min already set!" },
+		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
+		                          return json_schema::string().regex("^a$").regex("^a$").get();
+		                      },
+		                       .throw_msg = "string prop error: pattern already set!" },
+	};
+
+	for(const auto& test_case : json_schema_error_tests) {
+
+		INFO("Test case: ", test_case.throw_msg);
+
+		REQUIRE_THROWS_WITH_AS(test_case.schema_fn(), test_case.throw_msg, std::runtime_error);
 	}
 }
 
