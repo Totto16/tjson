@@ -199,9 +199,11 @@ static const uint8_t size_of_random_name_chars =
 
 	allocator->mmap = (MmapData){ .ptr = ptr, .size = size };
 
-	FuseSharedMemory memory = { .state = ptr,
-		                        .rest = { .ptr = ((uint8_t*)ptr) + sizeof(FuseSharedState),
-		                                  .size = additional_data_size } };
+	FuseSharedState* state = ptr;
+	MemoryBlock rest = { .ptr = ((uint8_t*)ptr) + sizeof(FuseSharedState),
+		                 .size = additional_data_size };
+
+	FuseSharedMemory memory = { .state = state, .rest = rest };
 
 	return ((SharedAllocatorResult){ .allocator = allocator, .memory = memory });
 }
@@ -290,9 +292,11 @@ static const uint8_t size_of_random_name_chars =
 
 	allocator->mmap = (MmapData){ .ptr = ptr, .size = size };
 
-	FuseSharedMemory memory = { .state = ptr,
-		                        .rest = { .ptr = ((uint8_t*)ptr) + sizeof(FuseSharedState),
-		                                  .size = additional_data_size } };
+	FuseSharedState* state = ptr;
+	MemoryBlock rest = { .ptr = ((uint8_t*)ptr) + sizeof(FuseSharedState),
+		                 .size = additional_data_size };
+
+	FuseSharedMemory memory = { .state = state, .rest = rest };
 
 	return ((SharedAllocatorResult){ .allocator = allocator, .memory = memory });
 }
@@ -393,6 +397,15 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 }
 
 [[nodiscard]] size_t get_serialize_size_for_static_data(const FuseStaticData* const data) {
+
+	// static asserts to fail on modification of teh struct
+	static_assert(sizeof(FuseStaticData) == 32);
+	static_assert(offsetof(FuseStaticData, dir_path) == 0);
+	static_assert(sizeof(__typeof__(data->dir_path)) == 8);
+	static_assert(offsetof(FuseStaticData, files) == 8);
+	static_assert(sizeof(__typeof__(data->files)) == 16);
+	static_assert(offsetof(FuseStaticData, debug) == 24);
+	static_assert(sizeof(__typeof__(data->debug)) == 1);
 
 	size_t size = 0;
 
@@ -548,6 +561,15 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 [[nodiscard]] tstr_static serialize_static_data(const MemoryBlock memory,
                                                 const FuseStaticData* const data) {
+
+	// static asserts to fail on modification of teh struct
+	static_assert(sizeof(FuseStaticData) == 32);
+	static_assert(offsetof(FuseStaticData, dir_path) == 0);
+	static_assert(sizeof(__typeof__(data->dir_path)) == 8);
+	static_assert(offsetof(FuseStaticData, files) == 8);
+	static_assert(sizeof(__typeof__(data->files)) == 16);
+	static_assert(offsetof(FuseStaticData, debug) == 24);
+	static_assert(sizeof(__typeof__(data->debug)) == 1);
 
 	MemoryBlock block = memory;
 
@@ -711,6 +733,16 @@ static_assert(sizeof(uint64_t) == sizeof(size_t));
 
 [[nodiscard]] tstr_static deserialize_static_data(const MemoryBlock memory, FuseStaticData* data,
                                                   AllocatedDataArray* allocated_things) {
+
+	// static asserts to fail on modification of teh struct
+	static_assert(sizeof(FuseStaticData) == 32);
+	static_assert(offsetof(FuseStaticData, dir_path) == 0);
+	static_assert(sizeof(__typeof__(data->dir_path)) == 8);
+	static_assert(offsetof(FuseStaticData, files) == 8);
+	static_assert(sizeof(__typeof__(data->files)) == 16);
+	static_assert(offsetof(FuseStaticData, debug) == 24);
+	static_assert(sizeof(__typeof__(data->debug)) == 1);
+
 	MemoryBlock block = memory;
 
 	tstr_static result = DESERIALIZE_FIELD(&block, &(data->dir_path));
