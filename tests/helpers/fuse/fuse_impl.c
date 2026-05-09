@@ -89,7 +89,7 @@ struct FUSEHandleImpl {
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		auto _ = fuse_shared_state_deinit(handle->state, &(handle->process_info)); \
+		int _ = fuse_shared_state_deinit(handle->state, &(handle->process_info)); \
 		(void)_; \
 		shared_allocator_deinit(allocator); \
 		free(handle); \
