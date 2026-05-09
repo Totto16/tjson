@@ -70,6 +70,15 @@ tstr_dep = dependency(
 
 public_deps += tstr_dep
 
+# allocators are defined, as this is a header only library
+trtti_dep = dependency(
+    'trtti',
+    allow_fallback: true,
+    version: ['>=1.0.0', '<2'],
+)
+
+public_deps += trtti_dep
+
 #note: this lib is compiled, so it hasn't custom allocators, except for the public macros, that allow dynamic formatting into the buffer, but atm we dobn#t test that
 deps += dependency(
     'tstr_builder',
