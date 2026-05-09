@@ -175,8 +175,8 @@ FuseFilesArrayC::~FuseFilesArrayC() {
 	for(size_t i = 0; i < this->m_size; ++i) {
 		const auto& f = this->m_files[i];
 
-		free((void*)f.name);
-		free((void*)f.content.data);
+		free(f.name);
+		free(f.content.data);
 	}
 
 	free(this->m_files);
