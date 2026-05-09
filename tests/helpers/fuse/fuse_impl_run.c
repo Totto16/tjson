@@ -5,6 +5,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <trtti.h>
+
 typedef struct timespec Time;
 
 #define EMPTY_TIME() ((Time){ .tv_sec = 0, .tv_nsec = 0 })
@@ -31,6 +33,8 @@ typedef struct {
 	const FuseFiles* files;
 	FuseData* data;
 } UserData;
+
+TRTTI_DECLARE_TYPE_AS_SUPPORTED(UserData)
 
 [[nodiscard]] static Time get_current_time(void) {
 
@@ -74,11 +78,9 @@ static void set_file_metadata_for_ino(FileMetadatas* const metadatas, fuse_ino_t
 	metadata->access_time = get_current_time();
 }
 
-//
+static void fuse_lowlevel_op_init(RTTIAnnotatedPtr userdata_arg, struct fuse_conn_info* conn) {
 
-static void fuse_lowlevel_op_init(void* userdata_arg, struct fuse_conn_info* conn) {
-
-	UserData* const userdata = userdata_arg;
+	UserData* const userdata = TRTTI_ANNOTATED_PTR_CAST(UserData, userdata_arg);
 
 	FuseData* data = malloc(sizeof(FuseData));
 	assert(data);
@@ -108,11 +110,11 @@ static void fuse_lowlevel_op_init(void* userdata_arg, struct fuse_conn_info* con
 
 static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
-	UserData* const userdata = userdata_arg;
+	UserData* const userdata = TRTTI_ANNOTATED_PTR_CAST(UserData, userdata_arg);
 
 	free(userdata->data->metadata.data);
 	free(userdata->data);
-	free(userdata);
+	TRTTI_DESTROY(UserData, userdata);
 }
 
 #define INO_ROOT_FOLDER ((fuse_ino_t)(1))
@@ -215,6 +217,8 @@ static int stat_helper_ino_impl(fuse_ino_t ino, struct stat* stbuf,
 	return 0;
 }
 
+#define FUSE_GET_USERDATA(req) TRTTI_ANNOTATED_PTR_CAST(UserData, fuse_req_userdata(req))
+
 static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 	fuse_log(FUSE_LOG_DEBUG, "getattr called: inode: %zu\n", ino);
 
@@ -222,7 +226,7 @@ static void fuse_lowlevel_op_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse
 
 	(void)fi;
 
-	UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = FUSE_GET_USERDATA(req);
 
 	memset(&stbuf, 0, sizeof(stbuf));
 	if(stat_helper_ino_impl(ino, &stbuf, userdata) == -1) {
@@ -256,7 +260,7 @@ static void fuse_lowlevel_op_lookup(fuse_req_t req, fuse_ino_t parent, const cha
 		return;
 	}
 
-	UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = FUSE_GET_USERDATA(req);
 
 	for(size_t i = 0; i < userdata->files->size; ++i) {
 		const FuseFile file = userdata->files->data[i];
@@ -333,7 +337,7 @@ static void fuse_lowlevel_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size
 		return;
 	}
 
-	UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = FUSE_GET_USERDATA(req);
 
 	struct dirbuf b;
 	memset(&b, 0, sizeof(b));
@@ -370,7 +374,7 @@ static void fuse_lowlevel_op_open(fuse_req_t req, fuse_ino_t ino, struct fuse_fi
 		return;
 	}
 
-	UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = FUSE_GET_USERDATA(req);
 
 	if(ino >= INO_START_FILES + userdata->files->size) {
 		fuse_reply_err(req, ENOENT);
@@ -409,7 +413,7 @@ static void fuse_lowlevel_op_read(fuse_req_t req, fuse_ino_t ino, size_t size, o
 		return;
 	}
 
-	UserData* const userdata = fuse_req_userdata(req);
+	UserData* const userdata = FUSE_GET_USERDATA(req);
 
 	if(ino >= INO_START_FILES + userdata->files->size) {
 		fuse_reply_err(req, ENOENT);
@@ -565,12 +569,19 @@ static const struct fuse_lowlevel_ops fuse_lowlevel_operations = {
 fuse_initialize_impl(const FuseStaticData* const fuse_data, struct fuse_args* const args,
                      tstr_static* const error) {
 
-	UserData* const userdata = malloc(sizeof(UserData));
+	UserData* const userdata = TRTTI_ALLOC(UserData);
+
+	if(userdata == NULL) {
+		*error = TSTR_STATIC_LIT("userdata allocation failed");
+		return NULL;
+	}
+
 	userdata->files = &(fuse_data->files);
 	userdata->data = NULL;
 
-	struct fuse_session* session = fuse_session_new(
-	    args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations), (void*)userdata);
+	struct fuse_session* session =
+	    fuse_session_new(args, &fuse_lowlevel_operations, sizeof(fuse_lowlevel_operations),
+	                     (RTTIAnnotatedPtr*)userdata);
 
 	if(session == NULL) {
 		*error = TSTR_STATIC_LIT("session new failed");
