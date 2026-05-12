@@ -34,7 +34,7 @@ typedef struct {
 	FuseData* data;
 } UserData;
 
-TRTTI_DECLARE_TYPE_AS_SUPPORTED(UserData)
+TRTTI_DEFINE_TYPE_AS_SUPPORTED(UserData)
 
 [[nodiscard]] static Time get_current_time(void) {
 
