@@ -602,7 +602,8 @@ fuse_initialize_impl(const FuseStaticData* const fuse_data, struct fuse_args* co
 	return session;
 }
 
-static void fuse_log_impl(bool debug, enum fuse_log_level level, const char* fmt, va_list ap) {
+__attribute__((format(printf, 3, 0))) static void
+fuse_log_impl(bool debug, enum fuse_log_level level, const char* fmt, va_list ap) {
 
 	if(!debug) {
 		if(level > FUSE_LOG_WARNING) {
@@ -651,11 +652,13 @@ static void fuse_log_impl(bool debug, enum fuse_log_level level, const char* fmt
 	fflush(stderr);
 }
 
-static void fuse_log_debug_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+__attribute__((format(printf, 2, 0))) static void fuse_log_debug_impl(enum fuse_log_level level,
+                                                                      const char* fmt, va_list ap) {
 	fuse_log_impl(true, level, fmt, ap);
 }
 
-static void fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
+__attribute__((format(printf, 2, 0))) static void
+fuse_log_normal_impl(enum fuse_log_level level, const char* fmt, va_list ap) {
 	fuse_log_impl(false, level, fmt, ap);
 }
 
