@@ -1,15 +1,36 @@
 #include "./tjson_helper.h"
 
+#include <tvec.h>
+
+GENERATE_VARIANT_ALL_JSON_PATH_SEGMENT()
+
+/* NOLINTBEGIN(misc-use-internal-linkage,totto-function-passing-type,totto-use-fixed-width-types-var)
+ */
+// GCOVR_EXCL_START (external library)
+TVEC_DEFINE_AND_IMPLEMENT_VEC_TYPE(JsonPathSegment)
+// GCOVR_EXCL_STOP
+/* NOLINTEND(misc-use-internal-linkage,totto-function-passing-type,totto-use-fixed-width-types-var)
+ */
+
+typedef TVEC_TYPENAME(JsonPathSegment) JsonPathSegmentsArray;
+
 //  https://en.wikipedia.org/wiki/JSONPath
 // https://www.rfc-editor.org/rfc/rfc9535
 
 struct JsonPathImpl {
-	int todo;
+	JsonPathSegmentsArray segments;
 };
 
 TJSON_NODISCARD JsonPath* json_path_from_tstr_view(tstr_view path) {
-	// TODO
+
+	JsonPath* result = json_path_get_root();
+
+	if(result == NULL) {
+		return NULL;
+	}
+
 	(void)path;
+	// TODO
 	return NULL;
 }
 
@@ -20,8 +41,15 @@ TJSON_NODISCARD JsonPath* json_path_from_tstr(const tstr* path) {
 }
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
-	// TODO
-	return NULL;
+	JsonPath* path = malloc(sizeof(JsonPath));
+
+	if(path == NULL) {
+		return NULL;
+	}
+
+	*path = (JsonPath){ .segments = TVEC_EMPTY(JsonPathSegment) };
+
+	return path;
 }
 
 TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key) {
@@ -45,19 +73,38 @@ TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path) {
 }
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
-	// TODO
-	(void)path;
-	return false;
+	const size_t len = TVEC_LENGTH(JsonPathSegment, path->segments);
+
+	return len == 0;
+}
+
+static void free_json_path_segment(JsonPathSegment segment) {
+	SWITCH_JSON_PATH_SEGMENT(segment) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT(segment) {
+			tstr_free(&object_key.name);
+		}
+		break;
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_KEY_IGN() {
+			// noop
+		}
+		break;
+		VARIANT_CASE_END();
+		default: {
+			break;
+		}
+	}
 }
 
 void free_json_path(JsonPath* path) {
-	// TODO
-	(void)path;
-	if(path == (void*)0x1) {
-		return;
-	}
 
-	TJSON_UNREACHABLE();
+	for(size_t i = 0; i < TVEC_LENGTH(JsonPathSegment, path->segments); ++i) {
+		JsonPathSegment value = TVEC_AT(JsonPathSegment, path->segments, i);
+		free_json_path_segment(value);
+	}
+	TVEC_FREE(JsonPathSegment, &(path->segments));
+
+	free(path);
 }
 
 //

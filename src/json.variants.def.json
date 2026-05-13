@@ -301,5 +301,45 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "JsonPathSegment",
+        "member": [
+            {
+                "name": "ObjectKey",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "name",
+                                "typeName": "tstr"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "ArrayKey",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "index",
+                                "typeName": "size_t"
+                            }
+                        ]
+                    }
+                }
+            }
+        ],
+        "enum": {
+            "name": "JsonPathSegmentType",
+            "underlyingType": "u8"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]

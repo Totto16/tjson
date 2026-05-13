@@ -9,12 +9,14 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
                                   JsonIterateValue value) {
 	//
 	if(json_path_is_root(path)) {
-		if(parent.ptr != NULL) {
-			return new_json_iterate_result_error((JsonIterateError){
-			    .err = TSTR_STATIC_LIT("implementation error, first RTTI value vas not NULL") });
-		}
 
 		IF_JSON_ITERATE_VALUE_IS_OBJECT_START(value) {
+
+			if(parent.ptr != NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err =
+				        TSTR_STATIC_LIT("implementation error, first RTTI value vas not NULL") });
+			}
 
 			TestJsonStruct* allocated_struct =
 			    (TestJsonStruct*)TJSON_MALLOC(sizeof(TestJsonStruct));
