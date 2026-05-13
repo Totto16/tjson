@@ -2102,6 +2102,8 @@ json_to_string_object_impl(StringBuilder* const string_builder, // NOLINT(misc-n
 
 	JsonObjectIter* iter = json_object_get_iterator(json_object);
 
+	OOM_ASSERT(iter != NULL, "error in getting json object iterator");
+
 	bool start = true;
 
 	while(true) {

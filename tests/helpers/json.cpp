@@ -94,6 +94,10 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 	JsonObjectIter* iter1 = json_object_get_iterator(json_object1);
 	CAutoFreePtr<JsonObjectIter> defer = { iter1, json_object_free_iterator };
 
+	if(iter1 == nullptr) {
+		return false;
+	}
+
 	while(true) {
 
 		const JsonObjectEntry* entry1 = json_object_iterator_next(iter1);

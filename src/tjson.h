@@ -243,10 +243,6 @@ TJSON_NODISCARD tstr json_format_source_location(JsonSourceLocation location);
 
 TJSON_NODISCARD tstr json_format_error(JsonError error);
 
-// TODO: support JSONPath
-//  https://en.wikipedia.org/wiki/JSONPath
-// https://www.rfc-editor.org/rfc/rfc9535
-
 // ref count section
 
 TJSON_NODISCARD JsonObject* rc_json_value_object(JsonObject* json_value_object);

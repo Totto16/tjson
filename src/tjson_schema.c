@@ -725,6 +725,8 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 
 			JsonObjectIter* iter = json_object_get_iterator(root_properties->object);
 
+			ASSERT(iter != NULL);
+
 			JsonString* invalid_start_char = json_get_string_from_cstr("$");
 
 			ASSERT(invalid_start_char != NULL);
@@ -1266,6 +1268,10 @@ json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema
 
 		JsonObjectIter* iter = json_object_get_iterator(value);
 
+		if(iter == NULL) {
+			return TSTR_LIT("ERROR: JsonObject implementation error: object iterator get failed");
+		}
+
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
@@ -1614,7 +1620,7 @@ NODISCARD static tstr json_schema_validate_null_schema_raw_impl(const JsonValue*
 }
 
 // TODO(Totto): don't return a tstr, return a variant with a better error, with a JsonPath? or a
-// similar hierarchy of where the error occured, with  a ref(RC REF!!) of the jsonvalue and schema
+// similar hierarchy of where the error occurred, with  a ref(RC REF!!) of the jsonvalue and schema
 // which caused the error!
 
 NODISCARD static tstr

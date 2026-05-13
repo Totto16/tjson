@@ -79,6 +79,9 @@
 	// as the iteration is not stable, we need to iterate over the one, and assert that the other
 	// one has also the same entry!
 	JsonObjectIter* iter1 = json_object_get_iterator(json_object);
+
+	assert(iter1 != nullptr);
+
 	CAutoFreePtr<JsonObjectIter> defer = { iter1, json_object_free_iterator };
 
 	while(true) {
