@@ -10,6 +10,7 @@
 #include "./helpers.hpp"
 #include "./json.hpp"
 #include "./json_schema.hpp"
+#include "./rtti.hpp"
 
 template <typename T>
 concept is_cpp_stream_printable = requires(T val, std::ostream& os) {
@@ -115,6 +116,18 @@ template <> struct StringMaker<JsonParseResult> {
 template <> struct StringMaker<JsonParseResultType> {
 	static String convert(const JsonParseResultType& result_type) {
 		return ::os_stream_formattable_to_doctest(result_type);
+	}
+};
+
+template <> struct StringMaker<RTTIAnnotatedValue> {
+	static String convert(const RTTIAnnotatedValue& rtti_value) {
+		return ::os_stream_formattable_to_doctest(rtti_value);
+	}
+};
+
+template <> struct StringMaker<JsonIterateResult> {
+	static String convert(const JsonIterateResult& iterate_result) {
+		return ::os_stream_formattable_to_doctest(iterate_result);
 	}
 };
 

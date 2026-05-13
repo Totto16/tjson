@@ -7,34 +7,56 @@ struct JsonPathImpl {
 	int todo;
 };
 
-// TODO: path stuff
-
 TJSON_NODISCARD JsonPath* json_path_from_tstr_view(tstr_view path) {
 	// TODO
 	(void)path;
-	TJSON_UNREACHABLE();
+	return NULL;
 }
 
 TJSON_NODISCARD JsonPath* json_path_from_tstr(const tstr* path) {
 	// TODO
 	(void)path;
-	TJSON_UNREACHABLE();
+	return NULL;
 }
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	// TODO
-	TJSON_UNREACHABLE();
+	return NULL;
+}
+
+TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key) {
+	// TODO
+	(void)path;
+	(void)key;
+	return false;
+}
+
+TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved) {
+	// TODO
+	(void)path;
+	(void)key_moved;
+	return false;
+}
+
+TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path) {
+	// TODO
+	(void)path;
+	return false;
 }
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
 	// TODO
 	(void)path;
-	TJSON_UNREACHABLE();
+	return false;
 }
 
 void free_json_path(JsonPath* path) {
 	// TODO
 	(void)path;
+	if(path == (void*)0x1) {
+		return;
+	}
+
 	TJSON_UNREACHABLE();
 }
 
@@ -128,7 +150,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 						return new_json_iterate_result_error(error.error);
 					}
 
-					// note: the "recursive_result" rtti value is reused for the object handle, if
+					// note: the "recursive_result" RTTI value is reused for the object handle, if
 					// it isn't NULL, so that you can swap this out or just return NULL and
 					// everything still works
 					RTTIAnnotatedValue result_handle =
@@ -168,23 +190,32 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_ARRAY_CONST(*json_value) {
-			return NULL;
+			(void)array;
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: array") });
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_VALUE_IS_NUMBER_IGN() {
-			return NULL;
+		CASE_JSON_VALUE_IS_NUMBER_CONST(*json_value) {
+			(void)number;
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: number") });
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_STRING_CONST(*json_value) {
-			return NULL;
+			(void)string;
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: string") });
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_VALUE_IS_BOOLEAN_IGN() {
-			return NULL;
+		CASE_JSON_VALUE_IS_BOOLEAN_CONST(*json_value) {
+			(void)boolean;
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_STATIC_LIT("boolean") });
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_NULL() {
-			return NULL;
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: null") });
 		}
 		VARIANT_CASE_END();
 		default: {
@@ -213,68 +244,4 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json
 	free_json_path(json_path);
 
 	return result;
-}
-
-#include <tvec.h>
-
-typedef struct {
-	bool value;
-} TestJsonStructArrayElement;
-
-TVEC_DEFINE_AND_IMPLEMENT_VEC_TYPE(TestJsonStructArrayElement)
-
-typedef TVEC_TYPENAME(TestJsonStructArrayElement) TestJsonStructArray;
-
-typedef struct {
-	TestJsonStructArray array;
-} TestJsonStructNested;
-
-typedef struct {
-	uint32_t number1;
-	double number2;
-	TestJsonStructNested* optional;
-	tstr name;
-} TestJsonStruct;
-
-static JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
-                                         JsonIterateValue value) {
-	//
-	if(json_path_is_root(path)) {
-		if(parent.ptr != NULL) {
-			return new_json_iterate_result_error((JsonIterateError){
-			    .err = TSTR_STATIC_LIT("implementation error, first rtti value vas not NULL") });
-		}
-
-		IF_JSON_VALUE_IS_OBJECT_START(value) {
-
-			TestJsonStruct* allocated_struct = TJSON_MALLOC(sizeof(TestJsonStruct));
-
-			if(allocated_struct == NULL) {
-				return iterate_error(TSTR_STATIC("OOM"));
-			}
-
-			*allocated_struct = (TestJsonStruct){
-				.number1 = 0,
-				.number2 = 0.0,
-				.optional = NULL,
-				.name = tstr_null(),
-			};
-
-			RTTIAnnotatedValue result = TRTII_ANNOTATE_GET(TestJsonStruct, allocated_struct);
-			return iterate_ok(result)
-		}
-	}
-}
-
-int main() {
-
-	JsonParseResult value = json_value_parse_from_str(TSTR_TSV("hello"));
-
-	JsonValue val = json_parse_result_get_as_ok(value);
-
-	RTTIAnnotatedValue empty = { .ptr = NULL };
-
-	JsonIterateResult result = json_value_iterate(&val, test_iterate_cb, empty);
-
-	// TODO
 }

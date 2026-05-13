@@ -72,6 +72,7 @@ test_cpp_args += internal_cpp_args
 test_files_manual = [
     'json.cpp',
     'json_schema.cpp',
+    'json_helper.cpp',
 ]
 
 if get_option('b_coverage')
