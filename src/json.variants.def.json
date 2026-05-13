@@ -203,5 +203,103 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "JsonIterateValue",
+        "member": [
+            {
+                "name": "ObjectStart",
+                "type": null
+            },
+            {
+                "name": "ObjectEnd",
+                "type": null
+            },
+            {
+                "name": "ObjectEntry",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "entry",
+                                "typeName": "JsonIterateObjectEntry"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "ArrayStart",
+                "type": null
+            },
+            {
+                "name": "ArrayEnd",
+                "type": null
+            },
+            {
+                "name": "Number",
+                "type": {
+                    "name": "JsonNumber"
+                }
+            },
+            {
+                "name": "String",
+                "type": {
+                    "name": "JsonString*"
+                }
+            },
+            {
+                "name": "Boolean",
+                "type": {
+                    "name": "JsonBoolean"
+                }
+            },
+            {
+                "name": "Null",
+                "type": null
+            }
+        ],
+        "enum": {
+            "name": "JsonIterateValueType",
+            "underlyingType": "u8"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
+    },
+    {
+        "name": "JsonIterateResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "name": "RTTIAnnotatedValue"
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "error",
+                                "typeName": "JsonIterateError"
+                            }
+                        ]
+                    }
+                }
+            }
+        ],
+        "enum": {
+            "name": "JsonIterateResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]
