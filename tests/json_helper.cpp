@@ -16,13 +16,13 @@
 
 namespace {
 
-void free_json_test_struct(TestJsonStruct* test_struct) {
+void free_json_test_struct(TestJsonStruct test_struct) {
 
-	if(test_struct->optional_arrray != NULL) {
+	if(test_struct.optional_arrray != NULL) {
 
-		TVEC_FREE(TestJsonStructArrayElement, &(test_struct->optional_arrray->array));
+		TVEC_FREE(TestJsonStructArrayElement, &(test_struct.optional_arrray->array));
 
-		free(test_struct->optional_arrray);
+		free(test_struct.optional_arrray);
 	}
 }
 
@@ -147,7 +147,7 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 		    for(size_t i = 0; i < values->size(); ++i) {
 			    auto* const value = &(values->at(i));
 			    free_json_value(&(value->input));
-			    free_json_test_struct(&(value->expected));
+			    free_json_test_struct(value->expected);
 		    }
 		}
 	};
@@ -170,6 +170,16 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 		REQUIRE_EQ(struct_value, expected_value);
 
 		TestJsonStruct* result = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, struct_value);
+
+		CAutoFreePtr<TestJsonStruct> defer_result = { result,
+			                                          [](TestJsonStruct* const value) -> void {
+			                                              if(value == NULL) {
+				                                              return;
+			                                              }
+
+			                                              free_json_test_struct(*value);
+			                                              free(value);
+			                                          } };
 
 		REQUIRE_EQ(*result, test_case.expected);
 	}
