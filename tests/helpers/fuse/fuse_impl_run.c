@@ -104,8 +104,14 @@ static void fuse_lowlevel_op_init(RTTIAnnotatedPtr userdata_arg, struct fuse_con
 	data->user_gid = getgid();
 	data->user_uid = getuid();
 
+	// this flag was introduced in fuse 3.17
+	// see: https://github.com/libfuse/libfuse/blob/fuse-3.17.x/include/fuse_common.h
+#if FUSE_VERSION >= FUSE_MAKE_VERSION(3, 17)
+
 	// Disable the receiving and processing of FUSE_INTERRUPT requests
 	conn->no_interrupt = 1;
+
+#endif
 }
 
 static void fuse_lowlevel_op_destroy(void* userdata_arg) {
@@ -130,7 +136,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 
 			stbuf->st_mode = S_IFDIR | FOLDER_PERMISSIONS;
 
-			stbuf->st_nlink = 1 + userdata->files->size;
+			stbuf->st_nlink = (nlink_t)(((nlink_t)1) + userdata->files->size);
 			stbuf->st_size = 0;
 
 			FileMetadata metadata = get_file_metadata_for_ino(&(userdata->data->metadata), ino);
@@ -162,7 +168,7 @@ static void fuse_lowlevel_op_destroy(void* userdata_arg) {
 		default: {
 			stbuf->st_mode = S_IFREG | FILE_PERMISSIONS;
 
-			stbuf->st_nlink = 1;
+			stbuf->st_nlink = (nlink_t)1;
 
 			if(file->flags.scenario == FailScenarioStatNegativeFileSize) {
 				stbuf->st_size = -1;
