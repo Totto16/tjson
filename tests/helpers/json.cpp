@@ -5,9 +5,11 @@
 
 std::ostream& operator<<(std::ostream& os, const JsonValue& json_value) {
 
-	const auto str = json_value_to_string_advanced(&json_value, { .indent_size = 2 });
+	auto str = json_value_to_string_advanced(&json_value, { .indent_size = 2 });
 
 	os << str;
+
+	tstr_free(&str);
 
 	return os;
 }
