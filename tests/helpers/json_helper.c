@@ -56,6 +56,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			// NOTE: here we could check some properties of the final result, alias if the type has
 			// all fields set to a valid value
 
+			// NOTE: return NON empty, as this is the toplevel parser, so the return value of this
+			// is the actual result of the json_iterate function!
+
 			return new_json_iterate_result_ok(parent);
 		}
 

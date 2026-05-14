@@ -285,7 +285,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 					// anymore, the ptr that is used as the obj_handle should be modified by "sub
 					// iterators", we don't allow returning anything new in subparsers, set the ptr
 					// up to be modified in place, even if it's a double ptr!
-					RTTIAnnotatedValue result_handle =
+					const RTTIAnnotatedValue result_handle =
 					    json_iterate_result_get_as_ok(recursive_result);
 
 					if(result_handle.ptr != NULL) {
@@ -318,7 +318,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 				return new_json_iterate_result_error(error.error);
 			}
 
-			RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
+			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
 
 			return new_json_iterate_result_ok(end_handle);
 		}
@@ -374,7 +374,8 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 				// anymore, the ptr that is used as the obj_handle should be modified by "sub
 				// iterators", we don't allow returning anything new in subparsers, set the ptr
 				// up to be modified in place, even if it's a double ptr!
-				RTTIAnnotatedValue result_handle = json_iterate_result_get_as_ok(recursive_result);
+				const RTTIAnnotatedValue result_handle =
+				    json_iterate_result_get_as_ok(recursive_result);
 
 				if(result_handle.ptr != NULL) {
 					return new_json_iterate_result_error((JsonIterateError){
@@ -397,7 +398,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 				return new_json_iterate_result_error(error.error);
 			}
 
-			RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
+			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
 
 			return new_json_iterate_result_ok(end_handle);
 		}
