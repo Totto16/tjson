@@ -114,6 +114,27 @@ static std::ostream& operator<<(std::ostream& os, const TestJsonStruct& test_str
 	return os;
 }
 
+[[nodiscard]] static TestJsonStructNested* get_optional_array(std::initializer_list<bool> values) {
+
+	TestJsonStructNested* ptr = (TestJsonStructNested*)malloc(sizeof(TestJsonStructNested));
+
+	if(ptr == nullptr) {
+		throw std::runtime_error("OOM");
+	}
+
+	*ptr = { .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+
+	for(auto& value : values) {
+		auto res = TVEC_PUSH(TestJsonStructArrayElement, &(ptr->array), { .value = value });
+
+		if(res != TvecResultOk) {
+			throw std::runtime_error("push error");
+		}
+	}
+
+	return ptr;
+}
+
 namespace doctest {
 
 template <> struct StringMaker<TestJsonStruct> {
@@ -129,16 +150,27 @@ TEST_SUITE_BEGIN("json_helper" * doctest::description("json helper tests") * doc
 TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 
 	std::vector<JsonSimpleIteratorTest> json_iterator_cases = {
-
 		JsonSimpleIteratorTest{ .input = json::object({ { "number", json::number((int64_t)1) },
 		                                                { "optional_arrray", json::null() },
-		                                                { "name", json::string("string") } }),
+		                                                { "name", json::string("string1") } }),
 		                        .expected =
 		                            TestJsonStruct{
 		                                .number = 1,
 		                                .optional_arrray = nullptr,
-		                                .name = "string"_tstr,
-		                            } }
+		                                .name = "string1"_tstr,
+		                            } },
+		JsonSimpleIteratorTest{
+		    .input = json::object(
+		        { { "number", json::number((int64_t)2) },
+		          { "optional_arrray", json::array({ json::boolean(true), json::boolean(true),
+		                                             json::boolean(false) }) },
+		          { "name", json::string("string2") } }),
+		    .expected =
+		        TestJsonStruct{
+		            .number = 2,
+		            .optional_arrray = get_optional_array({ true, true, false }),
+		            .name = "string2"_tstr,
+		        } }
 	};
 
 	CAutoFreePtr<std::vector<JsonSimpleIteratorTest>> defer_tests = {

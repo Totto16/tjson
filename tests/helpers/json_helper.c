@@ -194,6 +194,15 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			return new_json_iterate_result_ok(result);
 		}
 
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err = TSTR_STATIC_LIT("Error: invalid json value for type that expected: "
+		                           "'optional<TestJsonStructNested>'") });
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNested, parent)) {
+
+		TestJsonStructNested* const dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNested, parent);
+
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_END(value) {
 
 			// NOTE: here we could check some properties of the final result, alias if the type has
@@ -206,13 +215,13 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			IF_JSON_VALUE_IS_BOOLEAN_IGN(*(array_push.entry.value)) {
 
-				if(*dest == NULL) {
+				if(dest == NULL) {
 					return new_json_iterate_result_error((JsonIterateError){
 					    .err = TSTR_STATIC_LIT("Error: tried to push on empty optional array") });
 				}
 
 				TestJsonStructArrayElement* push_slot =
-				    TVEC_PUSH_SLOT(TestJsonStructArrayElement, &((*dest)->array));
+				    TVEC_PUSH_SLOT(TestJsonStructArrayElement, &(dest->array));
 
 				if(push_slot == NULL) {
 					return new_json_iterate_result_error((JsonIterateError){

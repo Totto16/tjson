@@ -332,7 +332,7 @@
                 }
             },
             {
-                "name": "ArrayKey",
+                "name": "ArrayIndex",
                 "type": {
                     "struct": {
                         "members": [

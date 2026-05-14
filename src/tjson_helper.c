@@ -81,9 +81,21 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_mo
 	return true;
 }
 
+TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index) {
+	TvecResult result =
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_array_index(index));
+
+	if(result != TvecResultOk) {
+
+		return false;
+	}
+
+	return true;
+}
+
 static void free_json_path_segment(JsonPathSegment segment);
 
-TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path) {
+TJSON_NODISCARD bool json_path_remove_last_segment(JsonPath* path) {
 	if(TVEC_LENGTH(JsonPathSegment, path->segments) == 0) {
 		return false;
 	}
@@ -113,9 +125,9 @@ TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSe
 			return false;
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_PATH_SEGMENT_IS_ARRAY_KEY_CONST(segment1, array1) {
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment1, array1) {
 
-			IF_JSON_PATH_SEGMENT_IS_ARRAY_KEY_CONST(segment2, array2) {
+			IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment2, array2) {
 				return array1.index == array2.index;
 			}
 
@@ -156,7 +168,7 @@ static void free_json_path_segment(JsonPathSegment segment) {
 		}
 		break;
 		VARIANT_CASE_END();
-		CASE_JSON_PATH_SEGMENT_IS_ARRAY_KEY_IGN() {
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_IGN() {
 			// noop
 		}
 		break;
@@ -282,7 +294,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 						    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
 					}
 
-					bool remove_result = json_path_remove_last_object(json_path);
+					bool remove_result = json_path_remove_last_segment(json_path);
 
 					if(!remove_result) {
 						FREE_AT_END();
@@ -312,9 +324,82 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_ARRAY_CONST(*json_value) {
-			(void)array;
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: array") });
+
+			JsonIterateValue arr_start = new_json_iterate_value_array_start();
+
+			JsonIterateResult start_result =
+			    iterate_callback(json_path, annotated_value_start, arr_start);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			const RTTIAnnotatedValue arr_handle = json_iterate_result_get_as_ok(start_result);
+
+			for(size_t i = 0; i < json_array_get_size(array.arr); ++i) {
+
+				const JsonValue* const value = json_array_get_at(array.arr, i);
+
+				if(value == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_STATIC_LIT("implementation error: empty json value") });
+				}
+
+				JsonIterateValue arr_entry =
+				    new_json_iterate_value_array_push((JsonIterateArrayEntry){ .value = value });
+
+				JsonIterateResult entry_result = iterate_callback(json_path, arr_handle, arr_entry);
+
+				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
+					return new_json_iterate_result_error(error.error);
+				}
+
+				RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
+
+				bool add_result = json_path_add_array_index(json_path, i);
+
+				if(!add_result) {
+					return new_json_iterate_result_error(
+					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path add failed") });
+				}
+
+				JsonIterateResult recursive_result =
+				    json_value_iterate_impl(value, iterate_callback, entry_handle, json_path);
+
+				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+					return new_json_iterate_result_error(error.error);
+				}
+
+				// note: the "recursive_result" RTTI value has to be NULL, as it isn't needed
+				// anymore, the ptr that is used as the obj_handle should be modified by "sub
+				// iterators", we don't allow returning anything new in subparsers, set the ptr
+				// up to be modified in place, even if it's a double ptr!
+				RTTIAnnotatedValue result_handle = json_iterate_result_get_as_ok(recursive_result);
+
+				if(result_handle.ptr != NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
+				}
+
+				bool remove_result = json_path_remove_last_segment(json_path);
+
+				if(!remove_result) {
+					return new_json_iterate_result_error(
+					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path remove failed") });
+				}
+			}
+
+			JsonIterateValue arr_end = new_json_iterate_value_array_end();
+
+			JsonIterateResult end_result = iterate_callback(json_path, arr_handle, arr_end);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
+
+			return new_json_iterate_result_ok(end_handle);
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_NUMBER_CONST(*json_value) {

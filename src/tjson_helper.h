@@ -23,7 +23,9 @@ TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key);
 
 TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved);
 
-TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path);
+TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index);
+
+TJSON_NODISCARD bool json_path_remove_last_segment(JsonPath* path);
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
 
