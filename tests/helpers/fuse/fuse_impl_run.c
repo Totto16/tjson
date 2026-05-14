@@ -110,7 +110,8 @@ static void fuse_lowlevel_op_init(RTTIAnnotatedPtr userdata_arg, struct fuse_con
 
 	// Disable the receiving and processing of FUSE_INTERRUPT requests
 	conn->no_interrupt = 1;
-
+#else
+	(void)conn;
 #endif
 }
 
