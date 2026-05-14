@@ -237,6 +237,19 @@
                 "type": null
             },
             {
+                "name": "ArrayPush",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "entry",
+                                "typeName": "JsonIterateArrayEntry"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
                 "name": "Number",
                 "type": {
                     "name": "JsonNumber"

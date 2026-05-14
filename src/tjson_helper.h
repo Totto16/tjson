@@ -41,6 +41,10 @@ typedef struct {
 	const tstr* key;
 } JsonIterateObjectEntry;
 
+typedef struct {
+	const JsonValue* value;
+} JsonIterateArrayEntry;
+
 GENERATE_VARIANT_ALL_JSON_ITERATE_VALUE()
 
 typedef JsonIterateResult (*JsonValueIterateCallback)(const JsonPath* path,

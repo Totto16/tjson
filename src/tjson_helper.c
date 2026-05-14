@@ -182,14 +182,15 @@ void free_json_path(JsonPath* path) {
 
 TJSON_NODISCARD static JsonIterateResult
 json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback iterate_callback,
-                        RTTIAnnotatedValue start, JsonPath* json_path) {
+                        RTTIAnnotatedValue annotated_value_start, JsonPath* json_path) {
 
 	SWITCH_JSON_VALUE(*json_value) {
 		CASE_JSON_VALUE_IS_OBJECT_CONST(*json_value) {
 
 			JsonIterateValue obj_start = new_json_iterate_value_object_start();
 
-			JsonIterateResult start_result = iterate_callback(json_path, start, obj_start);
+			JsonIterateResult start_result =
+			    iterate_callback(json_path, annotated_value_start, obj_start);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				return new_json_iterate_result_error(error.error);
@@ -305,7 +306,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 				return new_json_iterate_result_error(error.error);
 			}
 
-			RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(start_result);
+			RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
 
 			return new_json_iterate_result_ok(end_handle);
 		}
@@ -323,9 +324,19 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_STRING_CONST(*json_value) {
-			(void)string;
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: string") });
+
+			JsonIterateValue iterate_value = new_json_iterate_value_string(string);
+
+			JsonIterateResult iterate_result =
+			    iterate_callback(json_path, annotated_value_start, iterate_value);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
+
+			return new_json_iterate_result_ok(iterate_handle);
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_BOOLEAN_CONST(*json_value) {

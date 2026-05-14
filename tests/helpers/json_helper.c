@@ -6,8 +6,12 @@ TVEC_IMPLEMENT_VEC_TYPE(TestJsonStructArrayElement)
 TRTTI_IMPLEMENTATION_FOR_TYPE(TestJsonStruct)
 
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(tstr)
+TRTTI_DEFINE_TYPE_AS_SUPPORTED(uint32_t)
 
-TRTTI_DEFINE_TYPE_AS_SUPPORTED_EXTENDED(TestJsonStructNested*, TestJsonStructNestedPtr)
+TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructNested)
+TRTTI_DEFINE_TYPE_AS_SUPPORTED_EXTENDED(TestJsonStructNested*, TestJsonStructNestedOptional)
+
+TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructArrayElement)
 
 JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
                                   JsonIterateValue value) {
@@ -65,9 +69,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			TestJsonStruct* object = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, parent);
 
-			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("name"))) {
+			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("number1"))) {
 
-				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(tstr, &(object->name));
+				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, &(object->number1));
 
 				return new_json_iterate_result_ok(result);
 			}
@@ -75,26 +79,186 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("optional"))) {
 
 				RTTIAnnotatedValue result =
-				    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNestedPtr, &(object->optional));
+				    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNestedOptional, &(object->optional));
+
+				return new_json_iterate_result_ok(result);
+			}
+
+			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("name"))) {
+
+				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(tstr, &(object->name));
 
 				return new_json_iterate_result_ok(result);
 			}
 
 			return new_json_iterate_result_error((JsonIterateError){
-			    .err = TSTR_STATIC_LIT("Error unhandled object key in root object") });
+			    .err = TSTR_STATIC_LIT("Error: unhandled object key in root object") });
 		}
 
 		return new_json_iterate_result_error((JsonIterateError){
-		    .err = TSTR_STATIC_LIT("Error unhandled iterate value in root path") });
+		    .err = TSTR_STATIC_LIT("Error: unhandled iterate value in root path") });
 	}
 
-	const JsonPath* root_parent_path = json_path_get_root();
+	//
 
-	if(json_path_is_parent_of(path, root_parent_path)) {
+	if(TRTTI_ANNOTATED_VALUE_IS(tstr, parent)) {
 
-		return new_json_iterate_result_error(
-		    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: 3") });
+		IF_JSON_ITERATE_VALUE_IS_STRING_CONST(value) {
+
+			tstr str_value = json_string_get_as_str(string);
+
+			if(tstr_is_null(&str_value)) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_STATIC_LIT("error in getting tstr from json string") });
+			}
+
+			tstr* dest = TRTTI_ANNOTATED_VALUE_CAST(tstr, parent);
+
+			*dest = str_value;
+
+			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+			return new_json_iterate_result_ok(empty);
+		}
+
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err = TSTR_STATIC_LIT("Error: invalid json value for type that expected: 'tstr'") });
 	}
 
-	return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: 2") });
+	if(TRTTI_ANNOTATED_VALUE_IS(uint32_t, parent)) {
+
+		IF_JSON_ITERATE_VALUE_IS_NUMBER_CONST(value) {
+
+			uint32_t num_value = (uint32_t)number.value;
+
+			uint32_t* dest = TRTTI_ANNOTATED_VALUE_CAST(uint32_t, parent);
+
+			*dest = num_value;
+
+			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+			return new_json_iterate_result_ok(empty);
+		}
+
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err =
+		        TSTR_STATIC_LIT("Error: invalid json value for type that expected: 'uint32_t'") });
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNestedOptional, parent)) {
+
+		TestJsonStructNested** const dest =
+		    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNestedOptional, parent);
+
+		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
+
+			if(*dest != NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_STATIC_LIT("implementation error, another value for "
+				                           "'optional<TestJsonStructNested>' value was given, "
+				                           "duplicate object key!") });
+			}
+
+			*dest = NULL;
+
+			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+			return new_json_iterate_result_ok(empty);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
+
+			TestJsonStructNested* allocated_array =
+			    (TestJsonStructNested*)TJSON_MALLOC(sizeof(TestJsonStructNested));
+
+			if(allocated_array == NULL) {
+				return new_json_iterate_result_error(
+				    (JsonIterateError){ .err = TSTR_STATIC_LIT("OOM") });
+			}
+
+			if(*dest != NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_STATIC_LIT("implementation error, another value for "
+				                           "'optional<TestJsonStructNested>' value was given, "
+				                           "duplicate object key!") });
+			}
+
+			*dest = allocated_array;
+
+			*allocated_array =
+			    (TestJsonStructNested){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+
+			RTTIAnnotatedValue result =
+			    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNested, allocated_array);
+
+			return new_json_iterate_result_ok(result);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_ARRAY_END(value) {
+
+			// NOTE: here we could check some properties of the final result, alias if the type has
+			// all fields set to a valid value
+
+			return new_json_iterate_result_ok(parent);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_ARRAY_PUSH_CONST(value) {
+
+			IF_JSON_VALUE_IS_BOOLEAN_IGN(*(array_push.entry.value)) {
+
+				if(*dest == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_STATIC_LIT("Error: tried to push on empty optional array") });
+				}
+
+				TestJsonStructArrayElement* push_slot =
+				    TVEC_PUSH_SLOT(TestJsonStructArrayElement, &((*dest)->array));
+
+				if(push_slot == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_STATIC_LIT(
+					        "Error: error on allocating space for the array push") });
+				}
+
+				RTTIAnnotatedValue result =
+				    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructArrayElement, push_slot);
+
+				return new_json_iterate_result_ok(result);
+			}
+
+			return new_json_iterate_result_error((JsonIterateError){
+			    .err = TSTR_STATIC_LIT("Error: invalid json value for type that expected: "
+			                           "'TestJsonStructArrayElement'") });
+		}
+
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err = TSTR_STATIC_LIT("Error: invalid json value for type that expected: "
+		                           "'optional<TestJsonStructNested>'") });
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructArrayElement, parent)) {
+
+		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
+
+			TestJsonStructArrayElement wrapper_value = { .value = boolean.value };
+
+			TestJsonStructArrayElement* dest =
+			    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructArrayElement, parent);
+
+			*dest = wrapper_value;
+
+			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+			return new_json_iterate_result_ok(empty);
+		}
+
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err =
+		        TSTR_STATIC_LIT("Error: invalid json value for type that expected: 'uint32_t'") });
+	}
+
+	fprintf(stderr, "type: " TSTR_FMT "\n", TRTTI_TYPE_NAME_FMT_ARGS(parent.type.name));
+
+	return new_json_iterate_result_error((JsonIterateError){
+	    .err = TSTR_STATIC_LIT("unhandled convertor for type below root path") });
 }

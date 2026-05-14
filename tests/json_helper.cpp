@@ -127,7 +127,7 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 
 	CAutoFreePtr<JsonValue> defer_value = { &value, free_json_value };
 
-	RTTIAnnotatedValue empty = { .type = {}, .ptr = NULL };
+	RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
 
 	JsonIterateResult actual_result = json_value_iterate(&value, test_iterate_cb, empty);
 
