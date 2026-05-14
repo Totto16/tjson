@@ -27,6 +27,8 @@ TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path);
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
 
+TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent);
+
 void free_json_path(JsonPath* path);
 
 typedef struct {

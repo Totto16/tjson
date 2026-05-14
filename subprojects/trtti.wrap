@@ -1,7 +1,7 @@
 [wrap-git]
 directory = trtti
 url = https://github.com/Totto16/trtti.git
-revision = 8a53497adfa77feb12fc601e1254460768e3d477
+revision = e1d8dc6bb71edb0c73f322ec281560a43c42e003
 depth = 1
 
 [provide]

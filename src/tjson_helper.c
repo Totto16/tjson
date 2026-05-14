@@ -52,30 +52,101 @@ TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	return path;
 }
 
-TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key) {
-	// TODO
-	(void)path;
-	(void)key;
-	return false;
+TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* key) {
+
+	tstr key_duped = tstr_dup(key);
+
+	if(tstr_is_null(&key_duped)) {
+		return false;
+	}
+
+	return json_path_add_object_key_moved(path, &key_duped);
 }
 
 TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved) {
-	// TODO
-	(void)path;
-	(void)key_moved;
-	return false;
+
+	TvecResult result =
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(*key_moved));
+
+	if(result != TvecResultOk) {
+
+		tstr_free(key_moved);
+		*key_moved = tstr_null();
+
+		return false;
+	}
+
+	*key_moved = tstr_null();
+
+	return true;
 }
 
+static void free_json_path_segment(JsonPathSegment segment);
+
 TJSON_NODISCARD bool json_path_remove_last_object(JsonPath* path) {
-	// TODO
-	(void)path;
-	return false;
+	if(TVEC_LENGTH(JsonPathSegment, path->segments) == 0) {
+		return false;
+	}
+
+	JsonPathSegment segment = TVEC_POP_GET(JsonPathSegment, &(path->segments));
+
+	free_json_path_segment(segment);
+
+	return true;
 }
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
 	const size_t len = TVEC_LENGTH(JsonPathSegment, path->segments);
 
 	return len == 0;
+}
+
+TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSegment segment2) {
+
+	SWITCH_JSON_PATH_SEGMENT(segment1) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT(segment1, object1) {
+
+			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment2, object2) {
+				return tstr_eq(&object1.name, &object2.name);
+			}
+
+			return false;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_KEY_CONST(segment1, array1) {
+
+			IF_JSON_PATH_SEGMENT_IS_ARRAY_KEY_CONST(segment2, array2) {
+				return array1.index == array2.index;
+			}
+
+			return false;
+		}
+		VARIANT_CASE_END();
+		default: {
+			return false;
+		}
+	}
+}
+
+TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent) {
+
+	const size_t path_len = TVEC_LENGTH(JsonPathSegment, path->segments);
+	const size_t parent_len = TVEC_LENGTH(JsonPathSegment, parent->segments);
+
+	if(path_len != (parent_len + 1)) {
+		return false;
+	}
+
+	for(size_t i = 0; i < parent_len; ++i) {
+		JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
+		JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
+
+		if(!path_segment_eq(path_value, parent_value)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 static void free_json_path_segment(JsonPathSegment segment) {
@@ -197,14 +268,17 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 						return new_json_iterate_result_error(error.error);
 					}
 
-					// note: the "recursive_result" RTTI value is reused for the object handle, if
-					// it isn't NULL, so that you can swap this out or just return NULL and
-					// everything still works
+					// note: the "recursive_result" RTTI value has to be NULL, as it isn't needed
+					// anymore, the ptr that is used as the obj_handle should be modified by "sub
+					// iterators", we don't allow returning anything new in subparsers, set the ptr
+					// up to be modified in place, even if it's a double ptr!
 					RTTIAnnotatedValue result_handle =
 					    json_iterate_result_get_as_ok(recursive_result);
 
 					if(result_handle.ptr != NULL) {
-						obj_handle = result_handle;
+						FREE_AT_END();
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
 					}
 
 					bool remove_result = json_path_remove_last_object(json_path);
