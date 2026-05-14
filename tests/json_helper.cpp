@@ -18,13 +18,18 @@ namespace {
 
 void free_json_test_struct(TestJsonStruct* test_struct) {
 
-	if(test_struct->optional != NULL) {
+	if(test_struct->optional_arrray != NULL) {
 
-		TVEC_FREE(TestJsonStructArrayElement, &(test_struct->optional->array));
+		TVEC_FREE(TestJsonStructArrayElement, &(test_struct->optional_arrray->array));
 
-		free(test_struct->optional);
+		free(test_struct->optional_arrray);
 	}
 }
+
+struct JsonSimpleIteratorTest {
+	JsonValue input;
+	TestJsonStruct expected;
+};
 
 } // namespace
 
@@ -56,16 +61,16 @@ void free_json_test_struct(TestJsonStruct* test_struct) {
 
 [[nodiscard]] static bool operator==(const TestJsonStruct& s1, const TestJsonStruct& s2) {
 
-	if(s1.number1 != s2.number1) {
+	if(s1.number != s2.number) {
 		return false;
 	}
 
-	if(s1.optional == NULL || s2.optional == NULL) {
-		if(s1.optional != s2.optional) {
+	if(s1.optional_arrray == NULL || s2.optional_arrray == NULL) {
+		if(s1.optional_arrray != s2.optional_arrray) {
 			return false;
 		}
 	} else {
-		if(*s1.optional != *s2.optional) {
+		if(*s1.optional_arrray != *s2.optional_arrray) {
 			return false;
 		}
 	}
@@ -96,12 +101,12 @@ static std::ostream& operator<<(std::ostream& os, const TestJsonStructNested& te
 
 static std::ostream& operator<<(std::ostream& os, const TestJsonStruct& test_struct) {
 
-	os << "{ " << test_struct.number1 << ", ";
+	os << "{ " << test_struct.number << ", ";
 
-	if(test_struct.optional == NULL) {
+	if(test_struct.optional_arrray == NULL) {
 		os << "<None>, ";
 	} else {
-		os << *test_struct.optional << ", ";
+		os << *test_struct.optional_arrray << ", ";
 	}
 
 	os << test_struct.name << " }";
@@ -123,31 +128,51 @@ TEST_SUITE_BEGIN("json_helper" * doctest::description("json helper tests") * doc
 
 TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 
-	JsonValue value = json::object({ { "name", json::string("string") } });
+	std::vector<JsonSimpleIteratorTest> json_iterator_cases = {
 
-	CAutoFreePtr<JsonValue> defer_value = { &value, free_json_value };
-
-	RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
-
-	JsonIterateResult actual_result = json_value_iterate(&value, test_iterate_cb, empty);
-
-	REQUIRE_IS_NOT_ERROR(actual_result);
-
-	RTTIAnnotatedValue struct_value = json_iterate_result_get_as_ok(actual_result);
-
-	RTTIAnnotatedValue expected_value = TRTTI_ANNOTATED_VALUE_GET(TestJsonStruct, NULL);
-
-	REQUIRE_EQ(struct_value, expected_value);
-
-	TestJsonStruct* result = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, struct_value);
-
-	TestJsonStruct expected_result = {
-
+		JsonSimpleIteratorTest{ .input = json::object({ { "number", json::number((int64_t)1) },
+		                                                { "optional_arrray", json::null() },
+		                                                { "name", json::string("string") } }),
+		                        .expected =
+		                            TestJsonStruct{
+		                                .number = 1,
+		                                .optional_arrray = nullptr,
+		                                .name = "string"_tstr,
+		                            } }
 	};
 
-	CAutoFreePtr<TestJsonStruct> defer_result = { &expected_result, free_json_test_struct };
+	CAutoFreePtr<std::vector<JsonSimpleIteratorTest>> defer_tests = {
+		&json_iterator_cases,
+		[](std::vector<JsonSimpleIteratorTest>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+			    free_json_value(&(value->input));
+			    free_json_test_struct(&(value->expected));
+		    }
+		}
+	};
 
-	REQUIRE_EQ(*result, expected_result);
+	for(const auto& test_case : json_iterator_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+		JsonIterateResult actual_result =
+		    json_value_iterate(&test_case.input, test_iterate_cb, empty);
+
+		REQUIRE_IS_NOT_ERROR(actual_result);
+
+		RTTIAnnotatedValue struct_value = json_iterate_result_get_as_ok(actual_result);
+
+		RTTIAnnotatedValue expected_value = TRTTI_ANNOTATED_VALUE_GET(TestJsonStruct, NULL);
+
+		REQUIRE_EQ(struct_value, expected_value);
+
+		TestJsonStruct* result = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, struct_value);
+
+		REQUIRE_EQ(*result, test_case.expected);
+	}
 }
 
 TEST_SUITE_END();

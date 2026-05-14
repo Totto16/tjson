@@ -35,8 +35,8 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			}
 
 			*allocated_struct = (TestJsonStruct){
-				.number1 = 0,
-				.optional = NULL,
+				.number = 0,
+				.optional_arrray = NULL,
 				.name = tstr_null(),
 			};
 
@@ -69,17 +69,17 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			TestJsonStruct* object = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, parent);
 
-			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("number1"))) {
+			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("number"))) {
 
-				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, &(object->number1));
+				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, &(object->number));
 
 				return new_json_iterate_result_ok(result);
 			}
 
-			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("optional"))) {
+			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("optional_arrray"))) {
 
-				RTTIAnnotatedValue result =
-				    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNestedOptional, &(object->optional));
+				RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNestedOptional,
+				                                                      &(object->optional_arrray));
 
 				return new_json_iterate_result_ok(result);
 			}
@@ -256,8 +256,6 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		    .err =
 		        TSTR_STATIC_LIT("Error: invalid json value for type that expected: 'uint32_t'") });
 	}
-
-	fprintf(stderr, "type: " TSTR_FMT "\n", TRTTI_TYPE_NAME_FMT_ARGS(parent.type.name));
 
 	return new_json_iterate_result_error((JsonIterateError){
 	    .err = TSTR_STATIC_LIT("unhandled convertor for type below root path") });

@@ -196,7 +196,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 				return new_json_iterate_result_error(error.error);
 			}
 
-			RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
+			const RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
 
 			{
 				JsonObjectIter* iter = json_object_get_iterator(object.obj);
@@ -247,7 +247,7 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 						return new_json_iterate_result_error(error.error);
 					}
 
-					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(start_result);
+					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 

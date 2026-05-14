@@ -20,8 +20,8 @@ typedef struct {
 } TestJsonStructNested;
 
 typedef struct {
-	uint32_t number1;
-	TestJsonStructNested* optional;
+	uint32_t number;
+	TestJsonStructNested* optional_arrray;
 	tstr name;
 } TestJsonStruct;
 
