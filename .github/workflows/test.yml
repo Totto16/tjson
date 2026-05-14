@@ -41,7 +41,7 @@ jobs:
                   node-version: 24
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v5
+              uses: pnpm/action-setup@v6
               with:
                   version: 10
 
@@ -84,7 +84,7 @@ jobs:
                   togglable-report: true
                   # TODO: use the diff feature of that later when we require test coverage on PR's to not go down
 
-            - uses: actions/upload-artifact@v6
+            - uses: actions/upload-artifact@v7
               with:
                   name: test results - ${{ matrix.config.name }}
                   path: |
