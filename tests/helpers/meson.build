@@ -15,11 +15,11 @@ test_src += files(
     'json_helper.h',
     'json_schema.cpp',
     'json_schema.hpp',
-    'rtti.cpp',
-    'rtti.hpp',
     'main.cpp',
     'mock_file.cpp',
     'mock_file.hpp',
+    'rtti.cpp',
+    'rtti.hpp',
     'string_maker.hpp',
     'support.hpp',
 )
