@@ -367,6 +367,8 @@ TEST_CASE("testing oom mock implementation <oom_mock_impl>") {
 			AllocTest* allocated2 = (AllocTest*)TJSON_MALLOC(sizeof(AllocTest));
 
 			REQUIRE_NE(allocated2, nullptr);
+
+			TJSON_FREE(allocated2);
 		}();
 	}
 }
