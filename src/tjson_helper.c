@@ -318,9 +318,18 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_NUMBER_CONST(*json_value) {
-			(void)number;
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: number") });
+			JsonIterateValue iterate_value = new_json_iterate_value_number(number);
+
+			JsonIterateResult iterate_result =
+			    iterate_callback(json_path, annotated_value_start, iterate_value);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
+
+			return new_json_iterate_result_ok(iterate_handle);
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_STRING_CONST(*json_value) {
@@ -340,14 +349,33 @@ json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback it
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_BOOLEAN_CONST(*json_value) {
-			(void)boolean;
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("boolean") });
+			JsonIterateValue iterate_value = new_json_iterate_value_boolean(boolean);
+
+			JsonIterateResult iterate_result =
+			    iterate_callback(json_path, annotated_value_start, iterate_value);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
+
+			return new_json_iterate_result_ok(iterate_handle);
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_VALUE_IS_NULL() {
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("TODO: null") });
+			JsonIterateValue iterate_value = new_json_iterate_value_null();
+
+			JsonIterateResult iterate_result =
+			    iterate_callback(json_path, annotated_value_start, iterate_value);
+
+			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				return new_json_iterate_result_error(error.error);
+			}
+
+			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
+
+			return new_json_iterate_result_ok(iterate_handle);
 		}
 		VARIANT_CASE_END();
 		default: {
