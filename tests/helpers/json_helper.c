@@ -208,7 +208,11 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			// NOTE: here we could check some properties of the final result, alias if the type has
 			// all fields set to a valid value
 
-			return new_json_iterate_result_ok(parent);
+			// NOTE: return empty, as this can be a subparser, where the return value has to be
+			// null!
+			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+			return new_json_iterate_result_ok(empty);
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_PUSH_CONST(value) {
