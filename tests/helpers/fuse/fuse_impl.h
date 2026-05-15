@@ -14,14 +14,7 @@ extern "C" {
 
 typedef struct FUSEHandleImpl FUSEHandle;
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		FUSEHandle* ok;
-		tstr_static error;
-	} data;
-} FuseCreateResult;
+GENERATE_VARIANT_ALL_FUSE_CREATE_RESULT()
 
 [[nodiscard]] FuseCreateResult create_new_fuse_file(char* dir, FuseFile* files, size_t file_amount,
                                                     bool debug);

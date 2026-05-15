@@ -748,7 +748,7 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 		// TODO(Totto): check if this was successfull, as this function doesn't return anything yet!
 		TMAP_REM(JsonDefEntryMapImpl, &(state.defs), root_id);
 
-		{ // add the defiunions
+		{ // add the definitions
 
 			JsonObject* const defs = json_object_get_empty();
 

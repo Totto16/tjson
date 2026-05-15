@@ -84,11 +84,11 @@ MockFileFuse::MockFileFuse(
 	auto result = create_new_fuse_file(path_dup, this->m_data_c->data(), this->m_data_c->size(),
 	                                   this->m_debug);
 
-	if(result.is_error) {
+	IF_FUSE_CREATE_RESULT_IS_ERROR_CONST(result) {
 		throw std::runtime_error(std::string{ "Couldn't create fuse file: " } +
-		                         string_from_tstr_static(result.data.error));
+		                         string_from_tstr_static(error));
 	}
-	FUSEHandle* handle = result.data.ok;
+	FUSEHandle* handle = fuse_create_result_get_as_ok(result).handle;
 
 	if(handle == nullptr) {
 		throw std::runtime_error("Couldn't create fuse file: ok returned nullptr");

@@ -33,5 +33,38 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "FuseCreateResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "handle",
+                                "typeName": "FUSEHandle*"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "name": "tstr_static"
+                }
+            }
+        ],
+        "enum": {
+            "name": "FuseCreateResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]

@@ -9,14 +9,6 @@
 
 #include "helpers/fuse/fuse_helper.h"
 
-[[nodiscard]] static inline FuseCreateResult fuse_create_result_error(tstr_static const error) {
-	return (FuseCreateResult){ .is_error = true, .data = { .error = error } };
-}
-
-[[nodiscard]] static inline FuseCreateResult fuse_create_result_ok(FUSEHandle* const ok) {
-	return (FuseCreateResult){ .is_error = false, .data = { .ok = ok } };
-}
-
 typedef struct {
 	pid_t pid;
 } ProcessInfo;
@@ -52,19 +44,19 @@ struct FUSEHandleImpl {
 	FuseSharedState* shared_state = allocator_result.memory.state;
 
 	if(allocator == NULL || shared_state == NULL || rest_block.ptr == NULL) {
-		return fuse_create_result_error(TSTR_STATIC_LIT("shared allocator error"));
+		return new_fuse_create_result_error(TSTR_STATIC_LIT("shared allocator error"));
 	}
 
 	tstr_static serial_result = serialize_static_data(rest_block, &static_data);
 
 	if(!tstr_static_is_null(serial_result)) {
-		return fuse_create_result_error(TSTR_STATIC_LIT("serialize static data failed"));
+		return new_fuse_create_result_error(TSTR_STATIC_LIT("serialize static data failed"));
 	}
 
 	FUSEHandle* handle = (FUSEHandle*)malloc(sizeof(FUSEHandle));
 
 	if(handle == NULL) {
-		return fuse_create_result_error(TSTR_STATIC_LIT("allocate error"));
+		return new_fuse_create_result_error(TSTR_STATIC_LIT("allocate error"));
 	}
 
 	handle->state = shared_state;
@@ -83,7 +75,7 @@ struct FUSEHandleImpl {
 
 	if(result != 0) {
 		FREE_AT_END();
-		return fuse_create_result_error(TSTR_STATIC_LIT("shared state create error"));
+		return new_fuse_create_result_error(TSTR_STATIC_LIT("shared state create error"));
 	}
 
 #undef FREE_AT_END
@@ -109,7 +101,7 @@ struct FUSEHandleImpl {
 
 			if(!get_ok) {
 				FREE_AT_END();
-				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
+				return new_fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
 			}
 
 			IF_FUSE_STATE_IS_NOT_UNINITIALIZED(new_state) {
@@ -130,30 +122,30 @@ struct FUSEHandleImpl {
 						    (FuseHandleResult)(WEXITSTATUS(return_status));
 
 						if(return_value != PROCESS_SUCCESS) {
-							return fuse_create_result_error(TSTR_STATIC_LIT(
+							return new_fuse_create_result_error(TSTR_STATIC_LIT(
 							    "process exited (error) before setting the state!"));
 						}
-						return fuse_create_result_error(
+						return new_fuse_create_result_error(
 						    TSTR_STATIC_LIT("process exited (success) before setting the state!"));
 					}
 
 					if(WIFSIGNALED(return_status)) {
-						return fuse_create_result_error(
+						return new_fuse_create_result_error(
 						    TSTR_STATIC_LIT("process received a signal before setting the state!"));
 					}
 
-					return fuse_create_result_error(
+					return new_fuse_create_result_error(
 					    TSTR_STATIC_LIT("process terminated before setting the state!"));
 				}
 
 				if(result != 0) {
-					return fuse_create_result_error(TSTR_STATIC_LIT("waitpid error!"));
+					return new_fuse_create_result_error(TSTR_STATIC_LIT("waitpid error!"));
 				}
 			}
 
 			result = usleep(STATE_GET_INTERVAL_USEC);
 			if(result != 0) {
-				return fuse_create_result_error(TSTR_STATIC_LIT("usleep error"));
+				return new_fuse_create_result_error(TSTR_STATIC_LIT("usleep error"));
 			}
 		}
 
@@ -161,17 +153,17 @@ struct FUSEHandleImpl {
 
 			FREE_AT_END();
 			IF_FUSE_STATE_IS_INITIALIZED_ERR_CONST(state) {
-				return fuse_create_result_error(initialized_err.error);
+				return new_fuse_create_result_error(initialized_err.error);
 			}
 			else {
-				return fuse_create_result_error(TSTR_STATIC_LIT("invalid fuse state"));
+				return new_fuse_create_result_error(TSTR_STATIC_LIT("invalid fuse state"));
 			}
 
 			FUSE_VARIANTS_UNREACHABLE();
 		}
 	}
 
-	return fuse_create_result_ok(handle);
+	return new_fuse_create_result_ok(handle);
 }
 
 #undef FREE_AT_END
