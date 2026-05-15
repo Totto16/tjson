@@ -6,6 +6,23 @@
 #include <tstr.h>
 #include <tvec.h>
 
+#if _FUSE_HELPER_COMPILE_WITH_NARROWED_ENUMS
+	#define FUSE_HELPER_C_23_NARROW_ENUM_TO(x) : x
+	#define FUSE_HELPER_C_23_ENUM_TYPE(x) x
+
+	#define FUSE_HELPER_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS 1
+#else
+	#define FUSE_HELPER_C_23_NARROW_ENUM_TO(x)
+	#define FUSE_HELPER_C_23_ENUM_TYPE(x) int
+
+	#define FUSE_HELPER_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS 0
+#endif
+
+#define VARIANT_IMPL_FUSE_VARIANTS_COMPILED_WITH_NARROWED_ENUMS \
+	FUSE_HELPER_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS
+
+#include "fuse_variants.h"
+
 // don't use those here
 #undef TJSON_MALLOC
 #undef TJSON_CALLOC
@@ -33,7 +50,7 @@ typedef struct {
 	size_t size;
 } FuseBuffer;
 
-typedef enum {
+typedef enum FUSE_HELPER_C_23_NARROW_ENUM_TO(uint8_t) {
 	FailScenarioNone = 0,
 	FailScenarioReadFailsGeneric,
 	FailScenarioStatNegativeFileSize,
@@ -65,19 +82,7 @@ typedef struct {
 
 typedef ATOMIC(bool) AtomicBool;
 
-typedef enum {
-	FuseStateTypeUninitialized = 0,
-	FuseStateTypeInitializedOk,
-	FuseStateTypeInitializedErr,
-} FuseStateType;
-
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	FuseStateType type;
-	union {
-		tstr_static error;
-	} data;
-} FuseState;
+GENERATE_VARIANT_ALL_FUSE_STATE()
 
 typedef struct {
 	pthread_mutex_t mutex;
@@ -97,12 +102,6 @@ typedef struct {
 	FuseSharedState* state;
 	MemoryBlock rest; // is the "FuseStaticData" encoded into a flat array
 } FuseSharedMemory;
-
-[[nodiscard]] FuseState fuse_state_uninitialized(void);
-
-[[nodiscard]] FuseState fuse_state_error(tstr_static error);
-
-[[nodiscard]] FuseState fuse_state_ok(void);
 
 [[nodiscard]] bool fuse_shared_state_set_state(FuseSharedState* shared_state, FuseState state);
 

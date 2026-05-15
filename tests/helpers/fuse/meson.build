@@ -14,6 +14,46 @@ shared_deps = [tvec_dep]
 
 test_src += shared_files
 
+
+c_variant_generator = find_program(
+    'c_variant_generator',
+    version: ['>=1.0.0', '<2'],
+)
+
+fuse_variants_generated_tgt = custom_target(
+    'json_variants',
+    command: [
+        c_variant_generator,
+        '-o',
+        '@OUTPUT@',
+        '-i',
+        '@INPUT@',
+    ],
+    input: [meson.project_source_root() / 'tests' / 'helpers' / 'fuse' / 'fuse.variants.def.json'],
+    output: ['fuse_variants.h'],
+    build_subdir: 'generated' / 'fuse' / 'variants',
+    install: false,
+)
+
+fuse_variants_flags = []
+
+cc = meson.get_compiler('c')
+
+stdc_version = cc.get_define('__STDC_VERSION__ ')
+stdc_version_int = stdc_version.replace('L', '').to_int()
+if stdc_version_int >= 202000
+    fuse_variants_flags += '-D_FUSE_HELPER_COMPILE_WITH_NARROWED_ENUMS'
+endif
+
+fuse_variants_dep = declare_dependency(
+    version: meson.project_version(),
+    sources: [fuse_variants_generated_tgt],
+    compile_args: fuse_variants_flags
+)
+
+
+shared_deps += fuse_variants_dep
+
 fuse_helper_deps = []
 
 fuse_helper_deps += dependency(
@@ -23,6 +63,7 @@ fuse_helper_deps += dependency(
 
 fuse_helper_deps += tstr_dep
 fuse_helper_deps += trtti_dep
+
 
 fuse_helper_deps += shared_deps
 

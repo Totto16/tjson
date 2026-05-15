@@ -9,18 +9,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-[[nodiscard]] FuseState fuse_state_uninitialized(void) {
-	return (FuseState){ .type = FuseStateTypeUninitialized, .data = {} };
-}
-
-[[nodiscard]] FuseState fuse_state_error(tstr_static const error) {
-	return (FuseState){ .type = FuseStateTypeInitializedErr, .data = { .error = error } };
-}
-
-[[nodiscard]] FuseState fuse_state_ok(void) {
-	return (FuseState){ .type = FuseStateTypeInitializedOk, .data = {} };
-}
-
 [[nodiscard]] bool fuse_shared_state_set_state(FuseSharedState* const shared_state,
                                                FuseState state) {
 	int result = pthread_mutex_lock(&(shared_state->mutex));

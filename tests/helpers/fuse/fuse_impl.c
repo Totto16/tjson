@@ -99,9 +99,9 @@ struct FUSEHandleImpl {
 
 	{
 
-		FuseState state = fuse_state_uninitialized();
+		FuseState state = new_fuse_state_uninitialized();
 
-		while(state.type == FuseStateTypeUninitialized) {
+		while(get_current_tag_type_for_fuse_state(state) == FuseStateTypeUninitialized) {
 
 			FuseState new_state = state;
 
@@ -112,7 +112,7 @@ struct FUSEHandleImpl {
 				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
 			}
 
-			if(new_state.type != FuseStateTypeUninitialized) {
+			if(get_current_tag_type_for_fuse_state(new_state) != FuseStateTypeUninitialized) {
 				state = new_state;
 			}
 
@@ -157,14 +157,17 @@ struct FUSEHandleImpl {
 			}
 		}
 
-		if(state.type != FuseStateTypeInitializedOk) {
+		IF_FUSE_STATE_IS_NOT_INITIALIZED_OK(state) {
 
 			FREE_AT_END();
-			if(state.type == FuseStateTypeInitializedErr) {
-				return fuse_create_result_error(state.data.error);
-			} else {
+			IF_FUSE_STATE_IS_INITIALIZED_ERR_CONST(state) {
+				return fuse_create_result_error(initialized_err.error);
+			}
+			else {
 				return fuse_create_result_error(TSTR_STATIC_LIT("invalid fuse state"));
 			}
+
+			FUSE_VARIANTS_UNREACHABLE();
 		}
 	}
 
@@ -239,7 +242,7 @@ struct FUSEHandleImpl {
 	}
 
 	state->session_finished = false;
-	state->fuse_state = fuse_state_uninitialized();
+	state->fuse_state = new_fuse_state_uninitialized();
 
 	result = create_process(process_info, allocator);
 
@@ -256,14 +259,18 @@ struct FUSEHandleImpl {
 
 [[nodiscard]] int fuse_shared_state_deinit(FuseSharedState* const shared_state,
                                            const ProcessInfo* const process_info) {
-	switch(shared_state->fuse_state.type) {
-		case FuseStateTypeUninitialized: {
-			break;
+	SWITCH_FUSE_STATE(shared_state->fuse_state) {
+		CASE_FUSE_STATE_IS_UNINITIALIZED() {
+			//
 		}
-		case FuseStateTypeInitializedErr: {
-			break;
+		break;
+		VARIANT_CASE_END();
+		CASE_FUSE_STATE_IS_INITIALIZED_ERR_IGN() {
+			//
 		}
-		case FuseStateTypeInitializedOk: {
+		break;
+		VARIANT_CASE_END();
+		CASE_FUSE_STATE_IS_INITIALIZED_OK() {
 
 			// first exit the session, signal that via a signal
 			int result = kill(process_info->pid, SIGNAL_FOR_FUSE_EXIT_REQUEST);
@@ -326,9 +333,9 @@ struct FUSEHandleImpl {
 			if(return_value != PROCESS_SUCCESS) {
 				return -9;
 			}
-
-			break;
 		}
+		break;
+		VARIANT_CASE_END();
 		default: {
 			return -10;
 		}

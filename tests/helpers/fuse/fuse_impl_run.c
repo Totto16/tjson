@@ -767,16 +767,16 @@ static void remove_signals(void) {
 		return PROCESS_ERROR;
 	}
 
-	FuseState state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
+	FuseState state = new_fuse_state_initialized_err(TSTR_STATIC_LIT("Unkown error"));
 
 	if(session == NULL) {
 		if(tstr_static_is_null(error)) {
-			state = fuse_state_error(TSTR_STATIC_LIT("Unkown error"));
+			state = new_fuse_state_initialized_err(TSTR_STATIC_LIT("Unkown error"));
 		} else {
-			state = fuse_state_error(error);
+			state = new_fuse_state_initialized_err(error);
 		}
 	} else {
-		state = fuse_state_ok();
+		state = new_fuse_state_initialized_ok();
 	}
 
 	bool state_success = fuse_shared_state_set_state(shared_state, state);

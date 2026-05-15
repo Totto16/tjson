@@ -1,0 +1,37 @@
+[
+    {
+        "name": "FuseState",
+        "member": [
+            {
+                "name": "Uninitialized",
+                "type": null
+            },
+            {
+                "name": "InitializedOk",
+                "type": null
+            },
+            {
+                "name": "InitializedErr",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "error",
+                                "typeName": "tstr_static"
+                            }
+                        ]
+                    }
+                }
+            }
+        ],
+        "enum": {
+            "name": "FuseStateType",
+            "underlyingType": "u8"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
+    }
+]
