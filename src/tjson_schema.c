@@ -126,24 +126,7 @@ typedef struct {
 	JsonDefEntryMap defs;
 } JsonSchemaState;
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		JsonDefId ok;
-		tstr_static error;
-	} data;
-} JsonSchemaAddResult;
-
-NODISCARD static inline JsonSchemaAddResult
-new_json_schema_add_result_error(tstr_static const error) {
-	return (JsonSchemaAddResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD MAYBE_UNUSED static inline JsonSchemaAddResult
-new_json_schema_add_result_ok(JsonDefId const ok) {
-	return (JsonSchemaAddResult){ .is_error = false, .data = { .ok = ok } };
-}
+GENERATE_VARIANT_ALL_JSON_SCHEMA_ADD_RESULT()
 
 struct JsonSchemaRegexImpl {
 	SimpleRegex regex;
@@ -255,11 +238,11 @@ json_schema_to_string_object_impl(const JsonSchemaObject* const object,
 			const JsonSchemaAddResult add_result =
 			    json_schema_to_string_impl(&obj_value.schema, state);
 
-			if(add_result.is_error) {
+			IF_JSON_SCHEMA_ADD_RESULT_IS_ERROR_IGN(add_result) {
 				return add_result;
 			}
 
-			const JsonDefId result_id = add_result.data.ok;
+			const JsonDefId result_id = json_schema_add_result_get_as_ok(add_result);
 
 			JsonObject* const entry_obj = json_object_get_empty();
 
@@ -352,11 +335,11 @@ json_schema_to_string_array_impl(const JsonSchemaArray* const array, JsonSchemaS
 
 		const JsonSchemaAddResult add_result = json_schema_to_string_impl(&(array->items), state);
 
-		if(add_result.is_error) {
+		IF_JSON_SCHEMA_ADD_RESULT_IS_ERROR_IGN(add_result) {
 			return add_result;
 		}
 
-		const JsonDefId result_id = add_result.data.ok;
+		const JsonDefId result_id = json_schema_add_result_get_as_ok(add_result);
 
 		JsonObject* const entry_obj = json_object_get_empty();
 
@@ -559,11 +542,11 @@ json_schema_to_string_one_of_impl(const JsonSchemaOneOf* const one_of,
 
 			const JsonSchemaAddResult add_result = json_schema_to_string_impl(&value, state);
 
-			if(add_result.is_error) {
+			IF_JSON_SCHEMA_ADD_RESULT_IS_ERROR_IGN(add_result) {
 				return add_result;
 			}
 
-			const JsonDefId result_id = add_result.data.ok;
+			const JsonDefId result_id = json_schema_add_result_get_as_ok(add_result);
 
 			JsonObject* const entry_obj = json_object_get_empty();
 
@@ -698,13 +681,13 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 
 	const JsonSchemaAddResult root_res = json_schema_to_string_impl(schema, &state);
 
-	if(root_res.is_error) {
+	IF_JSON_SCHEMA_ADD_RESULT_IS_ERROR_IGN(root_res) {
 		// TODO(Totto): maybe use the error?
 		free_json_schema_state(&state);
 		return tstr_null();
 	}
 
-	const JsonDefId root_id = root_res.data.ok;
+	const JsonDefId root_id = json_schema_add_result_get_as_ok(root_res);
 
 	JsonObject* const root = json_object_get_empty();
 

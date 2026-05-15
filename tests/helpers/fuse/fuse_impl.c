@@ -112,7 +112,7 @@ struct FUSEHandleImpl {
 				return fuse_create_result_error(TSTR_STATIC_LIT("mutex unlock error"));
 			}
 
-			if(get_current_tag_type_for_fuse_state(new_state) != FuseStateTypeUninitialized) {
+			IF_FUSE_STATE_IS_NOT_UNINITIALIZED(new_state) {
 				state = new_state;
 			}
 
