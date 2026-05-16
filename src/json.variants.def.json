@@ -380,5 +380,31 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "Utf8NextCharResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "name": "Utf8Codepoint"
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "name": "JsonError"
+                }
+            }
+        ],
+        "enum": {
+            "name": "Utf8NextCharResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]

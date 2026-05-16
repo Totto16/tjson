@@ -1300,23 +1300,7 @@ NODISCARD static tstr_static json_string_add_char_impl(JsonString* const json_st
 	return tstr_static_null();
 }
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		Utf8Codepoint ok;
-		JsonError error;
-	} data;
-} Utf8NextCharResult;
-
-NODISCARD static inline Utf8NextCharResult new_utf8_next_char_result_error(JsonError const error) {
-	return (Utf8NextCharResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD MAYBE_UNUSED static inline Utf8NextCharResult
-new_utf8_next_char_result_ok(Utf8Codepoint const ok) {
-	return (Utf8NextCharResult){ .is_error = false, .data = { .ok = ok } };
-}
+GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT()
 
 NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseState* const state) {
 
@@ -1415,13 +1399,12 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 
 		const Utf8NextCharResult result = utf8_get_next_char_and_consume(state);
 
-		if(result.is_error) {
+		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) {
 			FREE_AT_END();
-			return new_json_parse_result_error(result.data.error);
+			return new_json_parse_result_error(error);
 		}
 
-		assert(!result.is_error); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
-		Utf8Codepoint codepoint = result.data.ok;
+		Utf8Codepoint codepoint = utf8_next_char_result_get_as_ok(result);
 
 		if(codepoint < 0) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 			// NOTE: i am not sure why the codepoint is signed, as i can't find a way, to produce a
