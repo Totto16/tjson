@@ -64,9 +64,15 @@ struct JsonObjectImpl {
 	JsonValueMap value;
 };
 
+/* NOLINTBEGIN(clang-analyzer-security.ArrayBound)
+ */
+
 RC_DEFINE_TYPE(JsonObject)
 RC_DEFINE_TYPE(JsonArray)
 RC_DEFINE_TYPE(JsonString)
+
+/* NOLINTEND(clang-analyzer-security.ArrayBound)
+ */
 
 static void tstr_view_advance_by(tstr_view* const str, size_t amount) {
 	assert(str->len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
@@ -977,7 +983,9 @@ typedef int16_t JsonExpNum;
 #define MAX_EXPONENT_JSON_NUMBER ((JsonExpNum)MAX_EXPONENT_JSON_NUMBER_RAW)
 
 #define STATIC_ASSERT_SAME_TYPE(T1, T2) \
-	static_assert(_Generic((T1){ 0 }, T2: true, default: false), "Types are not the same")
+	static_assert( \
+	    _Generic((T1){ 0 }, T2: true, default: false), /* NOLINT(bugprone-macro-parentheses)*/ \
+	    "Types are not the same")
 
 STATIC_ASSERT_SAME_TYPE(JsonExpNum, int16_t);
 static_assert(INT16_MAX > MAX_EXPONENT_JSON_NUMBER);
