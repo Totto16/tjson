@@ -4,14 +4,6 @@
 
 #include "./utf8.h"
 
-NODISCARD static inline Utf8DataResult new_utf8_data_result_error(tstr_static const error) {
-	return (Utf8DataResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD static inline Utf8DataResult new_utf8_data_result_ok(Utf8Data const result) {
-	return (Utf8DataResult){ .is_error = false, .data = { .result = result } };
-}
-
 NODISCARD Utf8DataResult get_utf8_string(const tstr_view str_view) {
 
 	utf8proc_int32_t* buffer = TJSON_MALLOC(sizeof(utf8proc_int32_t) * str_view.len);

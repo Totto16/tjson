@@ -2441,13 +2441,12 @@ NODISCARD JsonString* json_get_string_from_tstr_view(tstr_view str_view) {
 		free_json_string(string); \
 	} while(false)
 
-	if(result.is_error) {
+	IF_UTF8_DATA_RESULT_IS_ERROR_IGN(result) {
 		FREE_AT_END();
 		return NULL;
 	}
 
-	assert(!result.is_error);
-	const Utf8Data data = result.data.result;
+	const Utf8Data data = utf8_data_result_get_as_ok(result);
 
 	for(size_t i = 0; i < data.size; ++i) {
 		const Utf8Codepoint codepoint = data.data[i];

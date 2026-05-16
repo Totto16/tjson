@@ -17,14 +17,9 @@ typedef struct {
 	uint64_t size;
 } Utf8Data;
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		tstr_static error;
-		Utf8Data result;
-	} data;
-} Utf8DataResult;
+#include "../tjson.h"
+
+GENERATE_VARIANT_ALL_UTF8_DATA_RESULT()
 
 NODISCARD Utf8DataResult get_utf8_string(tstr_view str_view);
 

@@ -472,5 +472,31 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "Utf8DataResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "name": "Utf8Data"
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "name": "tstr_static"
+                }
+            }
+        ],
+        "enum": {
+            "name": "Utf8DataResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]
