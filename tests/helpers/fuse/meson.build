@@ -48,7 +48,7 @@ endif
 fuse_variants_dep = declare_dependency(
     version: meson.project_version(),
     sources: [fuse_variants_generated_tgt],
-    compile_args: fuse_variants_flags
+    compile_args: fuse_variants_flags,
 )
 
 
