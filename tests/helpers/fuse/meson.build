@@ -33,8 +33,6 @@ fuse_variants_generated_tgt = custom_target(
     output: ['fuse_variants.h'],
     build_subdir: 'generated' / 'fuse' / 'variants',
     install: false,
-    ##TODO: wait for meson 1.11.2
-    # depends: [c_variant_generator],
 )
 
 fuse_variants_flags = []

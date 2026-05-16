@@ -62,11 +62,6 @@ else
         version: ['>=1.0.0', '<2'],
     )
 
-    # see: https://github.com/mesonbuild/meson/commit/0fea57bd9815d5f181be1dca9dcc71bcebb727bb
-    # and: https://github.com/mesonbuild/meson/issues/15774
-    # and: meson v1.11.2 
-    # on how to correctly detect rebuilds of the LocalProgram c_variant_generator
-
     json_variants_generated_tgt = custom_target(
         'json_variants',
         command: [
@@ -81,8 +76,6 @@ else
         build_subdir: 'generated' / 'json' / 'variants',
         install: true,
         install_dir: 'generated',
-        ##TODO: wait for meson 1.11.2
-        # depends: [c_variant_generator],
     )
 
     json_variants_dep = declare_dependency(
