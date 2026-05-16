@@ -31,20 +31,22 @@ jobs:
 
       - name: Setup Custom clang-tidy
         run: |
-          wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.tar.gz
-          wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.sha256
+          echo "TODO"
+        
+        #wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.tar.gz
+        #wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.sha256
 
-          cat ./clang-tidy-22-custom-build.sha256 | sha256sum --check --strict -
+        #cat ./clang-tidy-22-custom-build.sha256 | sha256sum --check --strict -
 
-          tar xvzf clang-tidy-22-custom-build.tar.gz
+        #tar xvzf clang-tidy-22-custom-build.tar.gz
 
-          sudo mkdir -p /opt/clang-22-custom/
-          sudo mv ./clang-tidy /opt/clang-22-custom/
-          sudo chmod +x /opt/clang-22-custom/clang-tidy
+        #sudo mkdir -p /opt/clang-22-custom/
+        #sudo mv ./clang-tidy /opt/clang-22-custom/
+        #sudo chmod +x /opt/clang-22-custom/clang-tidy
 
-          sudo rm /usr/bin/clang-tidy
-          sudo rm /usr/bin/clang-tidy-22
-          sudo ln -sv /opt/clang-22-custom/clang-tidy /usr/bin/clang-tidy-22
+        #sudo rm /usr/bin/clang-tidy
+        #sudo rm /usr/bin/clang-tidy-22
+        #sudo ln -sv /opt/clang-22-custom/clang-tidy /usr/bin/clang-tidy-22
 
       - name: Setup node
         uses: actions/setup-node@v6
