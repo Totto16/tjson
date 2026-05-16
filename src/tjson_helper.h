@@ -13,10 +13,6 @@ extern "C" {
 
 typedef struct JsonPathImpl JsonPath;
 
-TJSON_NODISCARD JsonPath* json_path_from_tstr_view(tstr_view path);
-
-TJSON_NODISCARD JsonPath* json_path_from_tstr(const tstr* path);
-
 TJSON_NODISCARD JsonPath* json_path_get_root(void);
 
 TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key);

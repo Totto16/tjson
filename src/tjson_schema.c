@@ -143,50 +143,49 @@ RC_DEFINE_TYPE(JsonSchemaOneOf)
 static JsonSchemaAddResult json_schema_to_string_make_def_impl(JsonObject* const object,
                                                                JsonSchemaState* const state) {
 
-	JsonDefId id = { .value = state->global_count };
+	JsonDefId def_id = { .value = state->global_count };
 
 	state->global_count++;
 
 	JsonDefEntry entry = { .object = object };
 
-	TmapInsertResult result = TMAP_INSERT(JsonDefEntryMapImpl, &(state->defs), id, entry, false);
+	TmapInsertResult result =
+	    TMAP_INSERT(JsonDefEntryMapImpl, &(state->defs), def_id, entry, false);
 
 	OOM_ASSERT(result == TmapInsertResultOk, "insert failed");
-	return new_json_schema_add_result_ok(id);
+	return new_json_schema_add_result_ok(def_id);
 }
 
 #define SCHEMA_NAME_TEMPLATE "__schema%zu"
 
-TJSON_NODISCARD static tstr json_schema_impl_get_def_schema_name(const JsonDefId id) {
+TJSON_NODISCARD static tstr json_schema_impl_get_def_schema_name(const JsonDefId def_id) {
 
 	StringBuilder* string_builder = string_builder_init();
 
 	ASSERT(string_builder != NULL);
 
 	STRING_BUILDER_APPENDF(string_builder, return tstr_null();
-	                       , "#/$defs/" SCHEMA_NAME_TEMPLATE, id.value);
+	                       , "#/$defs/" SCHEMA_NAME_TEMPLATE, def_id.value);
 
 	return string_builder_release_into_tstr(&string_builder);
 }
 
-TJSON_NODISCARD static tstr json_schema_impl_get_schema_name(const JsonDefId id) {
+TJSON_NODISCARD static tstr json_schema_impl_get_schema_name(const JsonDefId def_id) {
 
 	StringBuilder* string_builder = string_builder_init();
 
 	ASSERT(string_builder != NULL);
 
-	STRING_BUILDER_APPENDF(string_builder, return tstr_null();, SCHEMA_NAME_TEMPLATE, id.value);
+	STRING_BUILDER_APPENDF(string_builder, return tstr_null();, SCHEMA_NAME_TEMPLATE, def_id.value);
 
 	return string_builder_release_into_tstr(&string_builder);
 }
 
-TJSON_NODISCARD static JsonSchemaAddResult
-json_schema_to_string_impl(const JsonSchema* const schema,
-
-                           JsonSchemaState* const state);
+TJSON_NODISCARD static JsonSchemaAddResult json_schema_to_string_impl(const JsonSchema* json_schema,
+                                                                      JsonSchemaState* state);
 
 TJSON_NODISCARD static JsonSchemaAddResult
-json_schema_to_string_object_impl(const JsonSchemaObject* const object,
+json_schema_to_string_object_impl(const JsonSchemaObject* const object, // NOLINT(misc-no-recursion)
                                   JsonSchemaState* const state) {
 	// see: https://json-schema.org/understanding-json-schema/reference/object
 
@@ -305,7 +304,8 @@ json_schema_to_string_object_impl(const JsonSchemaObject* const object,
 #define HAS_FLAG(value, flag) (((value) & (flag)) == (flag))
 
 TJSON_NODISCARD static JsonSchemaAddResult
-json_schema_to_string_array_impl(const JsonSchemaArray* const array, JsonSchemaState* const state) {
+json_schema_to_string_array_impl(const JsonSchemaArray* const array, // NOLINT(misc-no-recursion)
+                                 JsonSchemaState* const state) {
 	// see: https://json-schema.org/understanding-json-schema/reference/array
 
 	JsonObject* const root = json_object_get_empty();
@@ -523,7 +523,7 @@ json_schema_to_string_null_impl(JsonSchemaState* const state) {
 }
 
 TJSON_NODISCARD static JsonSchemaAddResult
-json_schema_to_string_one_of_impl(const JsonSchemaOneOf* const one_of,
+json_schema_to_string_one_of_impl(const JsonSchemaOneOf* const one_of, // NOLINT(misc-no-recursion)
                                   JsonSchemaState* const state) {
 	// see: https://json-schema.org/understanding-json-schema/reference/combining#oneOf
 
@@ -614,8 +614,7 @@ json_schema_to_string_literal_impl(const JsonSchemaLiteral* const literal,
 }
 
 TJSON_NODISCARD static JsonSchemaAddResult
-json_schema_to_string_impl(const JsonSchema* const json_schema,
-
+json_schema_to_string_impl(const JsonSchema* const json_schema, // NOLINT(misc-no-recursion)
                            JsonSchemaState* const state) {
 
 	SWITCH_JSON_SCHEMA(*json_schema) {
@@ -740,7 +739,7 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 			free_json_string(invalid_start_char);
 		}
 
-		// TODO: check if this works as expected
+		// TODO(Totto): check if this works as expected
 		free_json_object(root_properties->object);
 
 		// remove that entry
@@ -765,6 +764,8 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 
 				insert_result = json_object_add_entry_tstr(
 				    defs, &schema_name, new_json_value_object_rc(value.value.object));
+
+				ASSERT(tstr_static_is_null(insert_result));
 			}
 
 			insert_result =
@@ -1215,13 +1216,21 @@ typedef struct {
 	const JsonObjectEntrySchema* schema_ptr;
 } JsonObjectSchemaCheckRequiredId;
 
-/* NOLINTBEGIN(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c) */
+typedef struct __attribute__((packed)) {
+	bool value;
+} MonoState;
+
+#define MONOSTATE_VALUE() ((MonoState){ .value = true })
+
+/* NOLINTBEGIN(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c,clang-analyzer-unix.Malloc)
+ */
 // GCOVR_EXCL_START (external library)
 TMAP_DEFINE_AND_IMPLEMENT_MAP_TYPE(JsonObjectSchemaCheckRequiredId,
-                                   JsonObjectSchemaCheckRequiredIdName, bool,
+                                   JsonObjectSchemaCheckRequiredIdName, MonoState,
                                    JsonObjectSchemaCheckRequiredMapImpl)
 // GCOVR_EXCL_STOP
-/* NOLINTEND(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c) */
+/* NOLINTEND(misc-use-internal-linkage,totto-function-passing-type,totto-const-correctness-c,clang-analyzer-unix.Malloc)
+ */
 
 TMAP_HASH_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredIdName) {
 	// hash ptrs
@@ -1235,9 +1244,8 @@ TMAP_EQ_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredI
 	return key1.schema_ptr == key2.schema_ptr;
 }
 
-NODISCARD static tstr
-json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema_object,
-                                             const JsonObject* const value) {
+NODISCARD static tstr json_schema_validate_object_schema_data_impl( // NOLINT(misc-no-recursion)
+    const JsonSchemaObject* json_schema_object, const JsonObject* const value) {
 
 	TMAP_TYPENAME_MAP(JsonObjectSchemaCheckRequiredMapImpl)
 	required_map = TMAP_EMPTY(JsonObjectSchemaCheckRequiredMapImpl);
@@ -1336,8 +1344,9 @@ json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema
 
 				const JsonObjectSchemaCheckRequiredId required_key = { .schema_ptr = schema_entry };
 
-				TmapInsertResult insert_result = TMAP_INSERT(
-				    JsonObjectSchemaCheckRequiredMapImpl, &required_map, required_key, true, false);
+				TmapInsertResult insert_result =
+				    TMAP_INSERT(JsonObjectSchemaCheckRequiredMapImpl, &required_map, required_key,
+				                MONOSTATE_VALUE(), false);
 
 				if(insert_result != TmapInsertResultOk) {
 					FREE_AT_END();
@@ -1385,7 +1394,7 @@ json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema
 				const JsonObjectSchemaCheckRequiredId required_key = { .schema_ptr = schema_entry };
 
 				// check if we have encountered it
-				const bool* const required_entry =
+				const MonoState* const required_entry =
 				    TMAP_GET(JsonObjectSchemaCheckRequiredMapImpl, &required_map, required_key);
 
 				if(required_entry == NULL) {
@@ -1411,9 +1420,8 @@ json_schema_validate_object_schema_data_impl(const JsonSchemaObject* json_schema
 
 #undef FREE_AT_END
 
-NODISCARD static tstr
-json_schema_validate_object_schema_raw_impl(const JsonSchemaObject* json_schema_object,
-                                            const JsonValue* const value) {
+NODISCARD static tstr json_schema_validate_object_schema_raw_impl( // NOLINT(misc-no-recursion)
+    const JsonSchemaObject* json_schema_object, const JsonValue* const value) {
 	IF_JSON_VALUE_IS_OBJECT_CONST(*value) {
 		return json_schema_validate_object_schema_data_impl(json_schema_object, object.obj);
 	}
@@ -1421,9 +1429,8 @@ json_schema_validate_object_schema_raw_impl(const JsonSchemaObject* json_schema_
 	return TSTR_LIT("JsonValue is not an object");
 }
 
-NODISCARD static tstr
-json_schema_validate_array_schema_data_impl(const JsonSchemaArray* json_schema_array,
-                                            const JsonArray* const value) {
+NODISCARD static tstr json_schema_validate_array_schema_data_impl( // NOLINT(misc-no-recursion)
+    const JsonSchemaArray* json_schema_array, const JsonArray* const value) {
 
 	const JsonSchemaArrayProperties array_props = json_schema_array->props;
 
@@ -1461,7 +1468,7 @@ json_schema_validate_array_schema_data_impl(const JsonSchemaArray* json_schema_a
 		// fall through to the next checks
 	}
 
-	// TODO: require_unique_items is not checked yet!
+	// TODO(Totto): require_unique_items is not checked yet!
 
 	const size_t array_size = json_array_get_size(value);
 
@@ -1488,9 +1495,8 @@ json_schema_validate_array_schema_data_impl(const JsonSchemaArray* json_schema_a
 	return tstr_null();
 }
 
-NODISCARD static tstr
-json_schema_validate_array_schema_raw_impl(const JsonSchemaArray* json_schema_array,
-                                           const JsonValue* const value) {
+NODISCARD static tstr json_schema_validate_array_schema_raw_impl( // NOLINT(misc-no-recursion)
+    const JsonSchemaArray* json_schema_array, const JsonValue* const value) {
 	IF_JSON_VALUE_IS_ARRAY_CONST(*value) {
 		return json_schema_validate_array_schema_data_impl(json_schema_array, array.arr);
 	}
@@ -1606,9 +1612,8 @@ NODISCARD static tstr json_schema_validate_null_schema_raw_impl(const JsonValue*
 // similar hierarchy of where the error occurred, with  a ref(RC REF!!) of the jsonvalue and schema
 // which caused the error!
 
-NODISCARD static tstr
-json_schema_validate_one_of_schema_raw_impl(const JsonSchemaOneOf* json_schema_one_of,
-                                            const JsonValue* const value) {
+NODISCARD static tstr json_schema_validate_one_of_schema_raw_impl( // NOLINT(misc-no-recursion)
+    const JsonSchemaOneOf* json_schema_one_of, const JsonValue* const value) {
 
 	// search for the first match
 	for(size_t i = 0; i < TVEC_LENGTH(JsonSchema, json_schema_one_of->values); ++i) {
@@ -1671,8 +1676,9 @@ json_schema_validate_literal_schema_raw_impl(const JsonSchemaLiteral* json_schem
 	return TSTR_LIT("JsonValue is not a string (literal)");
 }
 
-TJSON_NODISCARD tstr json_schema_validate_data(const JsonSchema* const schema,
-                                               const JsonValue* const value) {
+TJSON_NODISCARD tstr
+json_schema_validate_data(const JsonSchema* const schema, // NOLINT(misc-no-recursion)
+                          const JsonValue* const value) {
 	SWITCH_JSON_SCHEMA(*schema) {
 		CASE_JSON_SCHEMA_IS_OBJECT_CONST(*schema) {
 			return json_schema_validate_object_schema_raw_impl(object.obj, value);

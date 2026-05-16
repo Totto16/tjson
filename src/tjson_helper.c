@@ -21,25 +21,6 @@ struct JsonPathImpl {
 	JsonPathSegmentsArray segments;
 };
 
-TJSON_NODISCARD JsonPath* json_path_from_tstr_view(tstr_view path) {
-
-	JsonPath* result = json_path_get_root();
-
-	if(result == NULL) {
-		return NULL;
-	}
-
-	(void)path;
-	// TODO
-	return NULL;
-}
-
-TJSON_NODISCARD JsonPath* json_path_from_tstr(const tstr* path) {
-	// TODO
-	(void)path;
-	return NULL;
-}
-
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	JsonPath* path = malloc(sizeof(JsonPath));
 
@@ -85,12 +66,7 @@ TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index) {
 	TvecResult result =
 	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_array_index(index));
 
-	if(result != TvecResultOk) {
-
-		return false;
-	}
-
-	return true;
+	return (result == TvecResultOk);
 }
 
 static void free_json_path_segment(JsonPathSegment segment);
@@ -193,7 +169,8 @@ void free_json_path(JsonPath* path) {
 //
 
 TJSON_NODISCARD static JsonIterateResult
-json_value_iterate_impl(const JsonValue* json_value, JsonValueIterateCallback iterate_callback,
+json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion)
+                        JsonValueIterateCallback iterate_callback,
                         RTTIAnnotatedValue annotated_value_start, JsonPath* json_path) {
 
 	SWITCH_JSON_VALUE(*json_value) {
