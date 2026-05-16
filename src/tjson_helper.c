@@ -92,7 +92,7 @@ TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
 TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSegment segment2) {
 
 	SWITCH_JSON_PATH_SEGMENT(segment1) {
-		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT(segment1, object1) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment1, object1) {
 
 			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment2, object2) {
 				return tstr_eq(&object1.name, &object2.name);

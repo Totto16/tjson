@@ -17,7 +17,7 @@ typedef struct {
 	uint64_t size;
 } Utf8Data;
 
-#include "../tjson.h"
+#include "../tjson/variants.h"
 
 GENERATE_VARIANT_ALL_UTF8_DATA_RESULT()
 

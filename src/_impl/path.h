@@ -10,7 +10,7 @@
 
 #include <tstr.h>
 
-#include "../tjson.h"
+#include "../tjson/variants.h"
 
 GENERATE_VARIANT_ALL_READ_FILE_RESULT()
 

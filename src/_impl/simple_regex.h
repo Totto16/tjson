@@ -15,7 +15,7 @@ typedef struct {
 	regex_t regex;
 } SimpleRegex;
 
-#include "../tjson.h"
+#include "../tjson/variants.h"
 
 GENERATE_VARIANT_ALL_SIMPLE_REGEX_RESULT()
 
