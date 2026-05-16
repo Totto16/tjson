@@ -5,15 +5,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-NODISCARD static inline ReadFileResult new_read_file_result_error(tstr_static const error) {
-	return (ReadFileResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD static inline ReadFileResult
-new_read_file_result_ok(tstr const file) { // NOLINT(totto-function-passing-type)
-	return (ReadFileResult){ .is_error = false, .data = { .file = file } };
-}
-
 NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 
 	int file_descriptor = open(tstr_cstr(file_path), O_RDONLY);

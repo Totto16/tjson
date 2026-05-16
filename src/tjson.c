@@ -1691,13 +1691,12 @@ NODISCARD JsonParseResult json_value_parse_from_file(const tstr* const file_path
 
 	ReadFileResult file_result = read_entire_file(file_path);
 
-	if(file_result.is_error) {
+	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) {
 		return new_json_parse_result_error(
-		    make_json_error_at(json_source_location_get_null(), file_result.data.error));
+		    make_json_error_at(json_source_location_get_null(), error.error));
 	}
 
-	assert(!file_result.is_error); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
-	tstr file = file_result.data.file;
+	tstr file = read_file_result_get_as_ok(file_result).file;
 
 	const tstr_view str_view = tstr_as_view(&file);
 

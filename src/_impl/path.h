@@ -10,13 +10,8 @@
 
 #include <tstr.h>
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		tstr_static error;
-		tstr file;
-	} data;
-} ReadFileResult;
+#include "../tjson.h"
+
+GENERATE_VARIANT_ALL_READ_FILE_RESULT()
 
 NODISCARD ReadFileResult read_entire_file(const tstr* file_path);

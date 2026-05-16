@@ -406,5 +406,45 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "ReadFileResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "file",
+                                "typeName": "tstr"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "error",
+                                "typeName": "tstr_static"
+                            }
+                        ]
+                    }
+                }
+            }
+        ],
+        "enum": {
+            "name": "ReadFileResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]
