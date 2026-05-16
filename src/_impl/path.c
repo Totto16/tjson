@@ -16,20 +16,20 @@ new_read_file_result_ok(tstr const file) { // NOLINT(totto-function-passing-type
 
 NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 
-	int fd = open(tstr_cstr(file_path), O_RDONLY);
+	int file_descriptor = open(tstr_cstr(file_path), O_RDONLY);
 
-	if(fd < 0) {
+	if(file_descriptor < 0) {
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't open file for reading"));
 	}
 
 #define FREE_AT_END() \
 	do { \
-		close(fd); \
+		close(file_descriptor); \
 	} while(false)
 
 	struct stat statbuf;
 
-	int result = fstat(fd, &statbuf);
+	int result = fstat(file_descriptor, &statbuf);
 
 	if(result != 0) {
 		FREE_AT_END();
@@ -53,7 +53,7 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		close(fd); \
+		close(file_descriptor); \
 		TJSON_FREE(file_data); \
 	} while(false)
 
@@ -63,7 +63,7 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 
 		while(true) {
 
-			const ssize_t read_result = read(fd, buf, remaining_size);
+			const ssize_t read_result = read(file_descriptor, buf, remaining_size);
 
 			if(read_result < 0) {
 				if(errno == EINTR) {
@@ -100,7 +100,7 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 		}
 	}
 
-	const LibCInt close_result = close(fd);
+	const LibCInt close_result = close(file_descriptor);
 
 #undef FREE_AT_END
 #define FREE_AT_END() \

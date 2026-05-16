@@ -77,7 +77,9 @@ static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
 	}
 }
 
-AllocatorFunctionHandle* malloc_handle = NULL;
+static AllocatorFunctionHandle*
+    malloc_handle = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    NULL;
 
 void* tjson_coverage_allocator_malloc(size_t size) {
 	if(malloc_handle != NULL) {
@@ -89,7 +91,9 @@ void* tjson_coverage_allocator_malloc(size_t size) {
 	return malloc(size);
 }
 
-AllocatorFunctionHandle* calloc_handle = NULL;
+static AllocatorFunctionHandle*
+    calloc_handle // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    = NULL;
 
 void* tjson_coverage_allocator_calloc(size_t nmemb, size_t size) {
 	if(calloc_handle != NULL) {
@@ -101,7 +105,9 @@ void* tjson_coverage_allocator_calloc(size_t nmemb, size_t size) {
 	return calloc(nmemb, size);
 }
 
-AllocatorFunctionHandle* realloc_handle = NULL;
+static AllocatorFunctionHandle*
+    realloc_handle // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    = NULL;
 
 void* tjson_coverage_allocator_realloc(void* ptr, size_t size) {
 	if(realloc_handle != NULL) {
