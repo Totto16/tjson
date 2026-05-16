@@ -4,53 +4,23 @@
 
 #include "../utils.h"
 
-typedef enum {
-	AllocatorFunctionHandleTypeFailAlways,
-	AllocatorFunctionHandleTypeFailAfter,
-	AllocatorFunctionHandleTypeFailNever,
-} AllocatorFunctionHandleType;
+#include "../../tjson/variants.h"
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	AllocatorFunctionHandleType type;
-	union {
-		struct {
-			size_t count;
-		} after;
-	} data;
-} AllocatorFunctionHandleContent;
+GENERATE_VARIANT_ALL_ALLOCATOR_FUNCTION_HANDLE_CONTENT()
 
-NODISCARD static inline AllocatorFunctionHandleContent
-new_allocator_function_handle_content_fail_always(void) {
-	return (AllocatorFunctionHandleContent){ .type = AllocatorFunctionHandleTypeFailAlways,
-		                                     .data = {} };
-}
-
-NODISCARD static inline AllocatorFunctionHandleContent
-new_allocator_function_handle_content_fail_after(size_t count) {
-	return (AllocatorFunctionHandleContent){ .type = AllocatorFunctionHandleTypeFailAfter,
-		                                     .data = { .after = { .count = count } } };
-}
-
-NODISCARD static inline AllocatorFunctionHandleContent
-new_allocator_function_handle_content_fail_never(void) {
-	return (AllocatorFunctionHandleContent){ .type = AllocatorFunctionHandleTypeFailNever,
-		                                     .data = {} };
-}
-
-// manual "variant", but only used internally, so it's fine
 struct AllocatorFunctionHandleImpl {
 	AllocatorFunctionHandleContent content;
 	AllocatorFunctionType type;
 };
 
 static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
-	switch(handle->content.type) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
-		case AllocatorFunctionHandleTypeFailAlways: {
+	SWITCH_ALLOCATOR_FUNCTION_HANDLE_CONTENT(handle->content) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
+		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_ALWAYS() {
 			return true;
 		}
-		case AllocatorFunctionHandleTypeFailAfter: {
-			size_t* const count = &(handle->content.data.after.count);
+		VARIANT_CASE_END();
+		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_AFTER_MUT(handle->content) {
+			size_t* const count = &(fail_after->count);
 
 			bool result = false;
 
@@ -68,9 +38,11 @@ static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
 			handle->content = new_allocator_function_handle_content_fail_never();
 			return result;
 		}
-		case AllocatorFunctionHandleTypeFailNever: {
+		VARIANT_CASE_END();
+		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_NEVER() {
 			return false;
 		}
+		VARIANT_CASE_END();
 		default: {       // GCOVR_EXCL_LINE
 			return true; // GCOVR_EXCL_LINE
 		}

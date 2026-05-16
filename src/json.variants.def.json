@@ -498,5 +498,40 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "AllocatorFunctionHandleContent",
+        "member": [
+            {
+                "name": "FailAlways",
+                "type": null
+            },
+            {
+                "name": "FailAfter",
+                "type": {
+                    "struct": {
+                        "members": [
+                            {
+                                "name": "count",
+                                "typeName": "size_t"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "FailNever",
+                "type": null
+            }
+        ],
+        "enum": {
+            "name": "AllocatorFunctionHandleType",
+            "underlyingType": "u8"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]
