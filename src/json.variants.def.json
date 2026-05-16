@@ -446,5 +446,31 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "SimpleRegexResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "name": "SimpleRegex"
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "name": "tstr"
+                }
+            }
+        ],
+        "enum": {
+            "name": "SimpleRegexResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]

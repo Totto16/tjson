@@ -1038,12 +1038,12 @@ TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const st
 
 	SimpleRegexResult result = simple_regex_compile(str);
 
-	if(result.is_error) {
-		tstr_free(&result.data.error);
+	IF_SIMPLE_REGEX_RESULT_IS_ERROR_MUT(result) {
+		tstr_free(&error);
 		return NULL;
 	}
 
-	const SimpleRegex regex = result.data.ok;
+	const SimpleRegex regex = simple_regex_result_get_as_ok(result);
 
 	JsonSchemaRegex* const json_schema_regex =
 	    RC_ALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);

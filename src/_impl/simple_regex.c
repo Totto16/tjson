@@ -1,15 +1,5 @@
 #include "./simple_regex.h"
 
-NODISCARD MAYBE_UNUSED static inline SimpleRegexResult
-new_simple_regex_result_error(tstr const error) { // NOLINT(totto-function-passing-type)
-	return (SimpleRegexResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD MAYBE_UNUSED static inline SimpleRegexResult
-new_simple_regex_result_ok(SimpleRegex const value) {
-	return (SimpleRegexResult){ .is_error = false, .data = { .ok = value } };
-}
-
 #define ERR_BUF_SIZE 512
 
 NODISCARD SimpleRegexResult simple_regex_compile(const tstr* const str) {
