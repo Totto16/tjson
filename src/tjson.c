@@ -1633,14 +1633,14 @@ json_parse_impl_parse_value(JsonParseState* const state) { // NOLINT(misc-no-rec
 	}
 }
 
-void free_json_parse_result(JsonParseResult const parse_result) {
+void free_json_parse_result(JsonParseResult parse_result) {
 	SWITCH_JSON_PARSE_RESULT(parse_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/3
 		CASE_JSON_PARSE_RESULT_IS_ERROR_IGN() {
 			return;
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_PARSE_RESULT_IS_OK_MUT(parse_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
-			free_json_value(&ok);
+		CASE_JSON_PARSE_RESULT_IS_OK_MUT_REF(&parse_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+			free_json_value(ok);
 			return;
 		}
 		VARIANT_CASE_END(); // GCOVR_EXCL_LINE

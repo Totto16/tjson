@@ -195,7 +195,7 @@ NODISCARD static JsonSchema json_schema_ref_increment(const JsonSchema json_sche
 			return new_json_schema_one_of_rc(one_of.one_of);
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_SCHEMA_IS_LITERAL_MUT(json_schema) {
+		CASE_JSON_SCHEMA_IS_LITERAL_CONST(json_schema) {
 			return new_json_schema_literal_rc(literal.lit);
 		}
 		VARIANT_CASE_END();

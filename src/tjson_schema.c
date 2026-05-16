@@ -1038,8 +1038,8 @@ TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const st
 
 	SimpleRegexResult result = simple_regex_compile(str);
 
-	IF_SIMPLE_REGEX_RESULT_IS_ERROR_MUT(result) {
-		tstr_free(&error);
+	IF_SIMPLE_REGEX_RESULT_IS_ERROR_MUT_REF(&result) {
+		tstr_free(error);
 		return NULL;
 	}
 
@@ -1192,8 +1192,8 @@ void free_json_schema(JsonSchema* const json_schema) {
 		}
 		break;
 		VARIANT_CASE_END();
-		CASE_JSON_SCHEMA_IS_LITERAL_MUT(*json_schema) {
-			free_json_schema_literal(literal.lit);
+		CASE_JSON_SCHEMA_IS_LITERAL_MUT_REF(json_schema) {
+			free_json_schema_literal(literal->lit);
 		}
 		break;
 		VARIANT_CASE_END();
@@ -1708,7 +1708,7 @@ json_schema_validate_data(const JsonSchema* const schema, // NOLINT(misc-no-recu
 			return json_schema_validate_one_of_schema_raw_impl(one_of.one_of, value);
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_SCHEMA_IS_LITERAL_MUT(*schema) {
+		CASE_JSON_SCHEMA_IS_LITERAL_CONST(*schema) {
 			return json_schema_validate_literal_schema_raw_impl(literal.lit, value);
 		}
 		VARIANT_CASE_END();

@@ -139,8 +139,8 @@ TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath
 
 static void free_json_path_segment(JsonPathSegment segment) {
 	SWITCH_JSON_PATH_SEGMENT(segment) {
-		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT(segment) {
-			tstr_free(&object_key.name);
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT_REF(&segment) {
+			tstr_free(&(object_key->name));
 		}
 		break;
 		VARIANT_CASE_END();

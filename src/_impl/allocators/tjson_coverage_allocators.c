@@ -19,7 +19,7 @@ static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
 			return true;
 		}
 		VARIANT_CASE_END();
-		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_AFTER_MUT(handle->content) {
+		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_AFTER_MUT_REF(&(handle->content)) {
 			size_t* const count = &(fail_after->count);
 
 			bool result = false;
