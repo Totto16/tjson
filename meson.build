@@ -2,7 +2,7 @@ project(
     'tjson',
     'c',
     license: 'MIT',
-    meson_version: '>=1.10.0',
+    meson_version: '>=1.11.1',# TODO: 1.11.2, see c_variant_generator usage
     default_options: {
         'buildtype': 'release',
         'optimization': '3',
