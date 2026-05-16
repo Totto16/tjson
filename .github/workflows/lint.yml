@@ -67,9 +67,10 @@ jobs:
 
           meson compile -C build generated_sources
 
-      - name: Verify clang-tidy
-        run: |
-          clang-tidy-22 --experimental-custom-checks --verify-config
+    #TODO: wait for this to work correctly, see https://github.com/llvm/llvm-project/pull/192260
+    #  - name: Verify clang-tidy
+    #    run: |
+    #      clang-tidy-22 --experimental-custom-checks --verify-config
 
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
