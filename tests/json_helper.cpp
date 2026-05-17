@@ -175,7 +175,14 @@ TEST_CASE("testing json iterator processing <json_iterator_processing>") {
 		            .number = 2,
 		            .optional_arrray = get_optional_array({ true, true, false }),
 		            .name = "string2"_tstr,
-		        } }
+		        } },
+		JsonIteratorProcessingTest{ .input = json::object({}),
+		                            .expected =
+		                                TestJsonStruct{
+		                                    .number = 0,
+		                                    .optional_arrray = nullptr,
+		                                    .name = tstr_null(),
+		                                } },
 	};
 
 	CAutoFreePtr<std::vector<JsonIteratorProcessingTest>> defer_tests = {
@@ -227,6 +234,8 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 	std::vector<JsonIteratorErrorTest> json_iterator_cases = {
 		JsonIteratorErrorTest{ .input = json::array({}),
 		                       .error = "Error: unhandled iterate value in root path" },
+		JsonIteratorErrorTest{ .input = json::object({ { "number", json::null() } }),
+		                       .error = "Error: invalid json value for type that expected: 'uint32_t'" },
 		JsonIteratorErrorTest{
 		    .input = json::object(
 		        { { "number", json::number((int64_t)2) },
