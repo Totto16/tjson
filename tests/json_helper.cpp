@@ -191,7 +191,7 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 		RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
 
 		JsonIterateResult actual_result =
-		    json_value_iterate(&test_case.input, test_iterate_cb, empty);
+		    json_value_iterate(&test_case.input, test_iterate_cb, test_iterate_free, empty, empty);
 
 		REQUIRE_IS_NOT_ERROR(actual_result);
 

@@ -168,10 +168,10 @@ void free_json_path(JsonPath* path) {
 
 //
 
-TJSON_NODISCARD static JsonIterateResult
-json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion)
-                        JsonValueIterateCallback iterate_callback,
-                        RTTIAnnotatedValue annotated_value_start, JsonPath* json_path) {
+TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc-no-recursion)
+    const JsonValue* json_value, JsonValueIterateCallback iterate_callback,
+    JsonIterateFreeCallback free_callback, RTTIAnnotatedValue annotated_value_start,
+    RTTIAnnotatedValue userdata, JsonPath* json_path) {
 
 	SWITCH_JSON_VALUE(*json_value) {
 		CASE_JSON_VALUE_IS_OBJECT_CONST(*json_value) {
@@ -179,7 +179,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			JsonIterateValue obj_start = new_json_iterate_value_object_start();
 
 			JsonIterateResult start_result =
-			    iterate_callback(json_path, annotated_value_start, obj_start);
+			    iterate_callback(json_path, annotated_value_start, obj_start, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				return new_json_iterate_result_error(error.error);
@@ -187,16 +187,24 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 			const RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
 
+#define FREE_AT_END() \
+	do { \
+		free_callback(obj_handle); \
+	} while(false)
+
 			{
 				JsonObjectIter* iter = json_object_get_iterator(object.obj);
 
 				if(iter == NULL) {
+					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
 					    .err = TSTR_STATIC_LIT("json object iterator couldn't be allocated") });
 				}
 
+#undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
+		free_callback(obj_handle); \
 		json_object_free_iterator(iter); \
 	} while(false)
 
@@ -221,15 +229,16 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		json_object_free_iterator(iter); \
 		tstr_free(&key_tstr); \
+		free_callback(obj_handle); \
+		json_object_free_iterator(iter); \
 	} while(false)
 
 					JsonIterateValue obj_entry = new_json_iterate_value_object_entry(
 					    (JsonIterateObjectEntry){ .key = &key_tstr });
 
 					JsonIterateResult entry_result =
-					    iterate_callback(json_path, obj_handle, obj_entry);
+					    iterate_callback(json_path, obj_handle, obj_entry, userdata);
 
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 						FREE_AT_END();
@@ -250,8 +259,8 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 					key_tstr = tstr_null();
 
-					JsonIterateResult recursive_result =
-					    json_value_iterate_impl(&value, iterate_callback, entry_handle, json_path);
+					JsonIterateResult recursive_result = json_value_iterate_impl(
+					    &value, iterate_callback, free_callback, entry_handle, userdata, json_path);
 
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
 						FREE_AT_END();
@@ -280,6 +289,10 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 					}
 
 #undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_callback(obj_handle); \
+	} while(false)
 
 					tstr_free(&key_tstr);
 				}
@@ -289,9 +302,11 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 			JsonIterateValue obj_end = new_json_iterate_value_object_end();
 
-			JsonIterateResult end_result = iterate_callback(json_path, obj_handle, obj_end);
+			JsonIterateResult end_result =
+			    iterate_callback(json_path, obj_handle, obj_end, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
@@ -300,12 +315,15 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			return new_json_iterate_result_ok(end_handle);
 		}
 		VARIANT_CASE_END();
+
+#undef FREE_AT_END
+
 		CASE_JSON_VALUE_IS_ARRAY_CONST(*json_value) {
 
 			JsonIterateValue arr_start = new_json_iterate_value_array_start();
 
 			JsonIterateResult start_result =
-			    iterate_callback(json_path, annotated_value_start, arr_start);
+			    iterate_callback(json_path, annotated_value_start, arr_start, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				return new_json_iterate_result_error(error.error);
@@ -313,11 +331,17 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 			const RTTIAnnotatedValue arr_handle = json_iterate_result_get_as_ok(start_result);
 
+#define FREE_AT_END() \
+	do { \
+		free_callback(arr_handle); \
+	} while(false)
+
 			for(size_t i = 0; i < json_array_get_size(array.arr); ++i) {
 
 				const JsonValue* const value = json_array_get_at(array.arr, i);
 
 				if(value == NULL) {
+					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
 					    .err = TSTR_STATIC_LIT("implementation error: empty json value") });
 				}
@@ -325,9 +349,11 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 				JsonIterateValue arr_entry =
 				    new_json_iterate_value_array_push((JsonIterateArrayEntry){ .value = value });
 
-				JsonIterateResult entry_result = iterate_callback(json_path, arr_handle, arr_entry);
+				JsonIterateResult entry_result =
+				    iterate_callback(json_path, arr_handle, arr_entry, userdata);
 
 				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
+					FREE_AT_END();
 					return new_json_iterate_result_error(error.error);
 				}
 
@@ -336,14 +362,16 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 				bool add_result = json_path_add_array_index(json_path, i);
 
 				if(!add_result) {
+					FREE_AT_END();
 					return new_json_iterate_result_error(
 					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path add failed") });
 				}
 
-				JsonIterateResult recursive_result =
-				    json_value_iterate_impl(value, iterate_callback, entry_handle, json_path);
+				JsonIterateResult recursive_result = json_value_iterate_impl(
+				    value, iterate_callback, free_callback, entry_handle, userdata, json_path);
 
 				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+					FREE_AT_END();
 					return new_json_iterate_result_error(error.error);
 				}
 
@@ -355,6 +383,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 				    json_iterate_result_get_as_ok(recursive_result);
 
 				if(result_handle.ptr != NULL) {
+					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
 					    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
 				}
@@ -362,6 +391,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 				bool remove_result = json_path_remove_last_segment(json_path);
 
 				if(!remove_result) {
+					FREE_AT_END();
 					return new_json_iterate_result_error(
 					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path remove failed") });
 				}
@@ -369,9 +399,11 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 			JsonIterateValue arr_end = new_json_iterate_value_array_end();
 
-			JsonIterateResult end_result = iterate_callback(json_path, arr_handle, arr_end);
+			JsonIterateResult end_result =
+			    iterate_callback(json_path, arr_handle, arr_end, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
@@ -380,11 +412,14 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			return new_json_iterate_result_ok(end_handle);
 		}
 		VARIANT_CASE_END();
+
+#undef FREE_AT_END
+
 		CASE_JSON_VALUE_IS_NUMBER_CONST(*json_value) {
 			JsonIterateValue iterate_value = new_json_iterate_value_number(number);
 
 			JsonIterateResult iterate_result =
-			    iterate_callback(json_path, annotated_value_start, iterate_value);
+			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				return new_json_iterate_result_error(error.error);
@@ -400,7 +435,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			JsonIterateValue iterate_value = new_json_iterate_value_string(string);
 
 			JsonIterateResult iterate_result =
-			    iterate_callback(json_path, annotated_value_start, iterate_value);
+			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				return new_json_iterate_result_error(error.error);
@@ -415,7 +450,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			JsonIterateValue iterate_value = new_json_iterate_value_boolean(boolean);
 
 			JsonIterateResult iterate_result =
-			    iterate_callback(json_path, annotated_value_start, iterate_value);
+			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				return new_json_iterate_result_error(error.error);
@@ -430,7 +465,7 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 			JsonIterateValue iterate_value = new_json_iterate_value_null();
 
 			JsonIterateResult iterate_result =
-			    iterate_callback(json_path, annotated_value_start, iterate_value);
+			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				return new_json_iterate_result_error(error.error);
@@ -452,7 +487,9 @@ json_value_iterate_impl(const JsonValue* json_value, // NOLINT(misc-no-recursion
 
 TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json_value,
                                                      JsonValueIterateCallback iterate_callback,
-                                                     RTTIAnnotatedValue start) {
+                                                     JsonIterateFreeCallback free_callback,
+                                                     RTTIAnnotatedValue start,
+                                                     RTTIAnnotatedValue userdata) {
 
 	JsonPath* json_path = json_path_get_root();
 
@@ -461,8 +498,8 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json
 		    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path allocation error") });
 	}
 
-	JsonIterateResult result =
-	    json_value_iterate_impl(json_value, iterate_callback, start, json_path);
+	JsonIterateResult result = json_value_iterate_impl(json_value, iterate_callback, free_callback,
+	                                                   start, userdata, json_path);
 
 	free_json_path(json_path);
 

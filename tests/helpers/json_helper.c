@@ -14,7 +14,9 @@ TRTTI_DEFINE_TYPE_AS_SUPPORTED_EXTENDED(TestJsonStructNested*, TestJsonStructNes
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructArrayElement)
 
 JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
-                                  JsonIterateValue value) {
+                                  JsonIterateValue value, RTTIAnnotatedValue userdata) {
+
+	(void)userdata;
 
 	if(json_path_is_root(path)) {
 
@@ -275,4 +277,36 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 	return new_json_iterate_result_error((JsonIterateError){
 	    .err = TSTR_STATIC_LIT("unhandled convertor for type below root path") });
+}
+
+void test_iterate_free(RTTIAnnotatedValue data) {
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, data)) {
+
+		TestJsonStruct* dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, data);
+
+		tstr_free(&(dest->name));
+
+		*dest = (TestJsonStruct){
+			.number = 0,
+			.optional_arrray = NULL,
+			.name = tstr_null(),
+		};
+
+		return;
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNested, data)) {
+
+		TestJsonStructNested* dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNested, data);
+
+		TVEC_FREE(TestJsonStructArrayElement, &(dest->array));
+
+		*dest = (TestJsonStructNested){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+
+		return;
+	}
+
+	fprintf(stderr, "ERROR: don't know hot to free: " TRTTI_TYPE_NAME_FMT "\n",
+	        TRTTI_TYPE_NAME_FMT_ARGS(data.type.name));
 }

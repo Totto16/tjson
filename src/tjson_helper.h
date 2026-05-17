@@ -47,11 +47,16 @@ GENERATE_VARIANT_ALL_JSON_ITERATE_VALUE()
 
 typedef JsonIterateResult (*JsonValueIterateCallback)(const JsonPath* path,
                                                       RTTIAnnotatedValue parent,
-                                                      JsonIterateValue value);
+                                                      JsonIterateValue value,
+                                                      RTTIAnnotatedValue userdata);
+
+typedef void (*JsonIterateFreeCallback)(RTTIAnnotatedValue data);
 
 TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* json_value,
                                                      JsonValueIterateCallback iterate_callback,
-                                                     RTTIAnnotatedValue start);
+                                                     JsonIterateFreeCallback free_callback,
+                                                     RTTIAnnotatedValue start,
+                                                     RTTIAnnotatedValue userdata);
 
 #ifdef __cplusplus
 }
