@@ -1,67 +1,112 @@
 #include "./path.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-NODISCARD static inline ReadFileResult new_read_file_result_error(tstr_static const error) {
-	return (ReadFileResult){ .is_error = true, .data = { .error = error } };
-}
-
-NODISCARD static inline ReadFileResult new_read_file_result_ok(tstr const file) {
-	return (ReadFileResult){ .is_error = false, .data = { .file = file } };
-}
-
 NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 
-	FILE* file = fopen(tstr_cstr(file_path), "rb");
+	int file_descriptor = open(tstr_cstr(file_path), O_RDONLY);
 
-	if(file == NULL) {
+	if(file_descriptor < 0) {
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't open file for reading"));
 	}
 
-	const LibCInt fseek_res = fseek(file, 0, SEEK_END);
+#define FREE_AT_END() \
+	do { \
+		close(file_descriptor); \
+	} while(false)
 
-	if(fseek_res != 0) {
-		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't seek to end of file"));
+	struct stat statbuf;
+
+	int result = fstat(file_descriptor, &statbuf);
+
+	if(result != 0) {
+		FREE_AT_END();
+		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't get stats of the file"));
 	}
 
-	const LibCLong file_size = ftell(file);
-
-	if(file_size < 0) {
+	if(statbuf.st_size < 0) {
+		FREE_AT_END();
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't get the file size"));
 	}
 
-	const LibCInt fseek_res2 = fseek(file, 0, SEEK_SET);
+	const size_t file_size = (size_t)statbuf.st_size;
 
-	if(fseek_res2 != 0) {
-		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't seek to start of file"));
-	}
-
-	LibCChar* file_data = (LibCChar*)malloc((size_t)file_size * sizeof(LibCChar));
+	LibCChar* const file_data = (LibCChar*)TJSON_MALLOC(file_size * sizeof(LibCChar));
 
 	if(!file_data) {
-		fclose(file);
+		FREE_AT_END();
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't allocate file data"));
 	}
 
-	const size_t fread_result = fread(file_data, 1, (size_t)file_size, file);
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		close(file_descriptor); \
+		TJSON_FREE(file_data); \
+	} while(false)
 
-	if(fread_result != (size_t)file_size) {
-		fclose(file);
-		free(file_data);
+	{
+		LibCChar* buf = file_data;
+		size_t remaining_size = file_size;
 
-		return new_read_file_result_error(
-		    TSTR_STATIC_LIT("Couldn't read the correct amount of bytes from file"));
+		while(true) {
+
+			const ssize_t read_result = read(file_descriptor, buf, remaining_size);
+
+			if(read_result < 0) {
+				if(errno == EINTR) {
+					// try again
+					continue;
+				}
+
+				FREE_AT_END();
+				return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't read from the file"));
+			}
+
+			if(read_result == 0) {
+				if(remaining_size != 0) {
+					FREE_AT_END();
+					return new_read_file_result_error(TSTR_STATIC_LIT("Read to few data"));
+				}
+
+				break;
+			}
+
+			size_t read_amount = (size_t)read_result;
+
+			if(read_amount == remaining_size) {
+				break;
+			}
+
+			if(read_amount > remaining_size) {
+				// logic or libc error
+				UNREACHABLE();
+			}
+
+			remaining_size -= read_amount;
+			buf = buf + read_amount;
+		}
 	}
 
-	const LibCInt fclose_result = fclose(file);
+	const LibCInt close_result = close(file_descriptor);
 
-	if(fclose_result != 0) {
-		free(file_data);
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		TJSON_FREE(file_data); \
+	} while(false)
+
+	if(close_result != 0) {
+		FREE_AT_END();
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't close file"));
 	}
 
-	tstr result = tstr_own(file_data, (size_t)file_size, (size_t)file_size);
+	const tstr result_str = tstr_own(file_data, file_size, file_size);
 
-	return new_read_file_result_ok(result);
+	return new_read_file_result_ok(result_str);
 }
+
+#undef FREE_AT_END

@@ -1,12 +1,20 @@
 #include <doctest.h>
 
-#include "./helpers/generic.hpp"
 #include "./helpers/helpers.hpp"
+
+#include "./helpers/compat.hpp"
+#include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
+#include "./helpers/mock_file.hpp"
 
 #include <tjson.h>
 
 #include "helpers/string_maker.hpp"
+
+#include <expected>
+#include <filesystem>
+
+#include <nlohmann/json.hpp>
 
 namespace {
 
@@ -25,6 +33,18 @@ struct JsonStringifyTest {
 	JsonValue input;
 };
 
+struct JsonParseTestCaseCompat {
+	std::string input;
+};
+
+using JsonParseResultCpp = std::expected<JsonValue, JsonErrorCpp>;
+
+struct JsonFileParseTestCase {
+	std::filesystem::path file;
+	JsonParseResultCpp expected;
+	MockFile* raw_lock_ptr;
+};
+
 } // namespace
 
 TEST_SUITE_BEGIN("json" * doctest::description("json tests") * doctest::timeout(2.0));
@@ -32,48 +52,59 @@ TEST_SUITE_BEGIN("json" * doctest::description("json tests") * doctest::timeout(
 TEST_CASE("testing parsing of json values <json_parser>") {
 
 	std::vector<JsonParseTestCaseSuccess> json_parse_test_cases = {
-		JsonParseTestCaseSuccess{ .input = "null", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "\t			null   ",
-		                          .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "true", .expected = JsonValueCpp::boolean(true) },
-		JsonParseTestCaseSuccess{ .input = "false", .expected = JsonValueCpp::boolean(false) },
-		JsonParseTestCaseSuccess{ .input = "100", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "-100",
-		                          .expected = JsonValueCpp::number((int64_t)-100) },
-		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
-		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
-		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "1.2e3",
-		                          .expected = JsonValueCpp::number((int64_t)1200) },
-		JsonParseTestCaseSuccess{ .input = "1.3E+3",
-		                          .expected = JsonValueCpp::number((int64_t)1300) },
-		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "null", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "\t			null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "true", .expected = json::boolean(true) },
+		JsonParseTestCaseSuccess{ .input = "false", .expected = json::boolean(false) },
+		JsonParseTestCaseSuccess{ .input = "100", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-100", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = json::number(-100.01) },
+		JsonParseTestCaseSuccess{ .input = "100.43", .expected = json::number(100.43) },
+		JsonParseTestCaseSuccess{ .input = "1e2", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-1e2", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "1e20", .expected = json::number(1e20) },
+		JsonParseTestCaseSuccess{ .input = "1E20", .expected = json::number(1E20) },
+		JsonParseTestCaseSuccess{ .input = "1.2e3", .expected = json::number((int64_t)1200) },
+		JsonParseTestCaseSuccess{ .input = "0", .expected = json::number((int64_t)0) },
+		JsonParseTestCaseSuccess{ .input = "1.3E+3", .expected = json::number((int64_t)1300) },
+		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = json::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "1.5E10",
+		                          .expected = json::number((int64_t)15000000000) },
+		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
+		                          .expected = json::number(8.98846567431158e307) },
+		JsonParseTestCaseSuccess{ .input = "1e0", .expected = json::number(1.0) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
-		                          .expected = JsonValueCpp::string("hello world") },
+		                          .expected = json::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
-		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		                          .expected = json::string("hello world\n\"\f\t") },
+		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		                          .expected = json::string("escape chars \\/\b\r::\x10\n\n") },
+		JsonParseTestCaseSuccess{ .input = R"({})", .expected = json::object({}) },
 		JsonParseTestCaseSuccess{
-		    .input = R"([null,  	1,2,   true ])",
-		    .expected = JsonValueCpp::array(
-		        { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		          JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		    .input = R"([null,  	1,-2,   true ])",
+		    .expected = json::array({ json::null(), json::number((int64_t)1),
+		                              json::number((int64_t)-2), json::boolean(true) }) },
+		JsonParseTestCaseSuccess{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		    .expected = json::array({ json::number(1e10), json::number(-2e10), json::number(1e-10),
+		                              json::number(-2e-10), json::number(-1.0), json::number(1.0),
+		                              json::number(1.25e-10), json::number(-2.25e-10) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
 		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
 		   true, "array": []}}})",
-		    .expected = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .expected = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonParseTestCaseSuccess>> defer_tests = {
 		&json_parse_test_cases,
@@ -93,7 +124,7 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result), JsonParseResultTypeOk);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 		JsonValue result = json_parse_result_get_as_ok(parse_result);
 		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
@@ -136,6 +167,202 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "json object has duplicate key", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1,)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing member after 'value-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 11 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, ")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: <EOF> after '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 13 }) },
+		JsonParseTestCaseError{
+		    .input = R"({"key1")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object member: missing 'name-separator' after member name", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" -)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong name-separator: expected ':'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 8 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" :)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing value after 'name-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" : )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty value: expected value but got <EOF>", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 10 }) },
+		JsonParseTestCaseError{
+		    .input = R"({)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object: missing 'member' or 'end-object' after 'begin-object'",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object: missing 'member' or 'end-object'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 14 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of member in object: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{
+		    .input = R"([)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array: missing 'value' or 'end-array' after 'begin-array'", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array value", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"([null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty array: missing 'value' or 'end-array'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 5 }) },
+		JsonParseTestCaseError{ .input = R"([null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of values in array: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{ .input = R"(-)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number: <EOF> after '-'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-3151325312532575675757575757575775757575)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 22 }) },
+		JsonParseTestCaseError{ .input = R"(13124124512491246156139813265081326513205861320)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"(1.)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number frac part: <EOF> after '.'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: <EOF> after 'e'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e+)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: no values after 'e' and optional sign",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1eA)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e1A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1.1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x80\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, -})",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong quotation-mark: expected '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 12 }) },
+		JsonParseTestCaseError{ .input = R"({"ke)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: expected '\"' or string-char but got <EOF>",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 4 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8 (underflows 0): \xFF\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 30 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x10\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string char: range [0, 0x20)", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 16 }) },
+		JsonParseTestCaseError{ .input = R"("\)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string escape sequence", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"("\u")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: unicode escape is missing "
+		                            "values, it requires at least 4 chars after it",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"("\o")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: not a recognized escape char",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\u#000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uZ000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uz000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(#)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
+		JsonParseTestCaseError{
+		    .input = R"(z)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
@@ -146,8 +373,7 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-		           JsonParseResultTypeError);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 		JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -187,8 +413,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			{
 				const auto key = "key_null"_tstr;
 
-				const auto add_result =
-				    json_object_add_entry_tstr(object, &key, JsonValueCpp::null());
+				const auto add_result = json_object_add_entry_tstr(object, &key, json::null());
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -201,7 +426,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 				const auto key = "key_2";
 
 				const auto add_result =
-				    json_object_add_entry_cstr(object, key, JsonValueCpp::number((int64_t)2));
+				    json_object_add_entry_cstr(object, key, json::number((int64_t)2));
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -211,9 +436,9 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			auto json_value = new_json_value_object_rc(object);
 
-			auto expected_value = JsonValueCpp::object({
-			    { "key_null", JsonValueCpp::null() },
-			    { "key_2", JsonValueCpp::number((int64_t)2) },
+			auto expected_value = json::object({
+			    { "key_null", json::null() },
+			    { "key_2", json::number((int64_t)2) },
 			});
 
 			CAutoFreePtr<JsonValue> defer = { &json_value, free_json_value };
@@ -222,44 +447,68 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_EQ(json_value, expected_value);
 		}();
 	}
+
+	SUBCASE("json_object_add_entry_dup frees memory correctly") {
+		[]() -> void {
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			JsonString* key_string = json_get_string_from_cstr("key1");
+
+			auto res1 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_TRUE(tstr_static_is_null(res1));
+
+			auto res2 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_FALSE(tstr_static_is_null(res2));
+
+			std::string actual_error = string_from_tstr_static(res2);
+
+			std::string expected_error = "json object has duplicate key";
+
+			REQUIRE_EQ(expected_error, actual_error);
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 	std::vector<JsonStringifyTest> json_stringify_test_case = {
-		JsonStringifyTest{ .expected = "null", .input = JsonValueCpp::null() },
-		JsonStringifyTest{ .expected = "true", .input = JsonValueCpp::boolean(true) },
-		JsonStringifyTest{ .expected = "false", .input = JsonValueCpp::boolean(false) },
-		JsonStringifyTest{ .expected = "100", .input = JsonValueCpp::number((int64_t)100) },
-		JsonStringifyTest{ .expected = "-100", .input = JsonValueCpp::number((int64_t)-100) },
-		JsonStringifyTest{ .expected = "-100.01", .input = JsonValueCpp::number(-100.01) },
-		JsonStringifyTest{ .expected = "100.43", .input = JsonValueCpp::number(100.43) },
-		JsonStringifyTest{ .expected = R"("hello world")",
-		                   .input = JsonValueCpp::string("hello world") },
-		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t")",
-		                   .input = JsonValueCpp::string("hello world\n\"\f\t") },
-		JsonStringifyTest{
-		    .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
-		    .input = JsonValueCpp::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonStringifyTest{ .expected = "null", .input = json::null() },
+		JsonStringifyTest{ .expected = "true", .input = json::boolean(true) },
+		JsonStringifyTest{ .expected = "false", .input = json::boolean(false) },
+		JsonStringifyTest{ .expected = "100", .input = json::number((int64_t)100) },
+		JsonStringifyTest{ .expected = "-100", .input = json::number((int64_t)-100) },
+		JsonStringifyTest{ .expected = "-100.01", .input = json::number(-100.01) },
+		JsonStringifyTest{ .expected = "100.43", .input = json::number(100.43) },
+		JsonStringifyTest{ .expected = R"("hello world")", .input = json::string("hello world") },
+		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t\b\r\\/")",
+		                   .input = json::string("hello world\n\"\f\t\b\r\\/") },
+		JsonStringifyTest{ .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
+		                   .input = json::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonStringifyTest{ .expected = R"("\u0007")",
+		                   .input = json::string("\x07") },
 		JsonStringifyTest{ .expected = R"([null, 1, 2, true])",
-		                   .input = JsonValueCpp::array(
-		                       { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		                         JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		                   .input =
+		                       json::array({ json::null(), json::number((int64_t)1),
+		                                     json::number((int64_t)2), json::boolean(true) }) },
 		JsonStringifyTest{
 		    .expected =
 		        R"({"key1": "hello", "key2": null, "nested": {"nested_key": {"array": [], "nested_key2": true}}})",
-		    .input = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .input = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonStringifyTest>> defer_tests = {
 		&json_stringify_test_case,
@@ -290,8 +539,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeOk);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 			JsonValue result = json_parse_result_get_as_ok(parse_result);
 			CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
@@ -301,6 +549,297 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 	}
 }
 
-// TODO: compare with nhlohmann json!
+TEST_CASE("testing json compatibility with other json library (nlohmann_json) <json_compat>") {
+
+	std::vector<JsonParseTestCaseCompat> json_compat_test_cases = {
+		JsonParseTestCaseCompat{
+		    .input = "null",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "   null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "\t			null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "true",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "false",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100.01",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100.43",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1E20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.2e3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.3E+3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E-2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E10",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "8.98846567431158e307", // 2^1023 exactly
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world\n\"\f\t")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"({})",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([null,  	1,-2,   true ])",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		},
+		JsonParseTestCaseCompat{
+		    .input =
+		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
+		   true, "array": []}}})",
+		},
+	};
+
+	for(const auto& test_case : json_compat_test_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		const tstr_view str_view = helpers::tstr_view_from_str(test_case.input);
+
+		const auto parse_result = json_value_parse_from_str(str_view);
+
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+		JsonValue result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+		const auto& my_json_result = result;
+
+		const auto& compat_json_result = nlohmann::json::parse(test_case.input);
+
+		REQUIRE_EQ(my_json_result, compat_json_result);
+	}
+}
+
+using MockFileTest = std::tuple<JsonParseResultCpp, std::unique_ptr<MockFile>, std::string>;
+
+// just here as a dummy tstr_view
+const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
+
+[[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests(bool debug) {
+	std::vector<MockFileTest> tests = {};
+
+	{
+		const auto file = "test_file_allow";
+
+		tests.emplace_back(
+		    JsonParseResultCpp{ json::array({ json::null() }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioNone } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc("Couldn't read from the file", &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadFailsGeneric } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc("Couldn't open file for reading", &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]",
+		              MockFlagsCpp{ .scenario = FailScenarioStatNegativeFileSize } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		        "Read to few data", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadFailsLessData } } },
+		        debug),
+		    file);
+	}
+
+	return tests;
+}
+
+[[nodiscard]] static std::filesystem::path get_test_file_root() {
+	std::filesystem::path test_file_root = std::filesystem::current_path();
+
+	if(!std::filesystem::exists(test_file_root)) {
+		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
+			                      test_file_root.string() };
+	}
+
+	if(!std::filesystem::exists((test_file_root / "inputs"))) {
+		test_file_root = test_file_root / "tests" / "files";
+	}
+
+	if(!std::filesystem::exists(test_file_root)) {
+		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
+			                      test_file_root.string() };
+	}
+
+	return test_file_root;
+}
+
+[[nodiscard]] static std::unique_ptr<MockFileLock> get_file_lock(MockFile* raw_ptr) {
+	if(raw_ptr == nullptr) {
+		return std::make_unique<DummyFileLock>();
+	}
+	return raw_ptr->lock();
+}
+
+TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
+
+	std::filesystem::path test_file_root = get_test_file_root();
+
+	std::vector<JsonFileParseTestCase> json_file_test_cases = {
+		JsonFileParseTestCase{ .file = test_file_root / "inputs" / "NOT_PRESENT.json",
+		                       .expected =
+		                           JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		                               "Couldn't open file for reading", &dummy_file,
+		                               JsonSourcePosition{ .line = 0, .col = 0 }) },
+		                       .raw_lock_ptr = nullptr },
+		JsonFileParseTestCase{
+		    .file = test_file_root / "inputs" / "test.json",
+		    .expected = JsonParseResultCpp{ json::object({
+		        { "my object key", json::array({ json::number((int64_t)1), json::number((int64_t)2),
+		                                         json::null(), json::boolean(true) }) },
+		    }) },
+		    .raw_lock_ptr = nullptr },
+
+	};
+
+	const bool debug = false;
+
+	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
+
+	for(const auto& mock_file_test : mock_file_tests) {
+
+		std::filesystem::path file_path =
+		    std::get<1>(mock_file_test)->root() / std::get<2>(mock_file_test);
+
+		json_file_test_cases.push_back(
+		    JsonFileParseTestCase{ .file = file_path,
+		                           .expected = std::get<0>(mock_file_test),
+		                           .raw_lock_ptr = std::get<1>(mock_file_test).get() });
+	}
+
+	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
+		&json_file_test_cases,
+		[](std::vector<JsonFileParseTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    if(value->expected.has_value()) {
+				    JsonValue* const ok_value = &(value->expected.value());
+				    free_json_value(ok_value);
+			    }
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_file_test_cases) {
+		INFO("Test case: ", test_case.file);
+
+		std::unique_ptr<MockFileLock> fuse_lock = get_file_lock(test_case.raw_lock_ptr);
+
+		std::string defer_str = test_case.file.string();
+
+		const tstr_view file_view = helpers::tstr_view_from_str(defer_str);
+
+		const tstr file_path = tstr_from_static_cstr_with_len(file_view.data, file_view.len);
+
+		const auto parse_result = json_value_parse_from_file(&file_path);
+
+		if(!test_case.expected.has_value()) {
+
+			const auto& expected_error = test_case.expected.error();
+
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+			JsonError result = json_parse_result_get_as_error(parse_result);
+
+			const auto actual_error = JsonErrorCpp{ result };
+
+			REQUIRE_EQ(actual_error, expected_error);
+		} else {
+
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+			JsonValue result = json_parse_result_get_as_ok(parse_result);
+			CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+			const auto& expected_result = test_case.expected.value();
+
+			REQUIRE_EQ(result, expected_result);
+		}
+	}
+}
 
 TEST_SUITE_END();

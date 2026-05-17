@@ -5,9 +5,11 @@
 
 std::ostream& operator<<(std::ostream& os, const JsonValue& json_value) {
 
-	const auto str = json_value_to_string_advanced(&json_value, { .indent_size = 2 });
+	auto str = json_value_to_string_advanced(&json_value, { .indent_size = 2 });
 
 	os << str;
+
+	tstr_free(&str);
 
 	return os;
 }
@@ -39,8 +41,8 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 
 [[nodiscard]] static bool json_array_eq_impl(const JsonArray* const json_array1,
                                              const JsonArray* const json_array2) {
-	const size_t size1 = json_array_size(json_array1);
-	const size_t size2 = json_array_size(json_array2);
+	const size_t size1 = json_array_get_size(json_array1);
+	const size_t size2 = json_array_get_size(json_array2);
 
 	if(size1 != size2) {
 		return false;
@@ -48,8 +50,8 @@ JsonArrayCpp::JsonArrayCpp(JsonArray* value) : m_value{ value } {}
 
 	for(size_t i = 0; i < size1; ++i) {
 
-		const JsonValue* val1 = json_array_at(json_array1, i);
-		const JsonValue* val2 = json_array_at(json_array2, i);
+		const JsonValue* val1 = json_array_get_at(json_array1, i);
+		const JsonValue* val2 = json_array_get_at(json_array2, i);
 
 		if(JsonValueCpp{ val1 } != val2) {
 			return false;
@@ -82,8 +84,8 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 [[nodiscard]] static bool json_object_eq_impl(const JsonObject* const json_object1,
                                               const JsonObject* const json_object2) {
 
-	const size_t size1 = json_object_count(json_object1);
-	const size_t size2 = json_object_count(json_object2);
+	const size_t size1 = json_object_get_count(json_object1);
+	const size_t size2 = json_object_get_count(json_object2);
 
 	if(size1 != size2) {
 		return false;
@@ -93,6 +95,10 @@ JsonObjectCpp::JsonObjectCpp(const JsonObject* value) : m_value{ value } {}
 	// one has also the same entry!
 	JsonObjectIter* iter1 = json_object_get_iterator(json_object1);
 	CAutoFreePtr<JsonObjectIter> defer = { iter1, json_object_free_iterator };
+
+	if(iter1 == nullptr) {
+		return false;
+	}
 
 	while(true) {
 
@@ -214,23 +220,23 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return json_value_eq_impl(&json_value1, &json_value2);
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::null() {
+[[nodiscard]] JsonValue json::null() {
 	return new_json_value_null();
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::boolean(const bool& value) {
+[[nodiscard]] JsonValue json::boolean(const bool& value) {
 	return new_json_value_boolean(JsonBoolean{ .value = value });
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::number(const double& value) {
+[[nodiscard]] JsonValue json::number(const double& value) {
 	return new_json_value_number(JsonNumber{ .value = value });
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::number(const int64_t& value) {
+[[nodiscard]] JsonValue json::number(const int64_t& value) {
 	return number(static_cast<double>(value));
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::string(const std::string& value) {
+[[nodiscard]] JsonValue json::string(const std::string& value) {
 	JsonString* const string = json_get_string_from_tstr_view(helpers::tstr_view_from_str(value));
 
 	if(string == nullptr) {
@@ -240,7 +246,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return new_json_value_string_rc(string);
 }
 
-[[nodiscard]] JsonValue JsonValueCpp::array(std::initializer_list<JsonValue>&& values) {
+[[nodiscard]] JsonValue json::array(std::initializer_list<JsonValue>&& values) {
 	JsonArray* const array = json_array_get_empty();
 
 	if(array == nullptr) {
@@ -259,7 +265,7 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 }
 
 [[nodiscard]] JsonValue
-JsonValueCpp::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
 	JsonObject* const object = json_object_get_empty();
 
 	if(object == nullptr) {
@@ -300,6 +306,14 @@ JsonErrorCpp JsonErrorCpp::with_string_loc(std::string&& value, tstr_view data,
 	const JsonSourceLocation loc = { .source =
 		                                 new_json_source_string(JsonStringSource{ .data = data }),
 		                             .pos = pos };
+	return { std::move(value), loc };
+}
+
+JsonErrorCpp JsonErrorCpp::with_file_loc(std::string&& value, const tstr* const file_path,
+                                         JsonSourcePosition pos) {
+	const JsonSourceLocation loc = {
+		.source = new_json_source_file(JsonFileSource{ .file_path = file_path }), .pos = pos
+	};
 	return { std::move(value), loc };
 }
 
@@ -410,4 +424,52 @@ std::ostream& operator<<(std::ostream& os, const JsonError& json_error) {
 	os << error;
 	tstr_free(&error);
 	return os;
+}
+
+[[nodiscard]] bool operator==(const JsonParseResult& result, JsonParseResultType result_type) {
+	return get_current_tag_type_for_json_parse_result(result) == result_type;
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result) {
+
+	SWITCH_JSON_PARSE_RESULT(parse_result) {
+		CASE_JSON_PARSE_RESULT_IS_ERROR_CONST(parse_result) {
+			os << "JsonParseResult::Error -> ";
+
+			os << error;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PARSE_RESULT_IS_OK_CONST(parse_result) {
+			os << "JsonParseResult::Ok -> ";
+
+			os << ok;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		default: {
+			return os;
+		}
+	}
+}
+
+std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type) {
+
+	switch(result_type) {
+		case JsonParseResultTypeError: {
+			os << "JsonParseResult::Error";
+
+			return os;
+		}
+		case JsonParseResultTypeOk: {
+			os << "JsonParseResult::Ok";
+
+			return os;
+		}
+		default: {
+			return os;
+		}
+	}
 }

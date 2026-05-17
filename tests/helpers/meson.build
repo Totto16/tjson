@@ -1,19 +1,28 @@
 
-support_src += files(
-    'helpers/c_types.cpp',
-    'helpers/c_types.hpp',
-    'helpers/cpp_types.cpp',
-    'helpers/cpp_types.hpp',
-    'helpers/hpack.cpp',
-    'helpers/hpack.hpp',
-    'helpers/http.cpp',
-    'helpers/http.hpp',
-    'helpers/json.cpp',
-    'helpers/json.hpp',
+test_src += files(
+    'c_types.cpp',
+    'c_types.hpp',
+    'compat.cpp',
+    'compat.hpp',
+    'cpp_types.cpp',
+    'cpp_types.hpp',
     'generic.cpp',
     'generic.hpp',
     'helpers.hpp',
-    'sha1.cpp',
-    'sha1.hpp',
+    'json.cpp',
+    'json.hpp',
+    'json_helper.c',
+    'json_helper.h',
+    'json_schema.cpp',
+    'json_schema.hpp',
+    'main.cpp',
+    'mock_file.cpp',
+    'mock_file.hpp',
+    'rtti.cpp',
+    'rtti.hpp',
+    'string_maker.hpp',
     'support.hpp',
 )
+
+
+subdir('fuse')

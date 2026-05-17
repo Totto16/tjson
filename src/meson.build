@@ -7,8 +7,11 @@ src_files += files(
     '_impl/utf8.h',
     '_impl/utils.h',
     'tjson/variants.h',
+    'allocator.h',
     'tjson.c',
     'tjson.h',
+    'tjson_helper.c',
+    'tjson_helper.h',
     'tjson_schema.c',
     'tjson_schema.h',
 )
@@ -16,7 +19,10 @@ src_files += files(
 
 install_headers(
     'tjson.h',
+    'tjson_schema.h',
+    'tjson_helper.h',
     'tjson/variants.h',
+    'allocator.h',
     preserve_path: true,
 )
 
@@ -78,11 +84,14 @@ else
         compile_args: ['-D_TJSON_USE_VARIANT_IMPL=1'],
     )
 
+
+    generated_sources = alias_target(
+        'generated_sources',
+        json_variants_generated_tgt,
+    )
+
+
 endif
-
-
-
-
 
 
 cc = meson.get_compiler('c')

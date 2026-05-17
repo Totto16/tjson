@@ -31,20 +31,22 @@ jobs:
 
       - name: Setup Custom clang-tidy
         run: |
-          wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.tar.gz
-          wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.sha256
+          echo "TODO"
+        
+        #wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.tar.gz
+        #wget https://apt.totto.lt/built/static/clang-tidy-22-custom-build.sha256
 
-          cat ./clang-tidy-22-custom-build.sha256 | sha256sum --check --strict -
+        #cat ./clang-tidy-22-custom-build.sha256 | sha256sum --check --strict -
 
-          tar xvzf clang-tidy-22-custom-build.tar.gz
+        #tar xvzf clang-tidy-22-custom-build.tar.gz
 
-          sudo mkdir -p /opt/clang-22-custom/
-          sudo mv ./clang-tidy /opt/clang-22-custom/
-          sudo chmod +x /opt/clang-22-custom/clang-tidy
+        #sudo mkdir -p /opt/clang-22-custom/
+        #sudo mv ./clang-tidy /opt/clang-22-custom/
+        #sudo chmod +x /opt/clang-22-custom/clang-tidy
 
-          sudo rm /usr/bin/clang-tidy
-          sudo rm /usr/bin/clang-tidy-22
-          sudo ln -sv /opt/clang-22-custom/clang-tidy /usr/bin/clang-tidy-22
+        #sudo rm /usr/bin/clang-tidy
+        #sudo rm /usr/bin/clang-tidy-22
+        #sudo ln -sv /opt/clang-22-custom/clang-tidy /usr/bin/clang-tidy-22
 
       - name: Setup node
         uses: actions/setup-node@v6
@@ -52,22 +54,23 @@ jobs:
           node-version: 24
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Prepare compile_commands.json
         run: |
           sudo apt-get update
-          sudo apt-get install ninja-build openssl libssl-dev libzstd-dev zlib1g-dev libbrotli-dev libgmp-dev libpam0g-dev -y --no-install-recommends
+          sudo apt-get install ninja-build -y --no-install-recommends
 
-          meson setup build -Dbuildtype=release -Dsecure=enabled -Dcompression_features=zstd,br,deflate,gzip,compress -Dother_features=bcrypt,pam --fatal-meson-warnings
+          meson setup build -Dbuildtype=release --fatal-meson-warnings
 
           meson compile -C build generated_sources
 
-      - name: Verify clang-tidy
-        run: |
-          clang-tidy-22 --experimental-custom-checks --verify-config
+    #TODO: wait for this to work correctly, see https://github.com/llvm/llvm-project/pull/192260
+    #  - name: Verify clang-tidy
+    #    run: |
+    #      clang-tidy-22 --experimental-custom-checks --verify-config
 
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
@@ -84,7 +87,7 @@ jobs:
           tidy-checks: ""
           step-summary: true
           file-annotations: true
-          ignore: subprojects|build|src/thirdparty|src/ws/macos_endian_compat.h|tests/
+          ignore: subprojects|build|tests/
           extra-args: "--experimental-custom-checks"
 
       - name: Fail CI run if linter checks failed

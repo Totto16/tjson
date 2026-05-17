@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tjson.h>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -96,10 +98,6 @@ template <typename T>
 	return false;
 }
 
-// to have all generated error variant types
-
-#include <tjson.h>
-
 // END
 
 #include <optional>
@@ -159,6 +157,17 @@ struct TstrStaticIsNull {
 };
 
 [[nodiscard]] bool operator==(const tstr_static& lhs, const TstrStaticIsNull& rhs);
+
+struct TstrIsNull {
+  public:
+	TstrIsNull();
+
+	friend std::ostream& operator<<(std::ostream& os, const TstrIsNull& error);
+
+	[[nodiscard]] bool operator==(const tstr& lhs) const;
+};
+
+[[nodiscard]] bool operator==(const tstr& lhs, const TstrIsNull& rhs);
 
 std::ostream& operator<<(std::ostream& os, const IsNotError& error);
 
