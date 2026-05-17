@@ -287,11 +287,14 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 
 		tstr_free(&(dest->name));
 
-		*dest = (TestJsonStruct){
-			.number = 0,
-			.optional_arrray = NULL,
-			.name = tstr_null(),
-		};
+		if(dest->optional_arrray != NULL) {
+
+			TVEC_FREE(TestJsonStructArrayElement, &(dest->optional_arrray->array));
+
+			free(dest->optional_arrray);
+		}
+
+		free(dest);
 
 		return;
 	}

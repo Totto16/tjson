@@ -26,9 +26,14 @@ void free_json_test_struct(TestJsonStruct test_struct) {
 	}
 }
 
-struct JsonSimpleIteratorTest {
+struct JsonIteratorProcessingTest {
 	JsonValue input;
 	TestJsonStruct expected;
+};
+
+struct JsonIteratorErrorTest {
+	JsonValue input;
+	std::string error;
 };
 
 } // namespace
@@ -147,19 +152,19 @@ template <> struct StringMaker<TestJsonStruct> {
 
 TEST_SUITE_BEGIN("json_helper" * doctest::description("json helper tests") * doctest::timeout(2.0));
 
-TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
+TEST_CASE("testing json iterator processing <json_iterator_processing>") {
 
-	std::vector<JsonSimpleIteratorTest> json_iterator_cases = {
-		JsonSimpleIteratorTest{ .input = json::object({ { "number", json::number((int64_t)1) },
-		                                                { "optional_arrray", json::null() },
-		                                                { "name", json::string("string1") } }),
-		                        .expected =
-		                            TestJsonStruct{
-		                                .number = 1,
-		                                .optional_arrray = nullptr,
-		                                .name = "string1"_tstr,
-		                            } },
-		JsonSimpleIteratorTest{
+	std::vector<JsonIteratorProcessingTest> json_iterator_cases = {
+		JsonIteratorProcessingTest{ .input = json::object({ { "number", json::number((int64_t)1) },
+		                                                    { "optional_arrray", json::null() },
+		                                                    { "name", json::string("string1") } }),
+		                            .expected =
+		                                TestJsonStruct{
+		                                    .number = 1,
+		                                    .optional_arrray = nullptr,
+		                                    .name = "string1"_tstr,
+		                                } },
+		JsonIteratorProcessingTest{
 		    .input = json::object(
 		        { { "number", json::number((int64_t)2) },
 		          { "optional_arrray", json::array({ json::boolean(true), json::boolean(true),
@@ -173,9 +178,9 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 		        } }
 	};
 
-	CAutoFreePtr<std::vector<JsonSimpleIteratorTest>> defer_tests = {
+	CAutoFreePtr<std::vector<JsonIteratorProcessingTest>> defer_tests = {
 		&json_iterator_cases,
-		[](std::vector<JsonSimpleIteratorTest>* const values) -> void {
+		[](std::vector<JsonIteratorProcessingTest>* const values) -> void {
 		    for(size_t i = 0; i < values->size(); ++i) {
 			    auto* const value = &(values->at(i));
 			    free_json_value(&(value->input));
@@ -214,6 +219,50 @@ TEST_CASE("testing simple json iterator example <json_iterator_simple>") {
 			                                          } };
 
 		REQUIRE_EQ(*result, test_case.expected);
+	}
+}
+
+TEST_CASE("testing json iterator errors <json_iterator_error>") {
+
+	std::vector<JsonIteratorErrorTest> json_iterator_cases = {
+		JsonIteratorErrorTest{ .input = json::array({}),
+		                       .error = "Error: unhandled iterate value in root path" },
+		JsonIteratorErrorTest{
+		    .input = json::object(
+		        { { "number", json::number((int64_t)2) },
+		          { "optional_arrray", json::array({ json::boolean(true), json::boolean(true),
+		                                             json::boolean(false), json::null() }) },
+		          { "name", json::string("string2") } }),
+		    .error = "Error: invalid json value for type that expected: "
+		             "'TestJsonStructArrayElement'" }
+	};
+
+	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
+		&json_iterator_cases,
+		[](std::vector<JsonIteratorErrorTest>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+			    free_json_value(&(value->input));
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_iterator_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+
+		JsonIterateResult actual_result =
+		    json_value_iterate(&test_case.input, test_iterate_cb, test_iterate_free, empty, empty);
+
+		REQUIRE_IS_ERROR(actual_result);
+
+		JsonIterateError error = json_iterate_result_get_as_error(actual_result).error;
+
+		std::string actual_error = string_from_tstr_static(error.err);
+
+		REQUIRE_EQ(actual_error, test_case.error);
 	}
 }
 
