@@ -4,8 +4,8 @@
 /** Generated header
  * with: c_variant_generator
  * version: 1.1.4
- * commit:d7c7c31ae4c2
- * date: 2026-05-16T18:50:31.393Z
+ * commit: a34d98e9816d
+ * date: 2026-11-06T22:55:39.989Z
  * repo: https://github.com/Totto16/c_variant_generator
  * lang: JS / TS
  * ABI: v1.0.1
@@ -205,6 +205,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonValueType \
 	get_current_tag_type_for_json_value(JsonValue const variant_entry) { \
 		return variant_entry._variant_tag_for_json_value_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_value(JsonValue const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_value( \
+		    variant_entry._variant_tag_for_json_value_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonValue \
@@ -1362,6 +1368,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 
 #define CASE_JSON_VALUE_IS_NULL() case JsonValueTypeNull:
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_value_tag_member _variant_data_for_json_value_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_value_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_value_variant_impl _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_ _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_ _AnonymousUnionForVariantJsonValueImpl_DONT_USE AssertTypeImplForJsonValueImpl_1_DONT_USE_ AssertTypeImplForJsonValueImpl_2_DONT_USE_
 
 #define VARIANT_JSON_PARSE_RESULT_STATE_ASSERT(state, expected_state) \
@@ -1423,6 +1432,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonParseResultType \
 	get_current_tag_type_for_json_parse_result(JsonParseResult const variant_entry) { \
 		return variant_entry._variant_tag_for_json_parse_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_parse_result(JsonParseResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_parse_result( \
+		    variant_entry._variant_tag_for_json_parse_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonParseResult \
@@ -1953,6 +1968,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_parse_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_parse_result_tag_member _variant_data_for_json_parse_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_parse_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_parse_result_variant_impl _AnonymousUnionForVariantJsonParseResultImpl_DONT_USE AssertTypeImplForJsonParseResultImpl_1_DONT_USE_ AssertTypeImplForJsonParseResultImpl_2_DONT_USE_
 
 #define VARIANT_JSON_SOURCE_STATE_ASSERT(state, expected_state) \
@@ -2012,6 +2030,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSourceType \
 	get_current_tag_type_for_json_source(JsonSource const variant_entry) { \
 		return variant_entry._variant_tag_for_json_source_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_source(JsonSource const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_source( \
+		    variant_entry._variant_tag_for_json_source_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSource \
@@ -2472,6 +2496,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_source_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_source_variant_impl = false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_source_tag_member _variant_data_for_json_source_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_source_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_source_variant_impl _AnonymousUnionForVariantJsonSourceImpl_DONT_USE AssertTypeImplForJsonSourceImpl_1_DONT_USE_ AssertTypeImplForJsonSourceImpl_2_DONT_USE_
 
 #define VARIANT_JSON_SCHEMA_STATE_ASSERT(state, expected_state) \
@@ -2580,6 +2607,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSchemaType \
 	get_current_tag_type_for_json_schema(JsonSchema const variant_entry) { \
 		return variant_entry._variant_tag_for_json_schema_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_schema(JsonSchema const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_schema( \
+		    variant_entry._variant_tag_for_json_schema_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSchema \
@@ -3822,6 +3855,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_schema_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_schema_variant_impl = false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_schema_tag_member _variant_data_for_json_schema_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_schema_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_schema_variant_impl _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_ _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_ _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_ _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_ _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_ _AnonymousUnionForVariantJsonSchemaImpl_DONT_USE AssertTypeImplForJsonSchemaImpl_1_DONT_USE_ AssertTypeImplForJsonSchemaImpl_2_DONT_USE_
 
 #define VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT(state, expected_state) \
@@ -3928,6 +3964,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonIterateValueType \
 	get_current_tag_type_for_json_iterate_value(JsonIterateValue const variant_entry) { \
 		return variant_entry._variant_tag_for_json_iterate_value_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_iterate_value(JsonIterateValue const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_iterate_value( \
+		    variant_entry._variant_tag_for_json_iterate_value_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonIterateValue \
@@ -5518,6 +5560,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 
 #define CASE_JSON_ITERATE_VALUE_IS_NULL() case JsonIterateValueTypeNull:
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_iterate_value_tag_member _variant_data_for_json_iterate_value_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_iterate_value_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_iterate_value_variant_impl _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_ _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_ _AnonymousUnionForVariantJsonIterateValueImpl_DONT_USE AssertTypeImplForJsonIterateValueImpl_1_DONT_USE_ AssertTypeImplForJsonIterateValueImpl_2_DONT_USE_
 
 #define VARIANT_JSON_ITERATE_RESULT_STATE_ASSERT(state, expected_state) \
@@ -5584,6 +5629,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonIterateResultType \
 	get_current_tag_type_for_json_iterate_result(JsonIterateResult const variant_entry) { \
 		return variant_entry._variant_tag_for_json_iterate_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_iterate_result(JsonIterateResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_iterate_result( \
+		    variant_entry._variant_tag_for_json_iterate_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonIterateResult \
@@ -6170,6 +6221,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_iterate_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_iterate_result_tag_member _variant_data_for_json_iterate_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_iterate_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_iterate_result_variant_impl _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_ _AnonymousUnionForVariantJsonIterateResultImpl_DONT_USE AssertTypeImplForJsonIterateResultImpl_1_DONT_USE_ AssertTypeImplForJsonIterateResultImpl_2_DONT_USE_
 
 #define VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT(state, expected_state) \
@@ -6241,6 +6295,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegmentType \
 	get_current_tag_type_for_json_path_segment(JsonPathSegment const variant_entry) { \
 		return variant_entry._variant_tag_for_json_path_segment_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_path_segment(JsonPathSegment const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_path_segment( \
+		    variant_entry._variant_tag_for_json_path_segment_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegment \
@@ -6857,6 +6917,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_path_segment_tag_member _variant_data_for_json_path_segment_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ _AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE AssertTypeImplForJsonPathSegmentImpl_1_DONT_USE_ AssertTypeImplForJsonPathSegmentImpl_2_DONT_USE_
 
 #define VARIANT_JSON_SCHEMA_ADD_RESULT_STATE_ASSERT(state, expected_state) \
@@ -6919,6 +6982,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSchemaAddResultType \
 	get_current_tag_type_for_json_schema_add_result(JsonSchemaAddResult const variant_entry) { \
 		return variant_entry._variant_tag_for_json_schema_add_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_json_schema_add_result(JsonSchemaAddResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_json_schema_add_result( \
+		    variant_entry._variant_tag_for_json_schema_add_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonSchemaAddResult \
@@ -7519,6 +7588,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_schema_add_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_json_schema_add_result_tag_member _variant_data_for_json_schema_add_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_schema_add_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_schema_add_result_variant_impl _AnonymousUnionForVariantJsonSchemaAddResultImpl_DONT_USE AssertTypeImplForJsonSchemaAddResultImpl_1_DONT_USE_ AssertTypeImplForJsonSchemaAddResultImpl_2_DONT_USE_
 
 #define VARIANT_UTF8_NEXT_CHAR_RESULT_STATE_ASSERT(state, expected_state) \
@@ -7581,6 +7653,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline Utf8NextCharResultType \
 	get_current_tag_type_for_utf8_next_char_result(Utf8NextCharResult const variant_entry) { \
 		return variant_entry._variant_tag_for_utf8_next_char_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_utf8_next_char_result(Utf8NextCharResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_utf8_next_char_result( \
+		    variant_entry._variant_tag_for_utf8_next_char_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline Utf8NextCharResult \
@@ -8176,6 +8254,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_utf8_next_char_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_utf8_next_char_result_tag_member _variant_data_for_utf8_next_char_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_utf8_next_char_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_utf8_next_char_result_variant_impl _AnonymousUnionForVariantUtf8NextCharResultImpl_DONT_USE AssertTypeImplForUtf8NextCharResultImpl_1_DONT_USE_ AssertTypeImplForUtf8NextCharResultImpl_2_DONT_USE_
 
 #define VARIANT_READ_FILE_RESULT_STATE_ASSERT(state, expected_state) \
@@ -8243,6 +8324,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline ReadFileResultType \
 	get_current_tag_type_for_read_file_result(ReadFileResult const variant_entry) { \
 		return variant_entry._variant_tag_for_read_file_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_read_file_result(ReadFileResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_read_file_result( \
+		    variant_entry._variant_tag_for_read_file_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline ReadFileResult \
@@ -8789,6 +8876,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_read_file_result_tag_member _variant_data_for_read_file_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ _AnonymousUnionForVariantReadFileResultImpl_DONT_USE AssertTypeImplForReadFileResultImpl_1_DONT_USE_ AssertTypeImplForReadFileResultImpl_2_DONT_USE_
 
 #define VARIANT_SIMPLE_REGEX_RESULT_STATE_ASSERT(state, expected_state) \
@@ -8851,6 +8941,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline SimpleRegexResultType \
 	get_current_tag_type_for_simple_regex_result(SimpleRegexResult const variant_entry) { \
 		return variant_entry._variant_tag_for_simple_regex_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_simple_regex_result(SimpleRegexResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_simple_regex_result( \
+		    variant_entry._variant_tag_for_simple_regex_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline SimpleRegexResult \
@@ -9423,6 +9519,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_simple_regex_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_simple_regex_result_tag_member _variant_data_for_simple_regex_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_simple_regex_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_simple_regex_result_variant_impl _AnonymousUnionForVariantSimpleRegexResultImpl_DONT_USE AssertTypeImplForSimpleRegexResultImpl_1_DONT_USE_ AssertTypeImplForSimpleRegexResultImpl_2_DONT_USE_
 
 #define VARIANT_UTF8_DATA_RESULT_STATE_ASSERT(state, expected_state) \
@@ -9482,6 +9581,12 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline Utf8DataResultType \
 	get_current_tag_type_for_utf8_data_result(Utf8DataResult const variant_entry) { \
 		return variant_entry._variant_tag_for_utf8_data_result_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_utf8_data_result(Utf8DataResult const variant_entry) { \
+		return _impl_get_state_string_for_variant_utf8_data_result( \
+		    variant_entry._variant_tag_for_utf8_data_result_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline Utf8DataResult \
@@ -10000,6 +10105,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			    _for_macro_trick_for_case_expr_impl_once_variant_utf8_data_result_variant_impl = \
 			        false)
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_utf8_data_result_tag_member _variant_data_for_utf8_data_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_utf8_data_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_utf8_data_result_variant_impl _AnonymousUnionForVariantUtf8DataResultImpl_DONT_USE AssertTypeImplForUtf8DataResultImpl_1_DONT_USE_ AssertTypeImplForUtf8DataResultImpl_2_DONT_USE_
 
 #define VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT(state, expected_state) \
@@ -10072,6 +10180,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	get_current_tag_type_for_allocator_function_handle_content( \
 	    AllocatorFunctionHandleContent const variant_entry) { \
 		return variant_entry._variant_tag_for_allocator_function_handle_content_tag_member; \
+	} \
+\
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline tstr_static \
+	get_current_tag_name_for_allocator_function_handle_content( \
+	    AllocatorFunctionHandleContent const variant_entry) { \
+		return _impl_get_state_string_for_variant_allocator_function_handle_content( \
+		    variant_entry._variant_tag_for_allocator_function_handle_content_tag_member); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
@@ -10462,6 +10577,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 #define CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_NEVER() \
 	case AllocatorFunctionHandleTypeFailNever:
 
+// TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
+// poisoned identifier error: see
+//  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
 #pragma GCC poison _variant_tag_for_allocator_function_handle_content_tag_member _variant_data_for_allocator_function_handle_content_data_member _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ _AnonymousUnionForVariantAllocatorFunctionHandleContentImpl_DONT_USE AssertTypeImplForAllocatorFunctionHandleContentImpl_1_DONT_USE_ AssertTypeImplForAllocatorFunctionHandleContentImpl_2_DONT_USE_
 
 #ifdef __cplusplus

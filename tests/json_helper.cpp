@@ -233,7 +233,8 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
 	std::vector<JsonIteratorErrorTest> json_iterator_cases = {
 		JsonIteratorErrorTest{ .input = json::array({}),
-		                       .error = "Error: unhandled iterate value in root path" },
+		                       .error =
+		                           "Error: unhandled iterate value in root path: array_start" },
 		JsonIteratorErrorTest{ .input = json::object({ { "number", json::null() } }),
 		                       .error =
 		                           "Error: invalid json value for type that expected: 'uint32_t'" },
@@ -243,8 +244,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
 		                                            json::boolean(false), json::null() }) },
 		          { "name", json::string("string2") } }),
-		    .error =
-		        "Error: invalid value for type that expected: 'TestJsonStructArrayElement'" }
+		    .error = "Error: unhandled iterate value in TestJsonStructNested: null" }
 	};
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
