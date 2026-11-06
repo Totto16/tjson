@@ -27,9 +27,11 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add wget python3 py3-pip ca-certificates samurai git pkgconf nodejs pnpm bash ${{ ( matrix.config.use-clang == true ) && 'clang22' || 'gcc musl-dev g++' }}
+          apk add wget python3 py3-pip ca-certificates samurai git pkgconf nodejs pnpm bash binutils patch ${{ ( matrix.config.use-clang == true ) && 'lld22 clang22' || 'gcc musl-dev g++' }}
           echo "CC=${{ matrix.config.use-clang == true && 'clang-22' || 'gcc' }}" >> "$GITHUB_ENV"
           echo "CXX=${{ matrix.config.use-clang == true && 'clang++-22' || 'g++' }}" >> "$GITHUB_ENV"
+          echo "CC_LD=${{ matrix.config.use-clang == true && 'lld' || '' }}" >> "$GITHUB_ENV"
+          echo "CXX_LD=${{ matrix.config.use-clang == true && 'lld' || '' }}" >> "$GITHUB_ENV"
 
       # NOTE: meson has no dependencies, so --break-system-packages doesn't really break anything!
       - name: Setup meson
