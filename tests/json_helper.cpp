@@ -43,8 +43,8 @@ struct JsonIteratorErrorTest {
 	return s1.value == s2.value;
 }
 
-[[nodiscard]] static bool operator==(const TestJsonStructNested& s1,
-                                     const TestJsonStructNested& s2) {
+[[nodiscard]] static bool operator==(const TestJsonStructOptionalArray& s1,
+                                     const TestJsonStructOptionalArray& s2) {
 	const size_t len1 = TVEC_LENGTH(TestJsonStructArrayElement, s1.array);
 	const size_t len2 = TVEC_LENGTH(TestJsonStructArrayElement, s2.array);
 
@@ -83,7 +83,7 @@ struct JsonIteratorErrorTest {
 	return tstr_eq(&s1.name, &s2.name);
 }
 
-static std::ostream& operator<<(std::ostream& os, const TestJsonStructNested& test_struct) {
+static std::ostream& operator<<(std::ostream& os, const TestJsonStructOptionalArray& test_struct) {
 
 	const size_t len = TVEC_LENGTH(TestJsonStructArrayElement, test_struct.array);
 
@@ -119,9 +119,9 @@ static std::ostream& operator<<(std::ostream& os, const TestJsonStruct& test_str
 	return os;
 }
 
-[[nodiscard]] static TestJsonStructNested* get_optional_array(std::initializer_list<bool> values) {
+[[nodiscard]] static TestJsonStructOptionalArray* get_optional_array(std::initializer_list<bool> values) {
 
-	TestJsonStructNested* ptr = (TestJsonStructNested*)malloc(sizeof(TestJsonStructNested));
+	TestJsonStructOptionalArray* ptr = (TestJsonStructOptionalArray*)malloc(sizeof(TestJsonStructOptionalArray));
 
 	if(ptr == nullptr) {
 		throw std::runtime_error("OOM");
@@ -244,7 +244,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
 		                                            json::boolean(false), json::null() }) },
 		          { "name", json::string("string2") } }),
-		    .error = "Error: unhandled iterate value in TestJsonStructNested: null" }
+		    .error = "Error: unhandled iterate value in TestJsonStructOptionalArray: null" }
 	};
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {

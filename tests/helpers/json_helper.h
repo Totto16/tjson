@@ -17,11 +17,11 @@ typedef TVEC_TYPENAME(TestJsonStructArrayElement) TestJsonStructArray;
 
 typedef struct {
 	TestJsonStructArray array;
-} TestJsonStructNested;
+} TestJsonStructOptionalArray;
 
 typedef struct {
 	uint32_t number;
-	TestJsonStructNested* optional_array;
+	TestJsonStructOptionalArray* optional_array;
 	tstr name;
 } TestJsonStruct;
 

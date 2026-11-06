@@ -9,7 +9,7 @@ TRTTI_DEFINE_TYPE_AS_SUPPORTED(tstr)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(uint32_t)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(bool)
 
-TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructNested)
+TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructOptionalArray)
 
 typedef struct {
 	bool _unused;
@@ -62,8 +62,8 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			// NOTE: here we could check some properties of the final result, alias if the type has
 			// all fields set to a valid value
 
-			// NOTE: return NON empty, as this is the toplevel parser, so the return value of this
-			// is the actual result of the json_iterate function!
+			// NOTE: return NON empty, as this is the toplevel/sub parser, so the return value of
+			// this is the actual result of the json_iterate function!
 
 			return new_json_iterate_result_ok(parent);
 		}
@@ -134,18 +134,18 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
 
-			TestJsonStructNested* allocated_array =
-			    (TestJsonStructNested*)TJSON_MALLOC(sizeof(TestJsonStructNested));
+			TestJsonStructOptionalArray* allocated_array =
+			    (TestJsonStructOptionalArray*)TJSON_MALLOC(sizeof(TestJsonStructOptionalArray));
 
 			if(allocated_array == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
 			}
 
 			*allocated_array =
-			    (TestJsonStructNested){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+			    (TestJsonStructOptionalArray){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
 
 			RTTIAnnotatedValue result =
-			    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructNested, allocated_array);
+			    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructOptionalArray, allocated_array);
 
 			return new_json_iterate_result_ok(result);
 		}
@@ -161,8 +161,8 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			// NOTE: here we could check some properties of the final result, alias if the type has
 			// all fields set to a valid value
 
-			// NOTE: return NON empty, as this is the toplevel parser, so the return value of this
-			// is the actual result of the json_iterate function!
+			// NOTE: return NON empty, as this is the toplevel/sub parser, so the return value of
+			// this is the actual result of the json_iterate function!
 
 			return new_json_iterate_result_ok(parent);
 		}
@@ -224,28 +224,32 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 					return new_json_iterate_result_ok(empty);
 				}
 
-				if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNested, object_entry.entry.value)) {
+				if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray,
+				                            object_entry.entry.value)) {
 
-					TestJsonStructNested* nested_struct =
-					    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNested, object_entry.entry.value);
+					TestJsonStructOptionalArray* optional_array = TRTTI_ANNOTATED_VALUE_CAST(
+					    TestJsonStructOptionalArray, object_entry.entry.value);
 
-					if(nested_struct == NULL) {
+					if(optional_array == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
 						        "implementation error, returned NULL pointer but with content") });
 					}
 
-					// we don't free nested_struct, as we moved it
-					object->optional_array = nested_struct;
+					// we don't free optional_array, as we moved it
+					object->optional_array = optional_array;
 
 					RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
 
 					return new_json_iterate_result_ok(empty);
 				}
 
-				return new_json_iterate_result_error(
-				    (JsonIterateError){ .err = TSTR_LIT("Error: invalid json value for type that "
-				                                        "expected: 'TestJsonStructNested'") });
+				RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+				    "Error: invalid json value for type that "
+				    "expected: 'TestJsonStructOptionalArray': <no more info>",
+				    "Error: invalid json value for type that "
+				    "expected: 'TestJsonStructOptionalArray': " TRTTI_TYPE_NAME_FMT,
+				    TRTTI_TYPE_NAME_FMT_ARGS(object_entry.entry.value.type.name));
 			}
 
 			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("name"))) {
@@ -282,12 +286,12 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		    .err = TSTR_LIT("Error: unhandled iterate value in TestJsonStruct") });
 	}
 
-	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNested, parent)) {
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray, parent)) {
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_PUSH_CONST(value) {
 
-			TestJsonStructNested* const dest =
-			    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNested, parent);
+			TestJsonStructOptionalArray* const dest =
+			    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructOptionalArray, parent);
 
 			if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructArrayElement, array_push.entry.value)) {
 
@@ -367,18 +371,17 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			// NOTE: here we could check some properties of the final result, alias if the type
 			// has all fields set to a valid value
 
-			// NOTE: return empty, as this can be a subparser, where the return value has to be
-			// null!
-			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+			// NOTE: return NON empty, as this is the result of the subparser, so the return value
+			// of this is the actual result of the json_iterate function!
 
-			return new_json_iterate_result_ok(empty);
+			return new_json_iterate_result_ok(parent);
 		}
 
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    "Error: unhandled iterate value in TestJsonStructNested: <no more info>",
-		    "Error: unhandled iterate value in TestJsonStructNested: " TSTR_FMT,
+		    "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
+		    "Error: unhandled iterate value in TestJsonStructOptionalArray: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
 
@@ -406,13 +409,14 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 		return;
 	}
 
-	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructNested, data)) {
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray, data)) {
 
-		TestJsonStructNested* dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructNested, data);
+		TestJsonStructOptionalArray* dest =
+		    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructOptionalArray, data);
 
 		TVEC_FREE(TestJsonStructArrayElement, &(dest->array));
 
-		*dest = (TestJsonStructNested){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+		*dest = (TestJsonStructOptionalArray){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
 
 		return;
 	}

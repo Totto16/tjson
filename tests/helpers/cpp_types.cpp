@@ -71,17 +71,17 @@ TstrIsNull::TstrIsNull() {}
 }
 
 std::ostream& operator<<(std::ostream& os, const IsNotError& /* error */) {
-	os << "{}";
+	os << "IsNotError{}";
 	return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const TstrStaticIsNull& /* is_null */) {
-	os << "{}";
+	os << "TstrStaticIsNull{}";
 	return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const TstrIsNull& /* is_null */) {
-	os << "{}";
+	os << "TstrIsNull{}";
 	return os;
 }
 
