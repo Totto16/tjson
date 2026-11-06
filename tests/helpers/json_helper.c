@@ -68,26 +68,34 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				    .err = TSTR_LIT("error in getting tstr from json string") });
 			}
 
-			tstr* dest = TRTTI_ANNOTATED_VALUE_CAST(tstr, parent);
+			tstr* str_wrapper = (tstr*)TJSON_MALLOC(sizeof(tstr));
 
-			*dest = str_value;
+			if(str_wrapper == NULL) {
+				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+			}
 
-			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+			*str_wrapper = str_value;
 
-			return new_json_iterate_result_ok(empty);
+			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(tstr, str_wrapper);
+
+			return new_json_iterate_result_ok(result);
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_NUMBER_CONST(value) {
 
 			uint32_t num_value = (uint32_t)number.value;
 
-			uint32_t* dest = TRTTI_ANNOTATED_VALUE_CAST(uint32_t, parent);
+			uint32_t* number_wrapper = (uint32_t*)TJSON_MALLOC(sizeof(uint32_t));
 
-			*dest = num_value;
+			if(number_wrapper == NULL) {
+				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+			}
 
-			RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
+			*number_wrapper = num_value;
 
-			return new_json_iterate_result_ok(empty);
+			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, number_wrapper);
+
+			return new_json_iterate_result_ok(result);
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
@@ -252,8 +260,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT(
-				        "Error: invalid json value for type that expected: 'tstr'") });
+				    .err = TSTR_LIT("Error: invalid json value for type that expected: 'tstr'") });
 			}
 
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
@@ -288,8 +295,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 				if(push_result != TvecResultOk) {
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT(
-					        "Error: error on allocating space for the array push") });
+					    .err = TSTR_LIT("Error: error on allocating space for the array push") });
 				}
 
 				RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
@@ -297,9 +303,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				return new_json_iterate_result_ok(empty);
 			}
 
-			return new_json_iterate_result_error((JsonIterateError){
-			    .err = TSTR_LIT("Error: invalid value for type that expected: "
-			                           "'TestJsonStructArrayElement'") });
+			return new_json_iterate_result_error(
+			    (JsonIterateError){ .err = TSTR_LIT("Error: invalid value for type that expected: "
+			                                        "'TestJsonStructArrayElement'") });
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
@@ -307,8 +313,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			bool* bool_wrapper = (bool*)TJSON_MALLOC(sizeof(bool));
 
 			if(bool_wrapper == NULL) {
-				return new_json_iterate_result_error(
-				    (JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
 			}
 
 			*bool_wrapper = boolean.value;
@@ -318,9 +323,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			return new_json_iterate_result_ok(result);
 		}
 
-		return new_json_iterate_result_error((JsonIterateError){
-		    .err = TSTR_LIT("Error: invalid json value for type that expected: "
-		                           "'TestJsonStructNested'") });
+		return new_json_iterate_result_error(
+		    (JsonIterateError){ .err = TSTR_LIT("Error: invalid json value for type that expected: "
+		                                        "'TestJsonStructNested'") });
 	}
 
 	return new_json_iterate_result_error(

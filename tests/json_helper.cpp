@@ -243,8 +243,8 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
 		                                            json::boolean(false), json::null() }) },
 		          { "name", json::string("string2") } }),
-		    .error = "Error: invalid json value for type that expected: "
-		             "'TestJsonStructArrayElement'" }
+		    .error =
+		        "Error: invalid value for type that expected: 'TestJsonStructArrayElement'" }
 	};
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
