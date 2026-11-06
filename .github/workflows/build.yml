@@ -21,32 +21,32 @@ jobs:
 
                     - name: Linux (GCC, Arm64)
                       os: ubuntu
-                      os-version: 24.04-arm
+                      os-version: 26.04-arm
                       use-clang: false
 
                     - name: Linux (Clang, Arm64)
                       os: ubuntu
-                      os-version: 24.04-arm
+                      os-version: 26.04-arm
                       use-clang: true
 
                     - name: Linux (GCC)
                       os: ubuntu
-                      os-version: 24.04
+                      os-version: 26.04
                       use-clang: false
 
                     - name: Linux (Clang)
                       os: ubuntu
-                      os-version: 24.04
+                      os-version: 26.04
                       use-clang: true
 
                     - name: MacOS (x86_64)
                       os: macos
-                      os-version: 15-intel
+                      os-version: 26-intel
                       arm: false
 
                     - name: MacOS (Arm64)
                       os: macos
-                      os-version: 14
+                      os-version: 26
                       arm: true
 
         steps:
