@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # NOTE: meson has no dependencies, so --break-system-packages doesn't really break anything!
       - name: Setup Meson
@@ -49,7 +49,7 @@ jobs:
         #sudo ln -sv /opt/clang-22-custom/clang-tidy /usr/bin/clang-tidy-22
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
