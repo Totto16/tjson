@@ -36,11 +36,16 @@ typedef struct {
 GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT()
 
 typedef struct {
+	RTTIAnnotatedValue handle;
+} JsonIterateResolvedValue;
+
+typedef struct {
 	const tstr* key;
+	RTTIAnnotatedValue value;
 } JsonIterateObjectEntry;
 
 typedef struct {
-	const JsonValue* value;
+	RTTIAnnotatedValue value;
 } JsonIterateArrayEntry;
 
 GENERATE_VARIANT_ALL_JSON_ITERATE_VALUE()

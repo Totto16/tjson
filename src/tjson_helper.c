@@ -198,7 +198,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(iter == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_STATIC_LIT("json object iterator couldn't be allocated") });
+					    .err = TSTR_LIT("json object iterator couldn't be allocated") });
 				}
 
 #undef FREE_AT_END
@@ -222,8 +222,8 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					if(tstr_is_null(&key_tstr)) {
 						FREE_AT_END();
-						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_STATIC_LIT("json key string convert error") });
+						return new_json_iterate_result_error(
+						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
 					}
 
 #undef FREE_AT_END
@@ -234,8 +234,31 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 		json_object_free_iterator(iter); \
 	} while(false)
 
+					const JsonValue value = json_object_entry_get_value(next_entry);
+
+					bool add_result = json_path_add_object_key_moved(json_path, &key_tstr);
+
+					if(!add_result) {
+						FREE_AT_END();
+						return new_json_iterate_result_error(
+						    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+					}
+
+					key_tstr = tstr_null();
+
+					JsonIterateResult recursive_result = json_value_iterate_impl(
+					    &value, iterate_callback, free_callback, obj_handle, userdata, json_path);
+
+					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+						FREE_AT_END();
+						return new_json_iterate_result_error(error.error);
+					}
+
+					const RTTIAnnotatedValue recursive_handle =
+					    json_iterate_result_get_as_ok(recursive_result);
+
 					JsonIterateValue obj_entry = new_json_iterate_value_object_entry(
-					    (JsonIterateObjectEntry){ .key = &key_tstr });
+					    (JsonIterateObjectEntry){ .key = &key_tstr, .value = recursive_handle });
 
 					JsonIterateResult entry_result =
 					    iterate_callback(json_path, obj_handle, obj_entry, userdata);
@@ -247,45 +270,22 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
 
-					const JsonValue value = json_object_entry_get_value(next_entry);
-
-					bool add_result = json_path_add_object_key_moved(json_path, &key_tstr);
-
-					if(!add_result) {
-						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path add failed") });
-					}
-
-					key_tstr = tstr_null();
-
-					JsonIterateResult recursive_result = json_value_iterate_impl(
-					    &value, iterate_callback, free_callback, entry_handle, userdata, json_path);
-
-					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
-						FREE_AT_END();
-						return new_json_iterate_result_error(error.error);
-					}
-
-					// note: the "recursive_result" RTTI value has to be NULL, as it isn't needed
+					// note: the "entry_handle" RTTI value has to be NULL, as it isn't needed
 					// anymore, the ptr that is used as the obj_handle should be modified by "sub
 					// iterators", we don't allow returning anything new in subparsers, set the ptr
 					// up to be modified in place, even if it's a double ptr!
-					const RTTIAnnotatedValue result_handle =
-					    json_iterate_result_get_as_ok(recursive_result);
-
-					if(result_handle.ptr != NULL) {
+					if(entry_handle.ptr != NULL) {
 						FREE_AT_END();
 						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
+						    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
 					}
 
 					bool remove_result = json_path_remove_last_segment(json_path);
 
 					if(!remove_result) {
 						FREE_AT_END();
-						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_STATIC_LIT("json path remove failed") });
+						return new_json_iterate_result_error(
+						    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
 					}
 
 #undef FREE_AT_END
@@ -343,11 +343,30 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(value == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_STATIC_LIT("implementation error: empty json value") });
+					    .err = TSTR_LIT("implementation error: empty json value") });
 				}
 
-				JsonIterateValue arr_entry =
-				    new_json_iterate_value_array_push((JsonIterateArrayEntry){ .value = value });
+				bool add_result = json_path_add_array_index(json_path, i);
+
+				if(!add_result) {
+					FREE_AT_END();
+					return new_json_iterate_result_error(
+					    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+				}
+
+				JsonIterateResult recursive_result = json_value_iterate_impl(
+				    value, iterate_callback, free_callback, arr_handle, userdata, json_path);
+
+				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+					FREE_AT_END();
+					return new_json_iterate_result_error(error.error);
+				}
+
+				const RTTIAnnotatedValue recursive_handle =
+				    json_iterate_result_get_as_ok(recursive_result);
+
+				JsonIterateValue arr_entry = new_json_iterate_value_array_push(
+				    (JsonIterateArrayEntry){ .value = recursive_handle });
 
 				JsonIterateResult entry_result =
 				    iterate_callback(json_path, arr_handle, arr_entry, userdata);
@@ -359,33 +378,14 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 				RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
 
-				bool add_result = json_path_add_array_index(json_path, i);
-
-				if(!add_result) {
-					FREE_AT_END();
-					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path add failed") });
-				}
-
-				JsonIterateResult recursive_result = json_value_iterate_impl(
-				    value, iterate_callback, free_callback, entry_handle, userdata, json_path);
-
-				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
-					FREE_AT_END();
-					return new_json_iterate_result_error(error.error);
-				}
-
-				// note: the "recursive_result" RTTI value has to be NULL, as it isn't needed
+				// note: the "entry_handle" RTTI value has to be NULL, as it isn't needed
 				// anymore, the ptr that is used as the obj_handle should be modified by "sub
 				// iterators", we don't allow returning anything new in subparsers, set the ptr
 				// up to be modified in place, even if it's a double ptr!
-				const RTTIAnnotatedValue result_handle =
-				    json_iterate_result_get_as_ok(recursive_result);
-
-				if(result_handle.ptr != NULL) {
+				if(entry_handle.ptr != NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_STATIC_LIT("sub iterator returned non NULL rtti type") });
+					    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
 				}
 
 				bool remove_result = json_path_remove_last_segment(json_path);
@@ -393,7 +393,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(!remove_result) {
 					FREE_AT_END();
 					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path remove failed") });
+					    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
 				}
 			}
 
@@ -478,7 +478,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 		VARIANT_CASE_END();
 		default: {
 			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_STATIC_LIT("json value has invalid state") });
+			    (JsonIterateError){ .err = TSTR_LIT("json value has invalid state") });
 		}
 	}
 }
@@ -495,7 +495,7 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json
 
 	if(json_path == NULL) {
 		return new_json_iterate_result_error(
-		    (JsonIterateError){ .err = TSTR_STATIC_LIT("json path allocation error") });
+		    (JsonIterateError){ .err = TSTR_LIT("json path allocation error") });
 	}
 
 	JsonIterateResult result = json_value_iterate_impl(json_value, iterate_callback, free_callback,
