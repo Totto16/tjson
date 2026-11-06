@@ -218,6 +218,12 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonString* const key = json_object_entry_get_key(next_entry);
 
+					if(key == NULL) {
+						FREE_AT_END();
+						return new_json_iterate_result_error(
+						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
+					}
+
 					tstr key_tstr = json_string_get_as_str(key);
 
 					if(tstr_is_null(&key_tstr)) {
@@ -236,15 +242,13 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					bool add_result = json_path_add_object_key_moved(json_path, &key_tstr);
+					bool add_result = json_path_add_object_key(json_path, &key_tstr);
 
 					if(!add_result) {
 						FREE_AT_END();
 						return new_json_iterate_result_error(
 						    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
 					}
-
-					key_tstr = tstr_null();
 
 					JsonIterateResult recursive_result = json_value_iterate_impl(
 					    &value, iterate_callback, free_callback, obj_handle, userdata, json_path);
@@ -262,6 +266,8 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					JsonIterateResult entry_result =
 					    iterate_callback(json_path, obj_handle, obj_entry, userdata);
+
+					tstr_free(&key_tstr);
 
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 						FREE_AT_END();
