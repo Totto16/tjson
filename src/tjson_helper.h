@@ -30,7 +30,7 @@ TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath
 void free_json_path(JsonPath* path);
 
 typedef struct {
-	tstr_static err;
+	tstr err;
 } JsonIterateError;
 
 GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT()
@@ -57,6 +57,21 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* json_value
                                                      JsonIterateFreeCallback free_callback,
                                                      RTTIAnnotatedValue start,
                                                      RTTIAnnotatedValue userdata);
+
+#define RETURN_JSON_ITERATE_ERROR_DYNAMIC(raw_err_msg, err_msg_fmt, ...) \
+	do { \
+		tstr fmt_str = tstr_from(""); \
+		if(tstr_is_null(&fmt_str)) { \
+			return new_json_iterate_result_error( \
+			    (JsonIterateError){ .err = TSTR_LIT(raw_err_msg) }); \
+		} \
+		TStrResult res = tstr_fmt(&fmt_str, err_msg_fmt, __VA_ARGS__); \
+		if(res != TStrResultOk) { \
+			return new_json_iterate_result_error( \
+			    (JsonIterateError){ .err = TSTR_LIT(raw_err_msg) }); \
+		} \
+		return new_json_iterate_result_error((JsonIterateError){ .err = fmt_str }); \
+	} while(false)
 
 #ifdef __cplusplus
 }

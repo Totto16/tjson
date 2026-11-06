@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t number;
-	TestJsonStructNested* optional_arrray;
+	TestJsonStructNested* optional_array;
 	tstr name;
 } TestJsonStruct;
 

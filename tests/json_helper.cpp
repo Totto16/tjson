@@ -18,11 +18,11 @@ namespace {
 
 void free_json_test_struct(TestJsonStruct test_struct) {
 
-	if(test_struct.optional_arrray != NULL) {
+	if(test_struct.optional_array != NULL) {
 
-		TVEC_FREE(TestJsonStructArrayElement, &(test_struct.optional_arrray->array));
+		TVEC_FREE(TestJsonStructArrayElement, &(test_struct.optional_array->array));
 
-		free(test_struct.optional_arrray);
+		free(test_struct.optional_array);
 	}
 }
 
@@ -70,12 +70,12 @@ struct JsonIteratorErrorTest {
 		return false;
 	}
 
-	if(s1.optional_arrray == NULL || s2.optional_arrray == NULL) {
-		if(s1.optional_arrray != s2.optional_arrray) {
+	if(s1.optional_array == NULL || s2.optional_array == NULL) {
+		if(s1.optional_array != s2.optional_array) {
 			return false;
 		}
 	} else {
-		if(*s1.optional_arrray != *s2.optional_arrray) {
+		if(*s1.optional_array != *s2.optional_array) {
 			return false;
 		}
 	}
@@ -108,10 +108,10 @@ static std::ostream& operator<<(std::ostream& os, const TestJsonStruct& test_str
 
 	os << "{ " << test_struct.number << ", ";
 
-	if(test_struct.optional_arrray == NULL) {
+	if(test_struct.optional_array == NULL) {
 		os << "<None>, ";
 	} else {
-		os << *test_struct.optional_arrray << ", ";
+		os << *test_struct.optional_array << ", ";
 	}
 
 	os << test_struct.name << " }";
@@ -156,31 +156,31 @@ TEST_CASE("testing json iterator processing <json_iterator_processing>") {
 
 	std::vector<JsonIteratorProcessingTest> json_iterator_cases = {
 		JsonIteratorProcessingTest{ .input = json::object({ { "number", json::number((int64_t)1) },
-		                                                    { "optional_arrray", json::null() },
+		                                                    { "optional_array", json::null() },
 		                                                    { "name", json::string("string1") } }),
 		                            .expected =
 		                                TestJsonStruct{
 		                                    .number = 1,
-		                                    .optional_arrray = nullptr,
+		                                    .optional_array = nullptr,
 		                                    .name = "string1"_tstr,
 		                                } },
 		JsonIteratorProcessingTest{
 		    .input = json::object(
 		        { { "number", json::number((int64_t)2) },
-		          { "optional_arrray", json::array({ json::boolean(true), json::boolean(true),
-		                                             json::boolean(false) }) },
+		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
+		                                            json::boolean(false) }) },
 		          { "name", json::string("string2") } }),
 		    .expected =
 		        TestJsonStruct{
 		            .number = 2,
-		            .optional_arrray = get_optional_array({ true, true, false }),
+		            .optional_array = get_optional_array({ true, true, false }),
 		            .name = "string2"_tstr,
 		        } },
 		JsonIteratorProcessingTest{ .input = json::object({}),
 		                            .expected =
 		                                TestJsonStruct{
 		                                    .number = 0,
-		                                    .optional_arrray = nullptr,
+		                                    .optional_array = nullptr,
 		                                    .name = tstr_null(),
 		                                } },
 	};
@@ -235,12 +235,13 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		JsonIteratorErrorTest{ .input = json::array({}),
 		                       .error = "Error: unhandled iterate value in root path" },
 		JsonIteratorErrorTest{ .input = json::object({ { "number", json::null() } }),
-		                       .error = "Error: invalid json value for type that expected: 'uint32_t'" },
+		                       .error =
+		                           "Error: invalid json value for type that expected: 'uint32_t'" },
 		JsonIteratorErrorTest{
 		    .input = json::object(
 		        { { "number", json::number((int64_t)2) },
-		          { "optional_arrray", json::array({ json::boolean(true), json::boolean(true),
-		                                             json::boolean(false), json::null() }) },
+		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
+		                                            json::boolean(false), json::null() }) },
 		          { "name", json::string("string2") } }),
 		    .error = "Error: invalid json value for type that expected: "
 		             "'TestJsonStructArrayElement'" }
@@ -269,7 +270,11 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
 		JsonIterateError error = json_iterate_result_get_as_error(actual_result).error;
 
-		std::string actual_error = string_from_tstr_static(error.err);
+		CAutoFreePtr<JsonIterateError> defer_result = {
+			&error, [](JsonIterateError* const value) -> void { tstr_free(&(value->err)); }
+		};
+
+		std::string actual_error = string_from_tstr(error.err);
 
 		REQUIRE_EQ(actual_error, test_case.error);
 	}
