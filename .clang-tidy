@@ -29,6 +29,7 @@ Checks: >
   -modernize-redundant-void-arg,
   -readability-redundant-parentheses,
   -cppcoreguidelines-avoid-magic-numbers,
+  -bugprone-casting-through-void,
   custom-*,
   totto-*
 WarningsAsErrors: >
@@ -188,7 +189,7 @@ CheckOptions:
   - key: readability-identifier-length.IgnoredVariableNames
     value: "^(_)|(_.*)|(i|j)$"
   - key: readability-identifier-length.IgnoredParameterNames
-    value: "^(os)$" ## std::ostream
+    value: "^(os)|(ok)$" ## std::ostream
   - key: readability-identifier-length.IgnoredExceptionVariableNames
     value: ""
   - key: readability-identifier-length.MinimumLoopCounterNameLength

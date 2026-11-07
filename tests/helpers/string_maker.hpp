@@ -9,6 +9,8 @@
 
 #include "./helpers.hpp"
 #include "./json.hpp"
+#include "./json_schema.hpp"
+#include "./rtti.hpp"
 
 template <typename T>
 concept is_cpp_stream_printable = requires(T val, std::ostream& os) {
@@ -50,6 +52,12 @@ template <typename T> struct StringMaker<std::vector<T>> {
 template <typename A, typename B> struct StringMaker<std::pair<A, B>> {
 	static String convert(const std::pair<A, B>& pair) {
 		return ::os_stream_formattable_to_doctest(pair);
+	}
+};
+
+template <typename T, typename E> struct StringMaker<std::expected<T, E>> {
+	static String convert(const std::expected<T, E>& exp) {
+		return ::os_stream_formattable_to_doctest(exp);
 	}
 };
 
@@ -96,6 +104,36 @@ template <> struct StringMaker<JsonErrorCpp> {
 template <> struct StringMaker<JsonError> {
 	static String convert(const JsonError& json_error) {
 		return ::os_stream_formattable_to_doctest(json_error);
+	}
+};
+
+template <> struct StringMaker<JsonSchema> {
+	static String convert(const JsonSchema& json_value) {
+		return ::os_stream_formattable_to_doctest(json_value);
+	}
+};
+
+template <> struct StringMaker<JsonParseResult> {
+	static String convert(const JsonParseResult& result) {
+		return ::os_stream_formattable_to_doctest(result);
+	}
+};
+
+template <> struct StringMaker<JsonParseResultType> {
+	static String convert(const JsonParseResultType& result_type) {
+		return ::os_stream_formattable_to_doctest(result_type);
+	}
+};
+
+template <> struct StringMaker<RTTIAnnotatedValue> {
+	static String convert(const RTTIAnnotatedValue& rtti_value) {
+		return ::os_stream_formattable_to_doctest(rtti_value);
+	}
+};
+
+template <> struct StringMaker<JsonIterateResult> {
+	static String convert(const JsonIterateResult& iterate_result) {
+		return ::os_stream_formattable_to_doctest(iterate_result);
 	}
 };
 

@@ -1,5 +1,11 @@
 #pragma once
 
+#ifndef _TJSON_IMPL_INTERNAL__
+	#error "can only be used internally"
+#endif
+
+#include "../allocator.h"
+
 #include <regex.h>
 #include <tstr.h>
 
@@ -9,14 +15,9 @@ typedef struct {
 	regex_t regex;
 } SimpleRegex;
 
-// manual "variant", but only used internally, so it's fine
-typedef struct {
-	bool is_error;
-	union {
-		SimpleRegex ok;
-		tstr error;
-	} data;
-} SimpleRegexResult;
+#include "../tjson/variants.h"
+
+GENERATE_VARIANT_ALL_SIMPLE_REGEX_RESULT()
 
 NODISCARD SimpleRegexResult simple_regex_compile(const tstr* str);
 

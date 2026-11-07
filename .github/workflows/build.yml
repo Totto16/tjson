@@ -21,36 +21,30 @@ jobs:
 
                     - name: Linux (GCC, Arm64)
                       os: ubuntu
-                      os-version: 24.04-arm
+                      os-version: 26.04-arm
                       use-clang: false
 
                     - name: Linux (Clang, Arm64)
                       os: ubuntu
-                      os-version: 24.04-arm
+                      os-version: 26.04-arm
                       use-clang: true
 
                     - name: Linux (GCC)
                       os: ubuntu
-                      os-version: 24.04
+                      os-version: 26.04
                       use-clang: false
 
                     - name: Linux (Clang)
                       os: ubuntu
-                      os-version: 24.04
+                      os-version: 26.04
                       use-clang: true
-
-                    - name: MacOS (x86_64)
-                      os: macos
-                      os-version: 15-intel
-                      arm: false
 
                     - name: MacOS (Arm64)
                       os: macos
-                      os-version: 14
-                      arm: true
+                      os-version: 26
 
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
               with:
                   fetch-depth: "0"
 
@@ -65,9 +59,9 @@ jobs:
               run: |
                   wget https://apt.llvm.org/llvm.sh
                   chmod +x llvm.sh
-                  sudo ./llvm.sh 21
-                  echo "CC=clang-21" >> "$GITHUB_ENV"
-                  echo "CXX=clang++-21" >> "$GITHUB_ENV"
+                  sudo ./llvm.sh 22
+                  echo "CC=clang-22" >> "$GITHUB_ENV"
+                  echo "CXX=clang++-22" >> "$GITHUB_ENV"
 
             - name: Setup GCC (Linux)
               if: matrix.config.os == 'ubuntu' && matrix.config.use-clang == false
@@ -76,20 +70,14 @@ jobs:
                   version: 14
                   platform: x64 # note, this isn't really correct
 
-            # todo: remove this , that just fixes a current CI bug in MacOS x86_64
-            - name: Fix LLVM 18 (MacOS x86_64)
-              if: matrix.config.os == 'macos' && matrix.config.arm == false
-              run: |
-                  brew unlink llvm@18
-
             - name: Setup Clang (MacOS)
               if: matrix.config.os == 'macos'
               run: |
                   brew update
-                  brew install llvm@21 lld@21
-                  echo "$(brew --prefix)/opt/llvm@21/bin" >> $GITHUB_PATH
-                  echo "LDFLAGS=-L$(brew --prefix)/opt/llvm@21/lib -L$(brew --prefix)/opt/llvm@21/lib/c++ -Wl,-rpath,$(brew --prefix)/opt/llvm@21/lib/c++" >> "$GITHUB_ENV"
-                  echo "CPPFLAGS=-I$(brew --prefix)/opt/llvm@21/include" >> "$GITHUB_ENV"
+                  brew install llvm@22 lld@22
+                  echo "$(brew --prefix)/opt/llvm@22/bin" >> $GITHUB_PATH
+                  echo "LDFLAGS=-L$(brew --prefix)/opt/llvm@22/lib -L$(brew --prefix)/opt/llvm@22/lib/c++ -Wl,-rpath,$(brew --prefix)/opt/llvm@22/lib/c++" >> "$GITHUB_ENV"
+                  echo "CPPFLAGS=-I$(brew --prefix)/opt/llvm@22/include" >> "$GITHUB_ENV"
                   echo "CC=clang" >> "$GITHUB_ENV"
                   echo "CC_LD=lld" >> "$GITHUB_ENV"
 
@@ -111,12 +99,12 @@ jobs:
                   pip install meson --break-system-packages
 
             - name: Setup node
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                 node-version: 24
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v5
+              uses: pnpm/action-setup@v6
               with:
                 version: 10
 
@@ -124,21 +112,18 @@ jobs:
               if: matrix.config.os == 'ubuntu'
               run: |
                   sudo apt-get update
-                  sudo apt-get install ninja-build openssl libssl-dev libzstd-dev zlib1g-dev libbrotli-dev libgmp-dev libpam0g-dev -y --no-install-recommends
+                  sudo apt-get install ninja-build -y --no-install-recommends
 
             - name: Install dependencies (MacOS)
               if: matrix.config.os == 'macos'
               run: |
                   brew update
-                  brew install openssl@3.0 zstd zlib brotli git gmp bcrypt
+                  brew install git
 
             - name: Configure
               run: |
-                meson setup build -Dbuildtype=release -Dsecure=enabled -Dcompression_features=zstd,br,deflate,gzip,compress -Dother_features=${{( matrix.config.os  == 'macos') && 'bcrypt' || 'bcrypt,pam' }} --fatal-meson-warnings
-
-                meson setup build_no_secure -Dbuildtype=release -Dsecure=disabled -Dcompression_features=zstd,br,deflate,gzip,compress -Dother_features=${{( matrix.config.os  == 'macos') && 'bcrypt' || 'bcrypt,pam' }} --fatal-meson-warnings
+                meson setup build -Dbuildtype=release --fatal-meson-warnings
 
             - name: Build
               run: |
                 meson compile -C build
-                meson compile -C build_no_secure

@@ -88,23 +88,6 @@ struct JsonValueCpp {
 
 	[[nodiscard]] bool operator==(const JsonValue* json_value2) const;
 
-	// static helper fn's
-
-	[[nodiscard]] static JsonValue null();
-
-	[[nodiscard]] static JsonValue boolean(const bool& value);
-
-	[[nodiscard]] static JsonValue number(const double& value);
-
-	[[nodiscard]] static JsonValue number(const int64_t& value);
-
-	[[nodiscard]] static JsonValue string(const std::string& value);
-
-	[[nodiscard]] static JsonValue array(std::initializer_list<JsonValue>&& values);
-
-	[[nodiscard]] static JsonValue
-	object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
-
 	friend std::ostream& operator<<(std::ostream& os, const JsonValueCpp& json_error);
 };
 
@@ -129,6 +112,9 @@ struct JsonErrorCpp {
 	static JsonErrorCpp with_string_loc(std::string&& value, tstr_view data,
 	                                    JsonSourcePosition pos);
 
+	static JsonErrorCpp with_file_loc(std::string&& value, const tstr* file_path,
+	                                  JsonSourcePosition pos);
+
 	[[nodiscard]] bool operator==(const JsonErrorCpp& json_error2) const;
 
 	[[nodiscard]] bool operator==(const JsonError& json_error2) const;
@@ -139,3 +125,27 @@ struct JsonErrorCpp {
 std::ostream& operator<<(std::ostream& os, const JsonErrorCpp& json_error);
 
 std::ostream& operator<<(std::ostream& os, const JsonError& json_error);
+
+[[nodiscard]] bool operator==(const JsonParseResult& result, JsonParseResultType result_type);
+
+std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result);
+
+std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type);
+
+namespace json {
+
+[[nodiscard]] JsonValue null();
+
+[[nodiscard]] JsonValue boolean(const bool& value);
+
+[[nodiscard]] JsonValue number(const double& value);
+
+[[nodiscard]] JsonValue number(const int64_t& value);
+
+[[nodiscard]] JsonValue string(const std::string& value);
+
+[[nodiscard]] JsonValue array(std::initializer_list<JsonValue>&& values);
+
+[[nodiscard]] JsonValue object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
+
+}; // namespace json

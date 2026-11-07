@@ -1,24 +1,13 @@
 #pragma once
 
+#include "./allocator.h"
+
 #include <stdbool.h>
+
+// is affected by allocator.h
 #include <tstr.h>
 
 // public part of the utils
-
-#if _TJSON_COMPILE_WITH_NARROWED_ENUMS
-	#define TJSON_C_23_NARROW_ENUM_TO(x) : x
-	#define TJSON_C_23_ENUM_TYPE(x) x
-
-	#define TJSON_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS 1
-#else
-	#define TJSON_C_23_NARROW_ENUM_TO(x)
-	#define TJSON_C_23_ENUM_TYPE(x) int
-
-	#define TJSON_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS 0
-#endif
-
-#define VARIANT_IMPL_JSON_VARIANTS_COMPILED_WITH_NARROWED_ENUMS \
-	TJSON_VARIANT_IMPL_COMPILED_WITH_NARROWED_ENUMS
 
 #if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000) || __cplusplus
 	#define TJSON_NODISCARD [[nodiscard]]
@@ -143,6 +132,8 @@ TJSON_NODISCARD JsonParseResult json_value_parse_from_str(tstr_view data);
 
 TJSON_NODISCARD JsonParseResult json_value_parse_from_file(const tstr* file_path);
 
+void free_json_parse_result(JsonParseResult parse_result);
+
 void free_json_value(JsonValue* json_value);
 
 // serialize json values
@@ -160,13 +151,17 @@ TJSON_NODISCARD tstr json_value_to_string_advanced(const JsonValue* json_value,
 
 TJSON_NODISCARD bool json_string_eq(const JsonString* str1, const JsonString* str2);
 
+TJSON_NODISCARD size_t json_string_get_size(const JsonString* str);
+
 TJSON_NODISCARD bool json_string_starts_with(const JsonString* str, const JsonString* prefix);
 
-TJSON_NODISCARD size_t json_array_size(const JsonArray* array);
+TJSON_NODISCARD tstr json_string_get_as_str(const JsonString* str);
 
-TJSON_NODISCARD const JsonValue* json_array_at(const JsonArray* array, size_t index);
+TJSON_NODISCARD size_t json_array_get_size(const JsonArray* array);
 
-TJSON_NODISCARD size_t json_object_count(const JsonObject* object);
+TJSON_NODISCARD const JsonValue* json_array_get_at(const JsonArray* array, size_t index);
+
+TJSON_NODISCARD size_t json_object_get_count(const JsonObject* object);
 
 typedef struct JsonObjectEntryImpl JsonObjectEntry;
 

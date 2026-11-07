@@ -1,12 +1,19 @@
 #include <doctest.h>
 
-#include "./helpers/generic.hpp"
 #include "./helpers/helpers.hpp"
+
+#include "./helpers/compat.hpp"
+#include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
+#include "./helpers/mock_file.hpp"
 
 #include <tjson.h>
 
 #include "helpers/string_maker.hpp"
+
+#include <expected>
+
+#include <nlohmann/json.hpp>
 
 namespace {
 
@@ -25,6 +32,18 @@ struct JsonStringifyTest {
 	JsonValue input;
 };
 
+struct JsonParseTestCaseCompat {
+	std::string input;
+};
+
+using JsonParseResultCpp = std::expected<JsonValue, JsonErrorCpp>;
+
+struct JsonFileParseTestCase {
+	std::filesystem::path file;
+	JsonParseResultCpp expected;
+	MockFile* raw_lock_ptr;
+};
+
 } // namespace
 
 TEST_SUITE_BEGIN("json" * doctest::description("json tests") * doctest::timeout(2.0));
@@ -32,48 +51,109 @@ TEST_SUITE_BEGIN("json" * doctest::description("json tests") * doctest::timeout(
 TEST_CASE("testing parsing of json values <json_parser>") {
 
 	std::vector<JsonParseTestCaseSuccess> json_parse_test_cases = {
-		JsonParseTestCaseSuccess{ .input = "null", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "\t			null   ",
-		                          .expected = JsonValueCpp::null() },
-		JsonParseTestCaseSuccess{ .input = "true", .expected = JsonValueCpp::boolean(true) },
-		JsonParseTestCaseSuccess{ .input = "false", .expected = JsonValueCpp::boolean(false) },
-		JsonParseTestCaseSuccess{ .input = "100", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "-100",
-		                          .expected = JsonValueCpp::number((int64_t)-100) },
-		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = JsonValueCpp::number(-100.01) },
-		JsonParseTestCaseSuccess{ .input = "100.43", .expected = JsonValueCpp::number(100.43) },
-		JsonParseTestCaseSuccess{ .input = "1e2", .expected = JsonValueCpp::number((int64_t)100) },
-		JsonParseTestCaseSuccess{ .input = "1.2e3",
-		                          .expected = JsonValueCpp::number((int64_t)1200) },
-		JsonParseTestCaseSuccess{ .input = "1.3E+3",
-		                          .expected = JsonValueCpp::number((int64_t)1300) },
-		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = JsonValueCpp::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "null", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "   null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "\t			null   ", .expected = json::null() },
+		JsonParseTestCaseSuccess{ .input = "true", .expected = json::boolean(true) },
+		JsonParseTestCaseSuccess{ .input = "false", .expected = json::boolean(false) },
+		JsonParseTestCaseSuccess{ .input = "100", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-100", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "-100.01", .expected = json::number(-100.01) },
+		JsonParseTestCaseSuccess{ .input = "100.43", .expected = json::number(100.43) },
+		JsonParseTestCaseSuccess{ .input = "1e2", .expected = json::number((int64_t)100) },
+		JsonParseTestCaseSuccess{ .input = "-1e2", .expected = json::number((int64_t)-100) },
+		JsonParseTestCaseSuccess{ .input = "1e20", .expected = json::number(1e20) },
+		JsonParseTestCaseSuccess{ .input = "1E20", .expected = json::number(1E20) },
+		JsonParseTestCaseSuccess{ .input = "1.2e3", .expected = json::number((int64_t)1200) },
+		JsonParseTestCaseSuccess{ .input = "0", .expected = json::number((int64_t)0) },
+		JsonParseTestCaseSuccess{ .input = "1.3E+3", .expected = json::number((int64_t)1300) },
+		JsonParseTestCaseSuccess{ .input = "1.5E-2", .expected = json::number(0.015) },
+		JsonParseTestCaseSuccess{ .input = "1.5E10",
+		                          .expected = json::number((int64_t)15000000000) },
+		JsonParseTestCaseSuccess{ .input = "8.98846567431158e307", // 2^1023 exactly
+		                          .expected = json::number(8.98846567431158e307) },
+		JsonParseTestCaseSuccess{ .input = "1e0", .expected = json::number(1.0) },
 		JsonParseTestCaseSuccess{ .input = R"("hello world")",
-		                          .expected = JsonValueCpp::string("hello world") },
+		                          .expected = json::string("hello world") },
 		JsonParseTestCaseSuccess{ .input = R"("hello world\n\"\f\t")",
-		                          .expected = JsonValueCpp::string("hello world\n\"\f\t") },
+		                          .expected = json::string("hello world\n\"\f\t") },
 		JsonParseTestCaseSuccess{
-		    .input = R"([null,  	1,2,   true ])",
-		    .expected = JsonValueCpp::array(
-		        { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		          JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		    .input =
+		        R"("a really long string that is longer than 1024 characters and has some unicode chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる 白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる 川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる 朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく 赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる 弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる 父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる 赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる 川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる 銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる 白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる 空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる 風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる 黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 日 雨 川 のる きく 君 友")",
+		    .expected = json::string(
+		        "a really long string that is longer than 1024 characters and has some unicode "
+		        "chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる "
+		        "白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 "
+		        "んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる "
+		        "川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 "
+		        "しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる "
+		        "朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる "
+		        "でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく "
+		        "赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 "
+		        "める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 "
+		        "ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 "
+		        "なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 "
+		        "ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる "
+		        "せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる "
+		        "のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 "
+		        "かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある "
+		        "んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる "
+		        "弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり "
+		        "りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる "
+		        "父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる "
+		        "赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる "
+		        "よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 "
+		        "黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 "
+		        "ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 "
+		        "銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる "
+		        "川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 "
+		        "夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる "
+		        "銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 "
+		        "月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 "
+		        "める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう "
+		        "はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 "
+		        "んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 "
+		        "でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる "
+		        "白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 "
+		        "よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 "
+		        "わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 "
+		        "へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 "
+		        "れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる "
+		        "空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる "
+		        "風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 "
+		        "兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく "
+		        "ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる "
+		        "黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 "
+		        "緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり "
+		        "ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 "
+		        "日 雨 川 のる きく 君 友") },
+		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		                          .expected = json::string("escape chars \\/\b\r::\x10\n\n") },
+		JsonParseTestCaseSuccess{ .input = R"({})", .expected = json::object({}) },
+		JsonParseTestCaseSuccess{
+		    .input = R"([null,  	1,-2,   true ])",
+		    .expected = json::array({ json::null(), json::number((int64_t)1),
+		                              json::number((int64_t)-2), json::boolean(true) }) },
+		JsonParseTestCaseSuccess{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		    .expected = json::array({ json::number(1e10), json::number(-2e10), json::number(1e-10),
+		                              json::number(-2e-10), json::number(-1.0), json::number(1.0),
+		                              json::number(1.25e-10), json::number(-2.25e-10) }) },
 		JsonParseTestCaseSuccess{
 		    .input =
 		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
 		   true, "array": []}}})",
-		    .expected = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .expected = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonParseTestCaseSuccess>> defer_tests = {
 		&json_parse_test_cases,
@@ -93,7 +173,7 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result), JsonParseResultTypeOk);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 		JsonValue result = json_parse_result_get_as_ok(parse_result);
 		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
@@ -136,6 +216,202 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		                        .expected_error = JsonErrorCpp::with_string_loc(
 		                            "json object has duplicate key", dummy_str_view,
 		                            JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1,)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing member after 'value-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 11 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, ")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: <EOF> after '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 13 }) },
+		JsonParseTestCaseError{
+		    .input = R"({"key1")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object member: missing 'name-separator' after member name", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" -)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong name-separator: expected ':'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 8 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" :)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object member: missing value after 'name-separator'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = R"({"key1" : )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty value: expected value but got <EOF>", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 10 }) },
+		JsonParseTestCaseError{
+		    .input = R"({)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty object: missing 'member' or 'end-object' after 'begin-object'",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty object: missing 'member' or 'end-object'",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 14 }) },
+		JsonParseTestCaseError{ .input = R"({ "key2": null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of member in object: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{
+		    .input = R"([)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array: missing 'value' or 'end-array' after 'begin-array'", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "empty array value", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([null,not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"([not_null)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "not null", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"([null)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty array: missing 'value' or 'end-array'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 5 }) },
+		JsonParseTestCaseError{ .input = R"([null - )",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid continuation of values in array: expected ','",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{ .input = R"(-)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number: <EOF> after '-'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 1 }) },
+		JsonParseTestCaseError{ .input = R"(-3151325312532575675757575757575775757575)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 22 }) },
+		JsonParseTestCaseError{ .input = R"(13124124512491246156139813265081326513205861320)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number int part: value overflowed a 64 bit number!",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 21 }) },
+		JsonParseTestCaseError{ .input = R"(1.)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number frac part: <EOF> after '.'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number frac part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1.1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: <EOF> after 'e'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e+)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty number exp part: no values after 'e' and optional sign",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1eA)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid number exp part: incorrect start", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"(1e1#)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"(1e1A)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Didn't reach the end, invalid data at the end", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 6 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 7 }) },
+		JsonParseTestCaseError{
+		    .input = R"(1.1e-1000)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid number exp part: value overflowed the maximum allowed exponent 308!",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 9 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x80\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 15 }) },
+		JsonParseTestCaseError{ .input = R"({"key1": 1, -})",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "wrong quotation-mark: expected '\"'", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 12 }) },
+		JsonParseTestCaseError{ .input = R"({"ke)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string: expected '\"' or string-char but got <EOF>",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 4 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8 (underflows 0): \xFF\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "Invalid UTF-8 string", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 30 }) },
+		JsonParseTestCaseError{ .input = "\"invalid utf8: \x10\"",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string char: range [0, 0x20)", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 16 }) },
+		JsonParseTestCaseError{ .input = R"("\)",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "empty string escape sequence", dummy_str_view,
+		                            JsonSourcePosition{ .line = 0, .col = 2 }) },
+		JsonParseTestCaseError{ .input = R"("\u")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: unicode escape is missing "
+		                            "values, it requires at least 4 chars after it",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{ .input = R"("\o")",
+		                        .expected_error = JsonErrorCpp::with_string_loc(
+		                            "invalid string escape sequence: not a recognized escape char",
+		                            dummy_str_view, JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\u#000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uZ000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"("\uz000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: unicode escape has invalid digits", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 3 }) },
+		JsonParseTestCaseError{
+		    .input = R"(#)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
+		JsonParseTestCaseError{
+		    .input = R"(z)",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid value: no value type was detected based on the start-char", dummy_str_view,
+		        JsonSourcePosition{ .line = 0, .col = 0 }) },
 	};
 
 	for(const auto& test_case : json_parse_test_cases) {
@@ -146,8 +422,7 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 
 		const auto parse_result = json_value_parse_from_str(str_view);
 
-		REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-		           JsonParseResultTypeError);
+		REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
 		JsonError result = json_parse_result_get_as_error(parse_result);
 
@@ -187,8 +462,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			{
 				const auto key = "key_null"_tstr;
 
-				const auto add_result =
-				    json_object_add_entry_tstr(object, &key, JsonValueCpp::null());
+				const auto add_result = json_object_add_entry_tstr(object, &key, json::null());
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -201,7 +475,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 				const auto key = "key_2";
 
 				const auto add_result =
-				    json_object_add_entry_cstr(object, key, JsonValueCpp::number((int64_t)2));
+				    json_object_add_entry_cstr(object, key, json::number((int64_t)2));
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -211,9 +485,9 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			auto json_value = new_json_value_object_rc(object);
 
-			auto expected_value = JsonValueCpp::object({
-			    { "key_null", JsonValueCpp::null() },
-			    { "key_2", JsonValueCpp::number((int64_t)2) },
+			auto expected_value = json::object({
+			    { "key_null", json::null() },
+			    { "key_2", json::number((int64_t)2) },
 			});
 
 			CAutoFreePtr<JsonValue> defer = { &json_value, free_json_value };
@@ -222,44 +496,117 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_EQ(json_value, expected_value);
 		}();
 	}
+
+	SUBCASE("json_object_add_entry_dup frees memory correctly") {
+		[]() -> void {
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
+
+			JsonString* key_string = json_get_string_from_cstr("key1");
+
+			auto res1 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_TRUE(tstr_static_is_null(res1));
+
+			auto res2 = json_object_add_entry_dup(object, key_string, new_json_value_null());
+
+			REQUIRE_FALSE(tstr_static_is_null(res2));
+
+			std::string actual_error = string_from_tstr_static(res2);
+
+			std::string expected_error = "json object has duplicate key";
+
+			REQUIRE_EQ(expected_error, actual_error);
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 	std::vector<JsonStringifyTest> json_stringify_test_case = {
-		JsonStringifyTest{ .expected = "null", .input = JsonValueCpp::null() },
-		JsonStringifyTest{ .expected = "true", .input = JsonValueCpp::boolean(true) },
-		JsonStringifyTest{ .expected = "false", .input = JsonValueCpp::boolean(false) },
-		JsonStringifyTest{ .expected = "100", .input = JsonValueCpp::number((int64_t)100) },
-		JsonStringifyTest{ .expected = "-100", .input = JsonValueCpp::number((int64_t)-100) },
-		JsonStringifyTest{ .expected = "-100.01", .input = JsonValueCpp::number(-100.01) },
-		JsonStringifyTest{ .expected = "100.43", .input = JsonValueCpp::number(100.43) },
-		JsonStringifyTest{ .expected = R"("hello world")",
-		                   .input = JsonValueCpp::string("hello world") },
-		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t")",
-		                   .input = JsonValueCpp::string("hello world\n\"\f\t") },
+		JsonStringifyTest{ .expected = "null", .input = json::null() },
+		JsonStringifyTest{ .expected = "true", .input = json::boolean(true) },
+		JsonStringifyTest{ .expected = "false", .input = json::boolean(false) },
+		JsonStringifyTest{ .expected = "100", .input = json::number((int64_t)100) },
+		JsonStringifyTest{ .expected = "-100", .input = json::number((int64_t)-100) },
+		JsonStringifyTest{ .expected = "-100.01", .input = json::number(-100.01) },
+		JsonStringifyTest{ .expected = "100.43", .input = json::number(100.43) },
+		JsonStringifyTest{ .expected = R"("hello world")", .input = json::string("hello world") },
+		JsonStringifyTest{ .expected = R"("hello world\n\"\f\t\b\r\\/")",
+		                   .input = json::string("hello world\n\"\f\t\b\r\\/") },
 		JsonStringifyTest{
-		    .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
-		    .input = JsonValueCpp::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		    .expected =
+		        R"("a really long string that is longer than 1024 characters and has some unicode chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる 白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる 川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる 朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく 赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる 弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる 父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる 赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる 川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる 銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる 白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる 空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる 風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる 黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 日 雨 川 のる きく 君 友")",
+		    .input = json::string(
+		        "a really long string that is longer than 1024 characters and has some unicode "
+		        "chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる "
+		        "白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 "
+		        "んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる "
+		        "川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 "
+		        "しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる "
+		        "朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる "
+		        "でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく "
+		        "赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 "
+		        "める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 "
+		        "ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 "
+		        "なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 "
+		        "ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる "
+		        "せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる "
+		        "のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 "
+		        "かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある "
+		        "んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる "
+		        "弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり "
+		        "りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる "
+		        "父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる "
+		        "赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる "
+		        "よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 "
+		        "黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 "
+		        "ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 "
+		        "銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる "
+		        "川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 "
+		        "夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる "
+		        "銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 "
+		        "月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 "
+		        "める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう "
+		        "はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 "
+		        "んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 "
+		        "でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる "
+		        "白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 "
+		        "よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 "
+		        "わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 "
+		        "へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 "
+		        "れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる "
+		        "空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる "
+		        "風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 "
+		        "兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく "
+		        "ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる "
+		        "黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 "
+		        "緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり "
+		        "ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 "
+		        "日 雨 川 のる きく 君 友") },
+		JsonStringifyTest{ .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
+		                   .input = json::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonStringifyTest{ .expected = R"("\u0007")", .input = json::string("\x07") },
 		JsonStringifyTest{ .expected = R"([null, 1, 2, true])",
-		                   .input = JsonValueCpp::array(
-		                       { JsonValueCpp::null(), JsonValueCpp::number((int64_t)1),
-		                         JsonValueCpp::number((int64_t)2), JsonValueCpp::boolean(true) }) },
+		                   .input =
+		                       json::array({ json::null(), json::number((int64_t)1),
+		                                     json::number((int64_t)2), json::boolean(true) }) },
 		JsonStringifyTest{
 		    .expected =
 		        R"({"key1": "hello", "key2": null, "nested": {"nested_key": {"array": [], "nested_key2": true}}})",
-		    .input = JsonValueCpp::object(
-		        { { "key1", JsonValueCpp::string("hello") },
-		          { "key2", JsonValueCpp::null() },
-		          { "nested",
-		            JsonValueCpp::object({
-		                { "nested_key", JsonValueCpp::object({
-		                                    { "nested_key2", JsonValueCpp::boolean(true) },
-		                                    { "array", JsonValueCpp::array({}) },
-		                                }) },
-		            }
+		    .input = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
 
-		                                 ) } }) },
+		                                   ) } }) },
 	};
 	CAutoFreePtr<std::vector<JsonStringifyTest>> defer_tests = {
 		&json_stringify_test_case,
@@ -278,7 +625,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		auto stringify_result = json_value_to_string(&test_case.input);
 		CAutoFreePtr<tstr> defer = { &stringify_result, tstr_free };
 
-		REQUIRE_FALSE(tstr_is_null(&stringify_result));
+		REQUIRE_NE(TstrIsNull{},stringify_result);
 
 		std::string actual_result = string_from_tstr(stringify_result);
 
@@ -290,8 +637,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 
 			const auto parse_result = json_value_parse_from_str(str_view);
 
-			REQUIRE_EQ(get_current_tag_type_for_json_parse_result(parse_result),
-			           JsonParseResultTypeOk);
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
 
 			JsonValue result = json_parse_result_get_as_ok(parse_result);
 			CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
@@ -301,6 +647,277 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 	}
 }
 
-// TODO: compare with nhlohmann json!
+TEST_CASE("testing json compatibility with other json library (nlohmann_json) <json_compat>") {
+
+	std::vector<JsonParseTestCaseCompat> json_compat_test_cases = {
+		JsonParseTestCaseCompat{
+		    .input = "null",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "   null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "\t			null   ",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "true",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "false",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-100.01",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "100.43",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "-1e2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1E20",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.2e3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.3E+3",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E-2",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1.5E10",
+		},
+		JsonParseTestCaseCompat{
+		    .input = "8.98846567431158e307", // 2^1023 exactly
+		},
+		JsonParseTestCaseCompat{
+		    .input = "1e0",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("hello world\n\"\f\t")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"({})",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([null,  	1,-2,   true ])",
+		},
+		JsonParseTestCaseCompat{
+		    .input = R"([1e10, -2e10, 1e-10, -2e-10, -1.0, 1.0, 1.25e-10, -2.25e-10])",
+		},
+		JsonParseTestCaseCompat{
+		    .input =
+		        R"({"key1": "hello", "key2": null, "nested": { "nested_key"   : {"nested_key2":
+		   true, "array": []}}})",
+		},
+	};
+
+	for(const auto& test_case : json_compat_test_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		const tstr_view str_view = helpers::tstr_view_from_str(test_case.input);
+
+		const auto parse_result = json_value_parse_from_str(str_view);
+
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+		JsonValue result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+		const auto& my_json_result = result;
+
+		const auto& compat_json_result = nlohmann::json::parse(test_case.input);
+
+		REQUIRE_EQ(my_json_result, compat_json_result);
+	}
+}
+
+using MockFileTest = std::tuple<JsonParseResultCpp, std::unique_ptr<MockFile>, std::string>;
+
+// just here as a dummy tstr_view
+const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
+
+[[nodiscard]] static std::vector<MockFileTest> get_mock_file_tests(bool debug) {
+	std::vector<MockFileTest> tests = {};
+
+	{
+		const auto file = "test_file_allow";
+
+		tests.emplace_back(
+		    JsonParseResultCpp{ json::array({ json::null() }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioNone } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc("Couldn't read from the file", &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadFailsGeneric } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{
+		        JsonErrorCpp::with_file_loc("Couldn't open file for reading", &dummy_file,
+		                                    JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]",
+		              MockFlagsCpp{ .scenario = FailScenarioStatNegativeFileSize } } },
+		        debug),
+		    file);
+	}
+
+	{
+		const auto file = "test_file_deny";
+
+		tests.emplace_back(
+		    JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		        "Read to few data", &dummy_file, JsonSourcePosition{ .line = 0, .col = 0 }) },
+		    std::make_unique<MockFileFuse>(
+		        std::initializer_list<
+		            std::tuple<std::string, MockFileFuse::FileData, MockFlagsCpp>>{
+		            { file, "[null]", MockFlagsCpp{ .scenario = FailScenarioReadFailsLessData } } },
+		        debug),
+		    file);
+	}
+
+	return tests;
+}
+
+[[nodiscard]] static std::unique_ptr<MockFileLock> get_file_lock(MockFile* raw_ptr) {
+	if(raw_ptr == nullptr) {
+		return std::make_unique<DummyFileLock>();
+	}
+	return raw_ptr->lock();
+}
+
+TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
+
+	std::filesystem::path test_file_root = helpers::get_test_file_root();
+
+	std::vector<JsonFileParseTestCase> json_file_test_cases = {
+		JsonFileParseTestCase{ .file = test_file_root / "inputs" / "NOT_PRESENT.json",
+		                       .expected =
+		                           JsonParseResultCpp::unexpected_type{ JsonErrorCpp::with_file_loc(
+		                               "Couldn't open file for reading", &dummy_file,
+		                               JsonSourcePosition{ .line = 0, .col = 0 }) },
+		                       .raw_lock_ptr = nullptr },
+		JsonFileParseTestCase{
+		    .file = test_file_root / "inputs" / "test.json",
+		    .expected = JsonParseResultCpp{ json::object({
+		        { "my object key", json::array({ json::number((int64_t)1), json::number((int64_t)2),
+		                                         json::null(), json::boolean(true) }) },
+		    }) },
+		    .raw_lock_ptr = nullptr },
+
+	};
+
+	const bool debug = false;
+
+	std::vector<MockFileTest> mock_file_tests = get_mock_file_tests(debug);
+
+	for(const auto& mock_file_test : mock_file_tests) {
+
+		std::filesystem::path file_path =
+		    std::get<1>(mock_file_test)->root() / std::get<2>(mock_file_test);
+
+		json_file_test_cases.push_back(
+		    JsonFileParseTestCase{ .file = file_path,
+		                           .expected = std::get<0>(mock_file_test),
+		                           .raw_lock_ptr = std::get<1>(mock_file_test).get() });
+	}
+
+	CAutoFreePtr<std::vector<JsonFileParseTestCase>> defer_tests = {
+		&json_file_test_cases,
+		[](std::vector<JsonFileParseTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    if(value->expected.has_value()) {
+				    JsonValue* const ok_value = &(value->expected.value());
+				    free_json_value(ok_value);
+			    }
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_file_test_cases) {
+		INFO("Test case: ", test_case.file);
+
+		std::unique_ptr<MockFileLock> fuse_lock = get_file_lock(test_case.raw_lock_ptr);
+
+		std::string defer_str = test_case.file.string();
+
+		const tstr_view file_view = helpers::tstr_view_from_str(defer_str);
+
+		const tstr file_path = tstr_from_static_cstr_with_len(file_view.data, file_view.len);
+
+		const auto parse_result = json_value_parse_from_file(&file_path);
+
+		if(!test_case.expected.has_value()) {
+
+			const auto& expected_error = test_case.expected.error();
+
+			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+			JsonError result = json_parse_result_get_as_error(parse_result);
+
+			const auto actual_error = JsonErrorCpp{ result };
+
+			REQUIRE_EQ(actual_error, expected_error);
+		} else {
+
+			REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+			JsonValue result = json_parse_result_get_as_ok(parse_result);
+			CAutoFreePtr<JsonValue> defer = { &result, free_json_value };
+
+			const auto& expected_result = test_case.expected.value();
+
+			REQUIRE_EQ(result, expected_result);
+		}
+	}
+}
 
 TEST_SUITE_END();

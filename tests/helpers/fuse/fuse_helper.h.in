@@ -1,0 +1,5 @@
+
+
+#pragma once
+
+#define FUSE_PROGRAM_PATH "@FUSE_PROGRAM_PATH@"
