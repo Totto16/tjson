@@ -1533,7 +1533,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 				        "requires at least 4 chars after it")));
 			}
 
-			Utf8Codepoint composed_codepoint = 0;
+			uint32_t composed_codepoint = 0;
 
 			for(size_t i = 0; i < 4; ++i) {
 				const LibCChar value = json_parse_state_peek_char_at(*state, i);
@@ -1558,7 +1558,93 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			}
 			json_parse_state_skip_by(state, 4, true);
 
-			codepoint = composed_codepoint;
+			if(composed_codepoint >= 0xD800 && composed_codepoint <= 0xDBFF) {
+				// if the codepoint is a surrogate start, we need more data
+				// see https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				if(json_parse_state_get_str_len(*state) < 6) {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                                "surrogate pair is missing its second value")));
+				}
+
+				const LibCChar value1 = json_parse_state_peek_char_at(*state, 0);
+
+				if(value1 != '\\') {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc,
+					    TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                    "surrogate pair has an invalid second value: it needs a "
+					                    "\\uYYYY escape sequence but is missing the '\\'")));
+				}
+
+				const LibCChar value2 = json_parse_state_peek_char_at(*state, 1);
+
+				if(value2 != 'u') {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc,
+					    TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                    "surrogate pair has an invalid second value: it needs a "
+					                    "\\uYYYY escape sequence but is missing the 'u'")));
+				}
+
+				uint32_t second_composed_codepoint = 0;
+
+				for(size_t i = 2; i < 6; ++i) {
+					const LibCChar value = json_parse_state_peek_char_at(*state, i);
+
+					uint8_t num = 0;
+
+					if(value >= '0' && value <= '9') {
+						num = (uint8_t)(value - '0');
+					} else if(value >= 'A' && value <= 'F') {
+						num = (uint8_t)(value - 'A') + 10;
+					} else if(value >= 'a' && value <= 'f') {
+						num = (uint8_t)(value - 'a') + 10;
+					} else {
+						FREE_AT_END();
+						return new_json_parse_result_error(make_json_error_at(
+						    state->loc,
+						    TSTR_STATIC_LIT(
+						        "invalid string escape sequence: the unicode "
+						        "surrogate pair has an invalid second value: it needs a "
+						        "\\uYYYY escape sequence but the escape sequence has invalid "
+						        "digits")));
+					}
+
+					second_composed_codepoint = (second_composed_codepoint * 0x10) + num;
+				}
+				json_parse_state_skip_by(state, 6, true);
+
+				if(second_composed_codepoint < 0xDC00 || second_composed_codepoint > 0xDFFF) {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                                "surrogate pair has an invalid second value: "
+					                                "it has to be in the correct range")));
+				}
+
+				// create the full codepoint
+				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.2
+
+				fprintf(stderr, "0x%x  0x%x\n", composed_codepoint, second_composed_codepoint);
+
+				const uint16_t high_surrogate_pair =
+				    (uint16_t)((uint32_t)composed_codepoint & (uint32_t)0x3FFULL);
+				const uint16_t low_surrogate_pair =
+				    (uint16_t)((uint32_t)second_composed_codepoint & (uint32_t)0x3FFULL);
+
+				const uint32_t surrogate_result =
+				    (uint32_t)0x10000ULL +
+				    ((((uint32_t)high_surrogate_pair) << 10) | (uint32_t)low_surrogate_pair);
+
+				codepoint = (Utf8Codepoint)surrogate_result;
+			} else {
+				codepoint = (Utf8Codepoint)composed_codepoint;
+			}
 
 			goto add_codepoint_raw;
 		} else {
@@ -1972,9 +2058,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 				const uint32_t surrogate_rest = (uint32_t)codepoint - (uint32_t)0x10000ULL;
 
 				const uint16_t low_surrogate_pair =
-				    (uint16_t)0xDC00UL + (uint16_t)(surrogate_rest & 0x3FF);
+				    (uint16_t)0xDC00UL + (uint16_t)(surrogate_rest & 0x3FFU);
 				const uint16_t high_surrogate_pair =
-				    (uint16_t)0xD800UL + (uint16_t)(surrogate_rest >> 10);
+				    (uint16_t)0xD800UL + ((uint16_t)(surrogate_rest >> 10) & 0x3FFU);
 
 				dst[0] = '\\';
 				dst[1] = 'u';
