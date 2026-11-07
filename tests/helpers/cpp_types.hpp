@@ -3,6 +3,7 @@
 #include <tjson.h>
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -71,6 +72,8 @@ template <typename T> using CAutoFreePtr = std::unique_ptr<T, void (*)(T*)>;
 
 [[nodiscard]] std::string string_from_tstr(const tstr& value);
 
+[[nodiscard]] std::string string_from_tstr_moved(tstr&& value);
+
 [[nodiscard]] std::string string_from_tstr_static(const tstr_static& value);
 
 [[nodiscard]] tstr tstr_from_string(const std::string& value);
@@ -108,6 +111,11 @@ CPP_DEFINE_ERROR_VARIANTS_JSON_VARIANTS()
 template <typename T>
 concept IsCErrorVariant = cpp::error_variants::IsErrorVariant<T>::value;
 
+template <typename T>
+concept IsConvertableToString = requires(T val) {
+	{ val } -> std::convertible_to<std::string>;
+};
+
 struct Errorable {
   private:
 	std::optional<std::string> m_value;
@@ -124,6 +132,16 @@ struct Errorable {
 		    cpp::error_variants::ErrorVariantConversionImpl<T>::to_cpp_type(value);
 		if(temp.has_value()) {
 			return Errorable{ string_from_tstr_static(temp.value()) };
+		}
+
+		return Errorable{};
+	}
+
+	template <typename T, typename E>
+	    requires(IsConvertableToString<E>)
+	static Errorable from_expected(const std::expected<T, E>& value) {
+		if(not value.has_value()) {
+			return Errorable{ std::string{ value.error() } };
 		}
 
 		return Errorable{};
@@ -169,7 +187,14 @@ struct TstrIsNull {
 
 [[nodiscard]] bool operator==(const tstr& lhs, const TstrIsNull& rhs);
 
+[[nodiscard]] bool operator==(const tstr& str1, const tstr& str2);
 std::ostream& operator<<(std::ostream& os, const IsNotError& error);
+
+template <typename T, typename E>
+    requires(IsConvertableToString<E>)
+[[nodiscard]] bool operator==(const IsNotError& /* error */, const std::expected<T, E>& lhs) {
+	return !Errorable::from_expected<T, E>(lhs).is_error();
+}
 
 #define REQUIRE_IS_NOT_ERROR(val) REQUIRE_EQ(IsNotError{}, val)
 
@@ -193,3 +218,15 @@ static std::ostream& operator<<(std::ostream& os, const T& entry) {
 std::ostream& operator<<(std::ostream& os, const tstr& str);
 
 std::ostream& operator<<(std::ostream& os, const tstr_static& str);
+
+template <typename T, typename E>
+static std::ostream& operator<<(std::ostream& os, const std::expected<T, E>& val) {
+	if(not val.has_value()) {
+		os << "std::unexpected{ " << val.error() << " }";
+		return os;
+	}
+
+	os << "std::expected{ " << val.value() << " }";
+
+	return os;
+}

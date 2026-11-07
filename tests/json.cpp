@@ -12,7 +12,6 @@
 #include "helpers/string_maker.hpp"
 
 #include <expected>
-#include <filesystem>
 
 #include <nlohmann/json.hpp>
 
@@ -626,7 +625,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		auto stringify_result = json_value_to_string(&test_case.input);
 		CAutoFreePtr<tstr> defer = { &stringify_result, tstr_free };
 
-		REQUIRE_FALSE(tstr_is_null(&stringify_result));
+		REQUIRE_NE(TstrIsNull{},stringify_result);
 
 		std::string actual_result = string_from_tstr(stringify_result);
 
@@ -826,26 +825,6 @@ const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 	return tests;
 }
 
-[[nodiscard]] static std::filesystem::path get_test_file_root() {
-	std::filesystem::path test_file_root = std::filesystem::current_path();
-
-	if(!std::filesystem::exists(test_file_root)) {
-		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
-			                      test_file_root.string() };
-	}
-
-	if(!std::filesystem::exists((test_file_root / "inputs"))) {
-		test_file_root = test_file_root / "tests" / "files";
-	}
-
-	if(!std::filesystem::exists(test_file_root)) {
-		throw std::runtime_error{ std::string{ "Path for the test files doesn't exist: " } +
-			                      test_file_root.string() };
-	}
-
-	return test_file_root;
-}
-
 [[nodiscard]] static std::unique_ptr<MockFileLock> get_file_lock(MockFile* raw_ptr) {
 	if(raw_ptr == nullptr) {
 		return std::make_unique<DummyFileLock>();
@@ -855,7 +834,7 @@ const static tstr dummy_file = TSTR_LIT_CONST("__dummy_file__impl__");
 
 TEST_CASE("testing json file parsing <json_file_parse>" * doctest::timeout(60.0)) {
 
-	std::filesystem::path test_file_root = get_test_file_root();
+	std::filesystem::path test_file_root = helpers::get_test_file_root();
 
 	std::vector<JsonFileParseTestCase> json_file_test_cases = {
 		JsonFileParseTestCase{ .file = test_file_root / "inputs" / "NOT_PRESENT.json",

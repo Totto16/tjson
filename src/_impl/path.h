@@ -14,4 +14,12 @@
 
 GENERATE_VARIANT_ALL_READ_FILE_RESULT()
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 NODISCARD ReadFileResult read_entire_file(const tstr* file_path);
+
+#ifdef __cplusplus
+}
+#endif

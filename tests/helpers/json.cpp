@@ -340,11 +340,6 @@ JsonErrorCpp JsonErrorCpp::with_file_loc(std::string&& value, const tstr* const 
 	return string_source1.data == string_source2.data;
 }
 
-[[nodiscard]] static bool operator==(const tstr& str1, const tstr& str2) {
-
-	return tstr_eq(&str1, &str2);
-}
-
 [[nodiscard]] [[maybe_unused]] static bool operator==(const JsonFileSource& file_source1,
                                                       const JsonFileSource& file_source2) {
 	return *file_source1.file_path == *file_source2.file_path;

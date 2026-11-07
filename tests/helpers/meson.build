@@ -13,6 +13,7 @@ test_src += files(
     'json.hpp',
     'json_helper.c',
     'json_helper.h',
+    'json_schema.c',
     'json_schema.cpp',
     'json_schema.hpp',
     'main.cpp',

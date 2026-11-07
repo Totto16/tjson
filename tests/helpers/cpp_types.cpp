@@ -50,12 +50,27 @@ TstrIsNull::TstrIsNull() {}
 	return rhs == lhs;
 }
 
+[[nodiscard]] bool operator==(const tstr& str1, const tstr& str2) {
+
+	return tstr_eq(&str1, &str2);
+}
+
 [[nodiscard]] std::string string_from_tstr(const tstr& value) {
 	if(tstr_is_null(&value)) {
 		throw std::runtime_error("tstr is NULL!");
 	}
 
 	return std::string{ tstr_cstr(&value), tstr_len(&value) };
+}
+
+[[nodiscard]] std::string string_from_tstr_moved(tstr&& value) {
+	if(tstr_is_null(&value)) {
+		throw std::runtime_error("tstr is NULL!");
+	}
+
+	auto result = std::string{ tstr_cstr(&value), tstr_len(&value) };
+	tstr_free(&value);
+	return result;
 }
 
 [[nodiscard]] std::string string_from_tstr_static(const tstr_static& value) {

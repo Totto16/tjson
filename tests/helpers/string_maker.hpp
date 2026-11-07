@@ -55,6 +55,12 @@ template <typename A, typename B> struct StringMaker<std::pair<A, B>> {
 	}
 };
 
+template <typename T, typename E> struct StringMaker<std::expected<T, E>> {
+	static String convert(const std::expected<T, E>& exp) {
+		return ::os_stream_formattable_to_doctest(exp);
+	}
+};
+
 template <> struct StringMaker<IsNotError> {
 	static String convert(const IsNotError& error) {
 		return ::os_stream_formattable_to_doctest(error);

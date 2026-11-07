@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -15,4 +16,5 @@ namespace helpers {
 
 [[nodiscard]] tstr_view tstr_view_from_str(const std::string& value);
 
+[[nodiscard]] std::filesystem::path get_test_file_root();
 } // namespace helpers

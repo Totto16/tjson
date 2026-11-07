@@ -632,4 +632,37 @@ TEST_CASE("testing invalid json schema construction <json_schema_errors>") {
 	}
 }
 
+TEST_CASE("testing json schema serialization <json_schema_serialization>") {
+
+	std::filesystem::path test_file_root = helpers::get_test_file_root();
+
+	auto expected_file = test_file_root / "expected.schema.json";
+
+	REQUIRE_TRUE(std::filesystem::exists(expected_file));
+
+	auto content = read_entire_file_cpp(expected_file);
+
+	REQUIRE_IS_NOT_ERROR(content);
+
+	tstr content_tstr = content.value();
+
+	CAutoFreePtr<tstr> defer_result = { &content_tstr, [](tstr* const value) -> void {
+		                                   if(!tstr_is_null(value)) {
+			                                   tstr_free(value);
+		                                   }
+		                               } };
+
+	JsonSchema schema = get_example_json_schema();
+
+	const tstr result = json_schema_to_string(&schema);
+
+	free_json_schema(&schema);
+
+	REQUIRE_NE(TstrIsNull{}, result);
+
+	//TODO: require the json content to be the same, not the literal value
+
+	REQUIRE_EQ(content_tstr, result);
+}
+
 TEST_SUITE_END();

@@ -4,6 +4,8 @@
 #include "./cpp_types.hpp"
 #include "./generic.hpp"
 
+#include <_impl/path.h>
+
 JsonSchemaStringBuilder::JsonSchemaStringBuilder()
     : JsonSchemaBuilderGeneric<JsonSchemaString>{ json_schema_string_get(),
 	                                              free_json_schema_string } {}
@@ -257,4 +259,22 @@ std::ostream& operator<<(std::ostream& os, const JsonSchemaCpp& json_schema) {
 	os << str;
 
 	return os;
+}
+
+[[nodiscard]] std::expected<tstr, std::string>
+read_entire_file_cpp(const std::filesystem::path& file) {
+
+	tstr file_path = tstr_from(file.c_str());
+
+	ReadFileResult file_result = read_entire_file(&file_path);
+
+	tstr_free(&file_path);
+
+	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) {
+		return std::unexpected<std::string>{ string_from_tstr_static(error.error) };
+	}
+
+	tstr result = read_file_result_get_as_ok(file_result).file;
+
+	return result;
 }

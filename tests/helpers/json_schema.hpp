@@ -6,6 +6,8 @@
 
 #include <_impl/utils.h>
 
+#include <expected>
+#include <filesystem>
 #include <functional>
 #include <ostream>
 
@@ -147,3 +149,10 @@ struct JsonSchemaObjectEntryCpp {
 [[nodiscard]] bool operator==(const JsonSchema& json_schema1, const JsonSchema& json_schema2);
 
 std::ostream& operator<<(std::ostream& os, const JsonSchema& json_schema);
+
+extern "C" {
+NODISCARD JsonSchema get_example_json_schema(void);
+}
+
+[[nodiscard]] std::expected<tstr, std::string>
+read_entire_file_cpp(const std::filesystem::path& file);

@@ -272,11 +272,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
 		JsonIterateError error = json_iterate_result_get_as_error(actual_result).error;
 
-		CAutoFreePtr<JsonIterateError> defer_result = {
-			&error, [](JsonIterateError* const value) -> void { tstr_free(&(value->err)); }
-		};
-
-		std::string actual_error = string_from_tstr(error.err);
+		std::string actual_error = string_from_tstr_moved(std::move(error.err));
 
 		REQUIRE_EQ(actual_error, test_case.error);
 	}
