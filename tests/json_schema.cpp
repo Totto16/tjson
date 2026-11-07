@@ -653,7 +653,9 @@ TEST_CASE("testing json schema serialization <json_schema_serialization>") {
 
 	JsonSchema schema = get_example_json_schema();
 
-	const tstr schema_result = json_schema_to_string(&schema);
+	tstr schema_result = json_schema_to_string(&schema);
+
+	CAutoFreePtr<tstr> defer_schema = { &schema_result, tstr_free };
 
 	free_json_schema(&schema);
 
