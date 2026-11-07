@@ -33,8 +33,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				    .err = TSTR_LIT("implementation error, first RTTI value vas not NULL") });
 			}
 
-			TestJsonStruct* allocated_struct =
-			    (TestJsonStruct*)TJSON_MALLOC(sizeof(TestJsonStruct));
+			TestJsonStruct* allocated_struct = TJSON_NEW(TestJsonStruct);
 
 			if(allocated_struct == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
@@ -89,7 +88,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				    .err = TSTR_LIT("error in getting tstr from json string") });
 			}
 
-			tstr* str_wrapper = (tstr*)TJSON_MALLOC(sizeof(tstr));
+			tstr* str_wrapper = TJSON_NEW(tstr);
 
 			if(str_wrapper == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
@@ -106,7 +105,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			uint32_t num_value = (uint32_t)number.value;
 
-			uint32_t* number_wrapper = (uint32_t*)TJSON_MALLOC(sizeof(uint32_t));
+			uint32_t* number_wrapper = TJSON_NEW(uint32_t);
 
 			if(number_wrapper == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
@@ -121,7 +120,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
 
-			TestJsonNull* null = (TestJsonNull*)TJSON_MALLOC(sizeof(TestJsonNull));
+			TestJsonNull* null = TJSON_NEW(TestJsonNull);
 
 			if(null == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
@@ -134,8 +133,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
 
-			TestJsonStructOptionalArray* allocated_array =
-			    (TestJsonStructOptionalArray*)TJSON_MALLOC(sizeof(TestJsonStructOptionalArray));
+			TestJsonStructOptionalArray* allocated_array = TJSON_NEW(TestJsonStructOptionalArray);
 
 			if(allocated_array == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
@@ -353,7 +351,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
 
-			bool* bool_wrapper = (bool*)TJSON_MALLOC(sizeof(bool));
+			bool* bool_wrapper = TJSON_NEW(bool);
 
 			if(bool_wrapper == NULL) {
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });

@@ -22,7 +22,7 @@ struct JsonPathImpl {
 };
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
-	JsonPath* path = TJSON_MALLOC(sizeof(JsonPath));
+	JsonPath* path = TJSON_NEW(JsonPath);
 
 	if(path == NULL) {
 		return NULL;

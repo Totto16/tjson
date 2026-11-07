@@ -2372,7 +2372,7 @@ struct JsonObjectIterImpl {
 
 NODISCARD JsonObjectIter* json_object_get_iterator(const JsonObject* const object) {
 
-	JsonObjectIter* iter = TJSON_MALLOC(sizeof(JsonObjectIter));
+	JsonObjectIter* iter = TJSON_NEW(JsonObjectIter);
 
 	if(iter == NULL) {
 		return NULL;

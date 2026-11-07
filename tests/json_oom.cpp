@@ -279,11 +279,12 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			auto parse_result = json_value_parse_from_str(str_view);
 
-			CAutoFreePtr<JsonParseResult> defer_parse_result = { &parse_result, [](JsonParseResult* res) -> void {
-				                                                    // noop, as the error is a
-				                                                    // tstr_static
-				                                                    free_json_parse_result(*res);
-				                                                } };
+			CAutoFreePtr<JsonParseResult> defer_parse_result = { &parse_result,
+				                                                 [](JsonParseResult* res) -> void {
+				                                                     // noop, as the error is a
+				                                                     // tstr_static
+				                                                     free_json_parse_result(*res);
+				                                                 } };
 
 			REQUIRE_EQ(parse_result, JsonParseResultTypeError);
 
@@ -357,14 +358,14 @@ TEST_CASE("testing oom mock implementation <oom_mock_impl>") {
 			const bool mock_res1 = mock_allocator.malloc().always_fail();
 			REQUIRE_TRUE(mock_res1);
 
-			AllocTest* allocated1 = (AllocTest*)TJSON_MALLOC(sizeof(AllocTest));
+			AllocTest* allocated1 = TJSON_NEW(AllocTest);
 
 			REQUIRE_EQ(allocated1, nullptr);
 
 			const bool mock_res2 = mock_allocator.malloc().never_fail();
 			REQUIRE_TRUE(mock_res2);
 
-			AllocTest* allocated2 = (AllocTest*)TJSON_MALLOC(sizeof(AllocTest));
+			AllocTest* allocated2 = TJSON_NEW(AllocTest);
 
 			REQUIRE_NE(allocated2, nullptr);
 
