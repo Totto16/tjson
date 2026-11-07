@@ -1300,7 +1300,7 @@ NODISCARD static tstr_static json_string_add_char_impl(JsonString* const json_st
 	return tstr_static_null();
 }
 
-GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_WITHOUT_HIT: 1/5
+GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_LINE
 
 NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseState* const state) {
 
@@ -1399,7 +1399,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 
 		const Utf8NextCharResult result = utf8_get_next_char_and_consume(state);
 
-		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 4/6
+		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/6
 			FREE_AT_END();
 			return new_json_parse_result_error(error);
 		}
@@ -1787,7 +1787,7 @@ NODISCARD JsonParseResult json_value_parse_from_file(const tstr* const file_path
 
 	ReadFileResult file_result = read_entire_file(file_path);
 
-	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 4/6
+	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/6
 		return new_json_parse_result_error(
 		    make_json_error_at(json_source_location_get_null(), error.error));
 	}
@@ -2060,7 +2060,7 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 				// Surrogate pair escaping, see
 				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
 
-				if(codepoint > 0x10FFFF) {
+				if(codepoint > 0x10FFFF) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 					// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught
 					// earlier!
 

@@ -143,6 +143,11 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		    .expected =
 		        json::string("unicode surrogate: 🌍 should resolve to 🌍 and 🙃 as 🙃 and 𝄞 as 𝄞"),
 		},
+		JsonParseTestCaseSuccess{
+		    .input = R"("unicode related things: 퀀 ힰ  is the same as \uD000 \uD7B0 \uE000")",
+		    .expected =
+		        json::string("unicode related things: 퀀 ힰ  is the same as 퀀 ힰ "),
+		},
 		JsonParseTestCaseSuccess{ .input = R"("escape chars \\\/\b\r::\u0010\u000A\u000a")",
 		                          .expected = json::string("escape chars \\/\b\r::\x10\n\n") },
 		JsonParseTestCaseSuccess{ .input = R"({})", .expected = json::object({}) },
@@ -476,7 +481,12 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		        "invalid string escape sequence: the unicode surrogate pair has an invalid second "
 		        "value: it has to be in the correct range",
 		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 13 }) },
-		// TODO: more tests
+		JsonParseTestCaseError{
+		    .input = R"("\uD83D\uE000")",
+		    .expected_error = JsonErrorCpp::with_string_loc(
+		        "invalid string escape sequence: the unicode surrogate pair has an invalid second "
+		        "value: it has to be in the correct range",
+		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 13 }) },
 		JsonParseTestCaseError{
 		    .input = R"(#)",
 		    .expected_error = JsonErrorCpp::with_string_loc(
