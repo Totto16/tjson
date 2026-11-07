@@ -1843,12 +1843,12 @@ NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
 			return true;
 		}
 		default: {
+
 			const utf8proc_category_t cat = utf8proc_category(codepoint);
 
 			switch(escape) {
 				case JsonSerializeEscapeOptionMore: {
-					// utf8 control characters or surrogates
-					// escape all but a few
+					// escape utf8 control characters or surrogates
 					switch(cat) {
 						case UTF8PROC_CATEGORY_CS:
 						case UTF8PROC_CATEGORY_CC: {
@@ -1884,25 +1884,20 @@ NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
 							return false;
 						}
 						default: {
-							return true;
+							// never escape ascii, but all the rest
+							return (codepoint > 0x7F);
 						}
 					}
 				}
 				case JsonSerializeEscapeOptionAll: {
 					// escape all but a few
 					switch(cat) {
-						case UTF8PROC_CATEGORY_LU:
-						case UTF8PROC_CATEGORY_LL:
-						case UTF8PROC_CATEGORY_LT:
-						case UTF8PROC_CATEGORY_LM:
-						case UTF8PROC_CATEGORY_LO:
-						case UTF8PROC_CATEGORY_ND:
-						case UTF8PROC_CATEGORY_NL:
-						case UTF8PROC_CATEGORY_NO: {
-							return false;
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
 						}
 						default: {
-							return true;
+							// never escape ascii, but all the rest
+							return (codepoint > 0x7F);
 						}
 					}
 				}
@@ -1962,8 +1957,48 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 		default: {
 
 			if(codepoint > 0xFFFF) { // NOLINT(readability-magic-numbers)
-				// TODO: surrogate pairs !
-				OOM_ASSERT(false, "Surrogate pair escaping not implemented yet");
+
+				// Surrogate pair escaping, see
+				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				if(codepoint > 0x10FFFF) {
+					// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught
+					// earlier!
+
+					ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+				}
+
+				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.1
+				const uint32_t surrogate_rest = (uint32_t)codepoint - (uint32_t)0x10000ULL;
+
+				const uint16_t low_surrogate_pair =
+				    (uint16_t)0xDC00UL + (uint16_t)(surrogate_rest & 0x3FF);
+				const uint16_t high_surrogate_pair =
+				    (uint16_t)0xD800UL + (uint16_t)(surrogate_rest >> 10);
+
+				dst[0] = '\\';
+				dst[1] = 'u';
+
+				char hex_buf[5]; // NOLINT(readability-magic-numbers)
+
+				LibCInt result = snprintf(hex_buf, sizeof(hex_buf), "%04X", high_surrogate_pair);
+				if(result != 4) {
+					return -1;
+				}
+
+				memcpy(dst + 2, hex_buf, 4);
+
+				dst[6] = '\\'; // NOLINT(readability-magic-numbers)
+				dst[7] = 'u';  // NOLINT(readability-magic-numbers)
+
+				result = snprintf(hex_buf, sizeof(hex_buf), "%04X", low_surrogate_pair);
+				if(result != 4) {
+					return -1;
+				}
+
+				memcpy(dst + 8, hex_buf, 4); // NOLINT(readability-magic-numbers)
+
+				return 12; // NOLINT(readability-magic-numbers)
 			}
 
 			const uint16_t small_codepoint = (uint16_t)codepoint;
@@ -1988,8 +2023,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 // from my project ass_parser_c, modified slightly
 #define NORMALIZED_STR_JSON_ESCAPED_UTF8_CHUNK_SIZE_NORMALIZE 256
 
-// 4 for unicode chars, 6 for escaped chars, as the max there is \uXXXX
-#define NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION 6
+// 4 for unicode chars, 6 for escaped chars, as the max there is \uXXXX and 12 for surrogates ->
+// \uXXXX\uYYYYY
+#define NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION 12
 
 static tstr
 get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
@@ -2025,7 +2061,8 @@ get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
 		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, codepoints, i);
 
 		if(json_impl_should_escape(codepoint, escape)) {
-			// needs place for 6 / UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION chars
+			// needs place for 12 / NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION
+			// chars
 			const int8_t result = json_impl_escape_char_into(codepoint, buffer + current_size);
 
 			if(result <= 0) {
