@@ -1335,6 +1335,8 @@ NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseStat
 	return new_utf8_next_char_result_ok(codepoint);
 }
 
+#define UNICODE_MAX_VALUE_OVERALL 0x10FFFF
+
 NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* const state) {
 	// see: https://datatracker.ietf.org/doc/html/rfc8259#section-7
 	//       string = quotation-mark *char quotation-mark
@@ -1448,7 +1450,8 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			goto escape_logic;
 		}
 
-		if(codepoint >= 0x5D && codepoint <= 0x10FFFF) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+		if(codepoint >= 0x5D && // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+		   codepoint <= UNICODE_MAX_VALUE_OVERALL) {
 			goto add_codepoint_raw;
 		}
 
@@ -1643,9 +1646,9 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.2
 
 				const uint16_t high_surrogate_pair =
-				    (uint16_t)((uint32_t)composed_codepoint & (uint32_t)0x3FFULL);
+				    (uint16_t)(composed_codepoint & (uint32_t)0x3FFULL);
 				const uint16_t low_surrogate_pair =
-				    (uint16_t)((uint32_t)second_composed_codepoint & (uint32_t)0x3FFULL);
+				    (uint16_t)(second_composed_codepoint & (uint32_t)0x3FFULL);
 
 				const uint32_t surrogate_result =
 				    (uint32_t)0x10000ULL +
@@ -1906,8 +1909,9 @@ static void json_to_string_number_impl(StringBuilder* const string_builder,
 	}
 }
 
-NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
-                                              const JsonSerializeEscapeOption escape) {
+NODISCARD static bool json_impl_should_escape(
+    const Utf8Codepoint codepoint, // NOLINT(bugprone-easily-swappable-parameters)
+    const JsonSerializeEscapeOption escape) {
 
 	// note: not all escapable chars are required to be escaped
 
@@ -1984,7 +1988,7 @@ NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
 						}
 						default: {
 							// never escape ascii, but all the rest
-							return (codepoint > 0x7F);
+							return (codepoint > 0x7F); // NOLINT(readability-magic-numbers)
 						}
 					}
 				}
@@ -1996,7 +2000,7 @@ NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
 						}
 						default: {
 							// never escape ascii, but all the rest
-							return (codepoint > 0x7F);
+							return (codepoint > 0x7F); // NOLINT(readability-magic-numbers)
 						}
 					}
 				}
@@ -2060,7 +2064,7 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 				// Surrogate pair escaping, see
 				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
 
-				if(codepoint > 0x10FFFF) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+				if(codepoint > UNICODE_MAX_VALUE_OVERALL) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 					// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught
 					// earlier!
 
