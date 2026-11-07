@@ -13,7 +13,7 @@
 
 	#define TJSON_NEW(T) ((T*)TJSON_MALLOC(sizeof(T)))
 
-// TODO: enable this, if possible (it isn't really doable, as many headers an other stuff uses this
+// TODO(Totto): enable this, if possible (it isn't really doable, as many headers an other stuff uses this
 // global libc functions) #pragma GCC poison malloc calloc realloc free
 
 #else
@@ -53,7 +53,7 @@
 
 	#define TJSON_NEW(T) ((T*)TJSON_MALLOC(sizeof(T)))
 
-// TODO: enable this, if possible (it isn't really doable, as many headers an other stuff uses this
+// TODO(Totto): enable this, if possible (it isn't really doable, as many headers an other stuff uses this
 // global libc functions) #pragma GCC poison malloc calloc realloc free
 
 // tvec.h and tmap.h libraries

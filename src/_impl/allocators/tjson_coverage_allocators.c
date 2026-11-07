@@ -18,8 +18,10 @@ static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
 		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_ALWAYS() {
 			return true;
 		}
-		VARIANT_CASE_END();
-		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_AFTER_MUT_REF(&(handle->content)) {
+		VARIANT_CASE_END(); // GCOVR_EXCL_LINE
+		                    // clang-format off
+		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_AFTER_MUT_REF(&(handle->content)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+			                // clang-format on
 			size_t* const count = &(fail_after->count);
 
 			bool result = false;
@@ -38,13 +40,13 @@ static bool handle_should_fail_impl(AllocatorFunctionHandle* const handle) {
 			handle->content = new_allocator_function_handle_content_fail_never();
 			return result;
 		}
-		VARIANT_CASE_END();
+		VARIANT_CASE_END(); // GCOVR_EXCL_LINE
 		CASE_ALLOCATOR_FUNCTION_HANDLE_CONTENT_IS_FAIL_NEVER() {
 			return false;
 		}
-		VARIANT_CASE_END();
-		default: {       // GCOVR_EXCL_LINE
-			return true; // GCOVR_EXCL_LINE
+		VARIANT_CASE_END(); // GCOVR_EXCL_LINE
+		default: {          // GCOVR_EXCL_LINE
+			return true;    // GCOVR_EXCL_LINE
 		}
 	}
 }
