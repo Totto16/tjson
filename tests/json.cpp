@@ -476,7 +476,7 @@ TEST_CASE("testing parse errors of json values <json_parser_error>") {
 		        "invalid string escape sequence: the unicode surrogate pair has an invalid second "
 		        "value: it has to be in the correct range",
 		        dummy_str_view, JsonSourcePosition{ .line = 0, .col = 13 }) },
-		// TODO
+		// TODO: more tests
 		JsonParseTestCaseError{
 		    .input = R"(#)",
 		    .expected_error = JsonErrorCpp::with_string_loc(

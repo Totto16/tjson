@@ -1642,8 +1642,6 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 				// create the full codepoint
 				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.2
 
-				fprintf(stderr, "0x%x  0x%x\n", composed_codepoint, second_composed_codepoint);
-
 				const uint16_t high_surrogate_pair =
 				    (uint16_t)((uint32_t)composed_codepoint & (uint32_t)0x3FFULL);
 				const uint16_t low_surrogate_pair =
@@ -1980,6 +1978,9 @@ NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
 						case UTF8PROC_CATEGORY_ZL:
 						case UTF8PROC_CATEGORY_ZP: {
 							return false;
+						}
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
 						}
 						default: {
 							// never escape ascii, but all the rest
