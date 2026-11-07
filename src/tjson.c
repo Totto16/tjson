@@ -2081,8 +2081,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 				char hex_buf[5]; // NOLINT(readability-magic-numbers)
 
 				LibCInt result = snprintf(hex_buf, sizeof(hex_buf), "%04X", high_surrogate_pair);
-				if(result != 4) {
-					return -1;
+				if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+					              // NOTE: unreachable, as snprintf with 04X always produces 4 chars
+					return -1;    // GCOVR_EXCL_LINE
 				}
 
 				memcpy(dst + 2, hex_buf, 4);
@@ -2091,8 +2092,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 				dst[7] = 'u';  // NOLINT(readability-magic-numbers)
 
 				result = snprintf(hex_buf, sizeof(hex_buf), "%04X", low_surrogate_pair);
-				if(result != 4) {
-					return -1;
+				if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+					// NOTE: unreachable, as snprintf with 04X always produces 4 chars
+					return -1; // GCOVR_EXCL_LINE
 				}
 
 				memcpy(dst + 8, hex_buf, 4); // NOLINT(readability-magic-numbers)
@@ -2108,8 +2110,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 			char hex_buf[5]; // NOLINT(readability-magic-numbers)
 
 			const LibCInt result = snprintf(hex_buf, sizeof(hex_buf), "%04X", small_codepoint);
-			if(result != 4) {
-				return -1;
+			if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+				// NOTE: unreachable, as snprintf with 04X always produces 4 chars
+				return -1; // GCOVR_EXCL_LINE
 			}
 
 			memcpy(dst + 2, hex_buf, 4);
@@ -2138,7 +2141,7 @@ get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
 
 	size_t current_size = 0;
 
-	if(!buffer) {
+	if(buffer == NULL) {
 		return tstr_null();
 	}
 
@@ -2149,7 +2152,7 @@ get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
 			buffer_size = buffer_size + NORMALIZED_STR_JSON_ESCAPED_UTF8_CHUNK_SIZE_NORMALIZE;
 			uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-			if(!new_buffer) {
+			if(new_buffer == NULL) {
 				TJSON_FREE(buffer);
 				return tstr_null();
 			}
@@ -2188,7 +2191,7 @@ get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
 		buffer_size = buffer_size + 1;
 		uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-		if(!new_buffer) {
+		if(new_buffer == NULL) {
 			TJSON_FREE(buffer);
 			return tstr_null();
 		}
@@ -2426,7 +2429,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 
 	size_t current_size = 0;
 
-	if(!buffer) {
+	if(buffer == NULL) {
 		return tstr_null();
 	}
 
@@ -2436,7 +2439,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 			buffer_size = buffer_size + NORMALIZED_STR_NORMAL_UTF8_CHUNK_SIZE_NORMALIZE;
 			uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-			if(!new_buffer) {
+			if(new_buffer == NULL) {
 				TJSON_FREE(buffer);
 				return tstr_null();
 			}
@@ -2461,7 +2464,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 		buffer_size = buffer_size + 1;
 		uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-		if(!new_buffer) {
+		if(new_buffer == NULL) {
 			TJSON_FREE(buffer);
 			return tstr_null();
 		}
