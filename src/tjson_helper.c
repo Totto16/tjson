@@ -22,7 +22,7 @@ struct JsonPathImpl {
 };
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
-	JsonPath* path = malloc(sizeof(JsonPath));
+	JsonPath* path = TJSON_MALLOC(sizeof(JsonPath));
 
 	if(path == NULL) {
 		return NULL;
@@ -163,7 +163,7 @@ void free_json_path(JsonPath* path) {
 	}
 	TVEC_FREE(JsonPathSegment, &(path->segments));
 
-	free(path);
+	TJSON_FREE(path);
 }
 
 //
@@ -178,18 +178,26 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			JsonIterateValue obj_start = new_json_iterate_value_object_start();
 
+#define FREE_AT_END() \
+	do { \
+		free_callback(annotated_value_start); \
+	} while(false)
+
 			JsonIterateResult start_result =
 			    iterate_callback(json_path, annotated_value_start, obj_start, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
 			const RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
 
+#undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
 		free_callback(obj_handle); \
+		free_callback(annotated_value_start); \
 	} while(false)
 
 			{
@@ -205,6 +213,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 #define FREE_AT_END() \
 	do { \
 		free_callback(obj_handle); \
+		free_callback(annotated_value_start); \
 		json_object_free_iterator(iter); \
 	} while(false)
 
@@ -237,6 +246,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 	do { \
 		tstr_free(&key_tstr); \
 		free_callback(obj_handle); \
+		free_callback(annotated_value_start); \
 		json_object_free_iterator(iter); \
 	} while(false)
 
@@ -254,9 +264,28 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					    &value, iterate_callback, free_callback, obj_handle, userdata, json_path);
 
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_tstr); \
+		free_callback(annotated_value_start); \
+		json_object_free_iterator(iter); \
+	} while(false)
+
 						FREE_AT_END();
 						return new_json_iterate_result_error(error.error);
 					}
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_tstr); \
+		free_callback(obj_handle); \
+		free_callback(recursive_handle); \
+		free_callback(annotated_value_start); \
+		json_object_free_iterator(iter); \
+	} while(false)
 
 					const RTTIAnnotatedValue recursive_handle =
 					    json_iterate_result_get_as_ok(recursive_result);
@@ -270,11 +299,21 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					tstr_free(&key_tstr);
 
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
+
 						FREE_AT_END();
 						return new_json_iterate_result_error(error.error);
 					}
 
 					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_tstr); \
+		free_callback(obj_handle); \
+		free_callback(annotated_value_start); \
+		json_object_free_iterator(iter); \
+	} while(false)
 
 					// note: the "entry_handle" RTTI value has to be NULL, as it isn't needed
 					// anymore, the ptr that is used as the obj_handle should be modified by "sub
@@ -298,6 +337,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 #define FREE_AT_END() \
 	do { \
 		free_callback(obj_handle); \
+		free_callback(annotated_value_start); \
 	} while(false)
 
 					tstr_free(&key_tstr);
@@ -328,18 +368,26 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			JsonIterateValue arr_start = new_json_iterate_value_array_start();
 
+#define FREE_AT_END() \
+	do { \
+		free_callback(annotated_value_start); \
+	} while(false)
+
 			JsonIterateResult start_result =
 			    iterate_callback(json_path, annotated_value_start, arr_start, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
 			const RTTIAnnotatedValue arr_handle = json_iterate_result_get_as_ok(start_result);
 
+#undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
 		free_callback(arr_handle); \
+		free_callback(annotated_value_start); \
 	} while(false)
 
 			for(size_t i = 0; i < json_array_get_size(array.arr); ++i) {
@@ -364,9 +412,24 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				    value, iterate_callback, free_callback, arr_handle, userdata, json_path);
 
 				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(recursive_result) {
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_callback(annotated_value_start); \
+	} while(false)
+
 					FREE_AT_END();
 					return new_json_iterate_result_error(error.error);
 				}
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_callback(arr_handle); \
+		free_callback(recursive_handle); \
+		free_callback(annotated_value_start); \
+	} while(false)
 
 				const RTTIAnnotatedValue recursive_handle =
 				    json_iterate_result_get_as_ok(recursive_result);
@@ -383,6 +446,13 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				}
 
 				RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_callback(arr_handle); \
+		free_callback(annotated_value_start); \
+	} while(false)
 
 				// note: the "entry_handle" RTTI value has to be NULL, as it isn't needed
 				// anymore, the ptr that is used as the obj_handle should be modified by "sub
@@ -424,10 +494,16 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 		CASE_JSON_VALUE_IS_NUMBER_CONST(*json_value) {
 			JsonIterateValue iterate_value = new_json_iterate_value_number(number);
 
+#define FREE_AT_END() \
+	do { \
+		free_callback(annotated_value_start); \
+	} while(false)
+
 			JsonIterateResult iterate_result =
 			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
@@ -444,6 +520,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
@@ -459,6 +536,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 
@@ -474,6 +552,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 			    iterate_callback(json_path, annotated_value_start, iterate_value, userdata);
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
+				FREE_AT_END();
 				return new_json_iterate_result_error(error.error);
 			}
 

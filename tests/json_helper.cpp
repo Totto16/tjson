@@ -119,9 +119,11 @@ static std::ostream& operator<<(std::ostream& os, const TestJsonStruct& test_str
 	return os;
 }
 
-[[nodiscard]] static TestJsonStructOptionalArray* get_optional_array(std::initializer_list<bool> values) {
+[[nodiscard]] static TestJsonStructOptionalArray*
+get_optional_array(std::initializer_list<bool> values) {
 
-	TestJsonStructOptionalArray* ptr = (TestJsonStructOptionalArray*)malloc(sizeof(TestJsonStructOptionalArray));
+	TestJsonStructOptionalArray* ptr =
+	    (TestJsonStructOptionalArray*)malloc(sizeof(TestJsonStructOptionalArray));
 
 	if(ptr == nullptr) {
 		throw std::runtime_error("OOM");

@@ -401,10 +401,10 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 
 			TVEC_FREE(TestJsonStructArrayElement, &(dest->optional_array->array));
 
-			free(dest->optional_array);
+			TJSON_FREE(dest->optional_array);
 		}
 
-		free(dest);
+		TJSON_FREE(dest);
 
 		return;
 	}
@@ -416,8 +416,22 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 
 		TVEC_FREE(TestJsonStructArrayElement, &(dest->array));
 
-		*dest = (TestJsonStructOptionalArray){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+		TJSON_FREE(dest);
 
+		return;
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonNull, data)) {
+
+		TestJsonNull* dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonNull, data);
+
+		TJSON_FREE(dest);
+
+		return;
+	}
+
+	if(data.ptr == NULL) {
+		// no need to free empty value
 		return;
 	}
 
