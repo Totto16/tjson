@@ -1558,6 +1558,18 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			}
 			json_parse_state_skip_by(state, 4, true);
 
+			if(composed_codepoint >= 0xDC00 && composed_codepoint <= 0xDFFF) {
+				// this is a value reserved for the second pair of a UTF-16 surrogate pair, so it
+				// can't be in this range! see
+				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				FREE_AT_END();
+				return new_json_parse_result_error(make_json_error_at(
+				    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode value "
+				                                "is reserved for the second part of "
+				                                "a surrogate pair")));
+			}
+
 			if(composed_codepoint >= 0xD800 && composed_codepoint <= 0xDBFF) {
 				// if the codepoint is a surrogate start, we need more data
 				// see https://datatracker.ietf.org/doc/html/rfc2781#section-2
