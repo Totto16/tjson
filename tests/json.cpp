@@ -820,6 +820,13 @@ TEST_CASE("testing forced escaped stringification of json values <json_parser_es
 		                         R"("unicode surrogate, these should all be escaped as surrogate pairs: \uD83C\uDF0D, \uD83D\uDE43 and \uD834\uDD1E")" },
 		    .input = json::string("unicode surrogate, these should all be escaped as surrogate "
 		                          "pairs: 🌍, 🙃 and 𝄞") },
+		JsonEscapeStringifyTest{
+		    .expected_values = { R"("this string should be exactly 256 chars long, which triggers a special case in the resizing, but the last char has to be a surrogate char, that needs 12 chars exactly:(<-168) filler!! 🙃🙃🙃🙃🙃🌍")",
+		                         R"("this string should be exactly 256 chars long, which triggers a special case in the resizing, but the last char has to be a surrogate char, that needs 12 chars exactly:(<-168) filler!! \uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83C\uDF0D")",R"("this string should be exactly 256 chars long, which triggers a special case in the resizing, but the last char has to be a surrogate char, that needs 12 chars exactly:(<-168) filler!! \uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83D\uDE43\uD83C\uDF0D")",  },
+		    .input = json::string(
+		        "this string should be exactly 256 chars long, which triggers a special case in "
+		        "the resizing, but the last char has to be a surrogate char, that needs 12 chars "
+		        "exactly:(<-168) filler!! 🙃🙃🙃🙃🙃🌍") },
 		JsonEscapeStringifyTest{ .expected_values = { R"("\u0007")", R"("\u0007")", R"("\u0007")" },
 		                         .input = json::string("\x07") },
 		JsonEscapeStringifyTest{
