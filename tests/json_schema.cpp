@@ -640,29 +640,35 @@ TEST_CASE("testing json schema serialization <json_schema_serialization>") {
 
 	REQUIRE_TRUE(std::filesystem::exists(expected_file));
 
-	auto content = read_entire_file_cpp(expected_file);
+	tstr file_path = tstr_from_string(expected_file.string());
 
-	REQUIRE_IS_NOT_ERROR(content);
+	const auto parse_result_1 = json_value_parse_from_file(&file_path);
 
-	tstr content_tstr = content.value();
+	CAutoFreePtr<tstr> defer = { &file_path, tstr_free };
 
-	CAutoFreePtr<tstr> defer_result = { &content_tstr, [](tstr* const value) -> void {
-		                                   if(!tstr_is_null(value)) {
-			                                   tstr_free(value);
-		                                   }
-		                               } };
+	REQUIRE_EQ(parse_result_1, JsonParseResultTypeOk);
+
+	JsonValue expected_json_result = json_parse_result_get_as_ok(parse_result_1);
+	CAutoFreePtr<JsonValue> defer1 = { &expected_json_result, free_json_value };
 
 	JsonSchema schema = get_example_json_schema();
 
-	const tstr result = json_schema_to_string(&schema);
+	const tstr schema_result = json_schema_to_string(&schema);
 
 	free_json_schema(&schema);
 
-	REQUIRE_NE(TstrIsNull{}, result);
+	REQUIRE_NE(TstrIsNull{}, schema_result);
 
-	//TODO: require the json content to be the same, not the literal value
+	const tstr_view result_str_view = tstr_as_view(&schema_result);
 
-	REQUIRE_EQ(content_tstr, result);
+	const auto parse_result = json_value_parse_from_str(result_str_view);
+
+	REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+	JsonValue json_result = json_parse_result_get_as_ok(parse_result);
+	CAutoFreePtr<JsonValue> defer2 = { &json_result, free_json_value };
+
+	REQUIRE_EQ(json_result, expected_json_result);
 }
 
 TEST_SUITE_END();
