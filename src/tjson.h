@@ -138,8 +138,16 @@ void free_json_value(JsonValue* json_value);
 
 // serialize json values
 
+typedef enum TJSON_C_23_NARROW_ENUM_TO(uint8_t) {
+	JsonSerializeEscapeOptionDefault = 0,
+	JsonSerializeEscapeOptionMore,
+	JsonSerializeEscapeOptionMost,
+	JsonSerializeEscapeOptionAll,
+} JsonSerializeEscapeOption;
+
 typedef struct {
 	size_t indent_size;
+	JsonSerializeEscapeOption escape;
 } JsonSerializeOptions;
 
 TJSON_NODISCARD tstr json_value_to_string(const JsonValue* json_value);

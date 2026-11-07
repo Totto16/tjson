@@ -32,6 +32,11 @@ struct JsonStringifyTest {
 	JsonValue input;
 };
 
+struct JsonEscapeStringifyTest {
+	std::array<std::string, 3> expected_values;
+	JsonValue input;
+};
+
 struct JsonParseTestCaseCompat {
 	std::string input;
 };
@@ -625,7 +630,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		auto stringify_result = json_value_to_string(&test_case.input);
 		CAutoFreePtr<tstr> defer = { &stringify_result, tstr_free };
 
-		REQUIRE_NE(TstrIsNull{},stringify_result);
+		REQUIRE_NE(TstrIsNull{}, stringify_result);
 
 		std::string actual_result = string_from_tstr(stringify_result);
 
@@ -643,6 +648,143 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 			CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
 
 			REQUIRE_EQ(result, test_case.input);
+		}
+	}
+}
+
+TEST_CASE("testing forced escaped stringification of json values <json_parser_escaped_stringify>") {
+
+	std::vector<JsonEscapeStringifyTest> json_escape_stringify_test_cases = {
+		JsonEscapeStringifyTest{ .expected_values = { "null", "null", "null" },
+		                         .input = json::null() },
+		JsonEscapeStringifyTest{ .expected_values = {"true","true","true"}, .input = json::boolean(true) },
+		JsonEscapeStringifyTest{ .expected_values = {"false","false","false"}, .input = json::boolean(false) },
+		JsonEscapeStringifyTest{ .expected_values ={"100","100","100"}, .input = json::number((int64_t)100) },
+		JsonEscapeStringifyTest{ .expected_values = {"-100","-100","-100"}, .input = json::number((int64_t)-100) },
+		JsonEscapeStringifyTest{ .expected_values = "-100.01", .input = json::number(-100.01) },
+		JsonEscapeStringifyTest{ .expected_values = "100.43", .input = json::number(100.43) },
+		JsonEscapeStringifyTest{ .expected_values = R"("hello world")",
+		                         .input = json::string("hello world") },
+		JsonEscapeStringifyTest{ .expected_values = R"("hello world\n\"\f\t\b\r\\/")",
+		                         .input = json::string("hello world\n\"\f\t\b\r\\/") },
+		JsonEscapeStringifyTest{
+		    .expected_values =
+		        R"("a really long string that is longer than 1024 characters and has some unicode chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる 白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる 川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる 朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく 赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる 弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる 父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる 赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる 川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる 銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる 白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる 空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる 風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる 黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 日 雨 川 のる きく 君 友")",
+		    .input = json::string(
+		        "a really long string that is longer than 1024 characters and has some unicode "
+		        "chars like öäüß and also some japanese characters: そう 妹 でる 妹 昼 おる へる "
+		        "白 ゐる 友 ゆる んる 子 月 青 いる のる 黄 黄 へる 時 木 かく 人 わる 土 青 母 "
+		        "んる 空 ぬる 雨 桃 とる みる しく ゐる せる 火 黄 夏 夜 むる 川 夏 母 兄 弟 せる "
+		        "川 紫 青 雪 まる 紫 子 ゑる ほる ゆる 夏 紫 でる せる 日 赤 子 あり いる らる 週 "
+		        "しく 赤 君 銀 ひる める 空 月 する おる する むる 春 紫 秋 やる 時 はる むる せる "
+		        "朝 める 山 たり んる 雪 むる 山 あり いる 春 いる 君 月 姉 朝 川 へる 雨 もる "
+		        "でる にる 木 はる 人 朝 昼 ねる ゑる ふる 山 でる なる れる 火 竹 ゐる しく かく "
+		        "赤 れる 冬 もる 友 朝 にる 金 青 のる 時 らる 竹 山 年 石 ねる める 冬 時 姉 週 "
+		        "める 君 川 父 友 緑 れる まる りる ふる 桃 昼 川 月 冬 金 日 山 空 ろる 夜 雨 "
+		        "ぬる 花 ぬる 桃 わる める 母 年 へる 金 ゆる おる 姉 もる 花 姉 月 昼 母 める 黄 "
+		        "なる ねる まる そう よる きく よる ほる あり ぬる 冬 する 日 桃 夏 むる 友 花 川 "
+		        "ある 春 あり まる せる せる 妹 きく 秋 かく める かく たり かく 黒 する さく ゑる "
+		        "せる ぬる 石 かく 人 よる 週 石 そう 赤 あり 日 雨 ゑる よる 時 石 にる 週 のる "
+		        "のる みる まる 夜 月 のる 竹 山 をる やる 姉 土 弟 父 きく 秋 おる そう 妹 青 "
+		        "かく 妹 かく 黒 ゑる 月 我 子 たり 空 川 木 姉 きく ゐる 友 銀 朝 おる 雪 ある "
+		        "んる 火 いる 雪 秋 朝 ろる よる そう 夏 桃 春 りる なる はる わる 夜 黒 青 ろる "
+		        "弟 ひる 土 しく 青 火 白 るる きく たり 母 姉 しく なる ゐる ほる 昼 する あり "
+		        "りる たり 夜 たり 父 でる 木 木 金 木 銀 君 みる かく する ゑる おる せる 弟 わる "
+		        "父 ゐる 石 夏 める でる 石 黄 れる にる 妹 緑 銀 黒 姉 きく ぬる りる 冬 母 ふる "
+		        "赤 年 子 しく よる ぬる 火 日 我 さく 桃 金 たり んる 冬 時 年 緑 父 やる 川 わる "
+		        "よる 夜 木 とる をる 秋 石 るる 朝 君 父 木 秋 かく 友 銀 朝 をる まる しく 月 弟 "
+		        "黄 姉 そう 金 よる 姉 きく 銀 する 火 母 夏 人 はる 人 さく 黄 りる つく 白 桃 "
+		        "ほる 桃 木 ゑる たり 雪 きく 妹 妹 冬 ろる める 火 ろる 夜 山 父 まる 朝 緑 母 黒 "
+		        "銀 のる 時 まる しく 空 兄 ろる 月 紫 石 木 あり 月 夜 夜 ある 竹 もる ゆる ふる "
+		        "川 もる ひる める 春 きく のる のる 昼 黄 さく 我 ひる 昼 川 ろる しく 紫 さく 朝 "
+		        "夜 ゆる める をる まる よる れる ぬる 日 青 たり 朝 昼 やる もる ふる 雪 土 るる "
+		        "銀 夏 をる 時 れる なる 姉 ゆる する つく 日 おる とる 銀 月 さく 母 まる しく 姉 "
+		        "月 青 せる 雨 桃 きく をる 子 はる おる 花 銀 ほる しく 白 りる つく ろる 秋 人 "
+		        "める 夜 月 ほる ゆる んる 風 我 紫 父 秋 とる 火 ぬる 父 にる 風 父 月 青 そう "
+		        "はる 子 まる ねる ふる 姉 るる 石 おる 白 山 ねる 日 銀 春 さく 風 らる 週 赤 水 "
+		        "んる たり 母 月 なる 金 あり るる でる 川 ひる でる 夏 ゑる 君 秋 夏 山 銀 父 夏 "
+		        "でる 春 れる んる 黄 るる 月 昼 黄 やる 紫 雪 金 ゑる 木 金 父 秋 紫 月 金 なる "
+		        "白 風 るる 冬 火 川 土 風 たり あり いる ぬる 土 たり 土 火 緑 らる 山 水 水 朝 "
+		        "よる 水 ぬる つく かく 月 りる 山 秋 もる かく 石 夜 ひる 妹 わる 父 君 つく 火 "
+		        "わる たり もる 銀 する 妹 青 水 ふる れる 花 花 つく 赤 人 ぬる ぬる 川 姉 土 "
+		        "へる あり にる 雪 でる ろる 水 ゑる 金 ねる しく 人 夏 月 緑 夜 空 まる 紫 夜 "
+		        "れる 黒 雨 みる 友 母 木 よる むる ねる 姉 黄 でる かく しく 赤 朝 時 らる まる "
+		        "空 冬 黄 昼 紫 ゐる 土 紫 まる 秋 木 春 夜 ゆる 黒 年 雨 へる 姉 週 もる 空 なる "
+		        "風 つく 竹 朝 れる せる らる でる 人 さく 子 りる 弟 妹 火 紫 雪 らる 緑 する 父 "
+		        "兄 かく 月 雪 しく 夏 よる 緑 ふる をる 時 さく りる める 昼 赤 母 竹 しく しく "
+		        "ある 年 山 日 友 月 ある をる 水 赤 ぬる 月 をる 山 でる らる らる ゆる 紫 わる "
+		        "黒 さく れる 赤 ねる ゐる 竹 君 月 竹 れる みる 黒 川 昼 なる きく 夏 妹 ほる 兄 "
+		        "緑 でる 竹 日 兄 土 土 夏 おる つく 白 赤 姉 海 みる 桃 ゑる ゆる 夜 父 ふる あり "
+		        "ねる たり るる 君 さく もる ねる 竹 へる 雨 もる 空 もる ゑる 朝 石 白 きく 海 妹 "
+		        "日 雨 川 のる きく 君 友") },
+		JsonEscapeStringifyTest{ .expected_values = R"("smiley: 🙃 is not escapable as it is U+1F643")",
+		                         .input =
+		                             json::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonEscapeStringifyTest{ .expected_values = R"("\u0007")", .input = json::string("\x07") },
+		JsonEscapeStringifyTest{
+		    .expected_values = R"([null, 1, 2, true])",
+		    .input = json::array({ json::null(), json::number((int64_t)1), json::number((int64_t)2),
+		                           json::boolean(true) }) },
+		JsonEscapeStringifyTest{
+		    .expected_values =
+		        R"({"key1": "hello", "key2": null, "nested": {"nested_key": {"array": [], "nested_key2": true}}})",
+		    .input = json::object(
+		        { { "key1", json::string("hello") },
+		          { "key2", json::null() },
+		          { "nested", json::object({
+		                          { "nested_key", json::object({
+		                                              { "nested_key2", json::boolean(true) },
+		                                              { "array", json::array({}) },
+		                                          }) },
+		                      }
+
+		                                   ) } }) },
+	};
+	CAutoFreePtr<std::vector<JsonEscapeStringifyTest>> defer_tests = {
+		&json_escape_stringify_test_cases,
+		[](std::vector<JsonEscapeStringifyTest>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+			    free_json_value(&(value->input));
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_escape_stringify_test_cases) {
+
+		INFO("Test case: ", test_case.input);
+
+		for(size_t i = 0; i < test_case.expected_values.size(); ++i) {
+
+			const std::string& expected = test_case.expected_values.at(i);
+			JsonSerializeEscapeOption escape = (JsonSerializeEscapeOption)i;
+
+			auto stringify_result =
+			    json_value_to_string_advanced(&test_case.input, {
+			                                                        .indent_size = 0,
+			                                                        .escape = escape,
+			                                                    });
+			CAutoFreePtr<tstr> defer = { &stringify_result, tstr_free };
+
+			REQUIRE_NE(TstrIsNull{}, stringify_result);
+
+			std::string actual_result = string_from_tstr(stringify_result);
+
+			REQUIRE_EQ(actual_result, expected);
+
+			{ // extra check, check if parsing results in the value too!
+
+				const tstr_view str_view = tstr_as_view(&stringify_result);
+
+				const auto parse_result = json_value_parse_from_str(str_view);
+
+				REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+				JsonValue result = json_parse_result_get_as_ok(parse_result);
+				CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
+
+				REQUIRE_EQ(result, test_case.input);
+			}
 		}
 	}
 }

@@ -1300,7 +1300,7 @@ NODISCARD static tstr_static json_string_add_char_impl(JsonString* const json_st
 	return tstr_static_null();
 }
 
-GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT()
+GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_WITHOUT_HIT: 1/5
 
 NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseState* const state) {
 
@@ -1399,7 +1399,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 
 		const Utf8NextCharResult result = utf8_get_next_char_and_consume(state);
 
-		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) {
+		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 4/6
 			FREE_AT_END();
 			return new_json_parse_result_error(error);
 		}
@@ -1691,7 +1691,7 @@ NODISCARD JsonParseResult json_value_parse_from_file(const tstr* const file_path
 
 	ReadFileResult file_result = read_entire_file(file_path);
 
-	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) {
+	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 4/6
 		return new_json_parse_result_error(
 		    make_json_error_at(json_source_location_get_null(), error.error));
 	}
@@ -1764,7 +1764,10 @@ void free_json_value(JsonValue* const json_value) { // NOLINT(misc-no-recursion)
 }
 
 NODISCARD tstr json_value_to_string(const JsonValue* const json_value) {
-	return json_value_to_string_advanced(json_value, (JsonSerializeOptions){ .indent_size = 0 });
+	return json_value_to_string_advanced(json_value, (JsonSerializeOptions){
+	                                                     .indent_size = 0,
+	                                                     .escape = JsonSerializeEscapeOptionDefault,
+	                                                 });
 }
 
 static void json_to_string_null_impl(StringBuilder* const string_builder,
@@ -1807,7 +1810,8 @@ static void json_to_string_number_impl(StringBuilder* const string_builder,
 	}
 }
 
-NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
+NODISCARD static bool json_impl_should_escape(const Utf8Codepoint codepoint,
+                                              const JsonSerializeEscapeOption escape) {
 
 	// note: not all escapable chars are required to be escaped
 
@@ -1829,7 +1833,7 @@ NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
 		}
 		case '/': {
 			// can be, but not required
-			return false;
+			return escape >= JsonSerializeEscapeOptionMore;
 		}
 		case '\b':
 		case '\f':
@@ -1839,9 +1843,75 @@ NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
 			return true;
 		}
 		default: {
-			// utf8 control characters need also an escaping
 			const utf8proc_category_t cat = utf8proc_category(codepoint);
-			return (cat == UTF8PROC_CATEGORY_CC);
+
+			switch(escape) {
+				case JsonSerializeEscapeOptionMore: {
+					// utf8 control characters or surrogates
+					// escape all but a few
+					switch(cat) {
+						case UTF8PROC_CATEGORY_CS:
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
+						}
+						default: {
+							return false;
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionMost: {
+					// escape most special chars
+					switch(cat) {
+						case UTF8PROC_CATEGORY_LU:
+						case UTF8PROC_CATEGORY_LL:
+						case UTF8PROC_CATEGORY_LT:
+						case UTF8PROC_CATEGORY_LM:
+						case UTF8PROC_CATEGORY_LO:
+						case UTF8PROC_CATEGORY_ND:
+						case UTF8PROC_CATEGORY_NL:
+						case UTF8PROC_CATEGORY_NO:
+							//
+						case UTF8PROC_CATEGORY_PC:
+						case UTF8PROC_CATEGORY_PD:
+						case UTF8PROC_CATEGORY_PS:
+						case UTF8PROC_CATEGORY_PE:
+						case UTF8PROC_CATEGORY_PI:
+						case UTF8PROC_CATEGORY_PF:
+						case UTF8PROC_CATEGORY_PO:
+						case UTF8PROC_CATEGORY_ZS:
+						case UTF8PROC_CATEGORY_ZL:
+						case UTF8PROC_CATEGORY_ZP: {
+							return false;
+						}
+						default: {
+							return true;
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionAll: {
+					// escape all but a few
+					switch(cat) {
+						case UTF8PROC_CATEGORY_LU:
+						case UTF8PROC_CATEGORY_LL:
+						case UTF8PROC_CATEGORY_LT:
+						case UTF8PROC_CATEGORY_LM:
+						case UTF8PROC_CATEGORY_LO:
+						case UTF8PROC_CATEGORY_ND:
+						case UTF8PROC_CATEGORY_NL:
+						case UTF8PROC_CATEGORY_NO: {
+							return false;
+						}
+						default: {
+							return true;
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionDefault:
+				default: {
+					// utf8 control characters always need an escaping
+					return (cat == UTF8PROC_CATEGORY_CC);
+				}
+			}
 		}
 	}
 }
@@ -1892,6 +1962,7 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 		default: {
 
 			if(codepoint > 0xFFFF) { // NOLINT(readability-magic-numbers)
+				// TODO: surrogate pairs !
 				OOM_ASSERT(false, "Surrogate pair escaping not implemented yet");
 			}
 
@@ -1920,7 +1991,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 // 4 for unicode chars, 6 for escaped chars, as the max there is \uXXXX
 #define NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION 6
 
-static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints) {
+static tstr
+get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
+                                                   const JsonSerializeEscapeOption escape) {
 	if(codepoints.data == NULL) {
 		return tstr_null();
 	}
@@ -1951,7 +2024,7 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 
 		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, codepoints, i);
 
-		if(json_impl_needs_escaping(codepoint)) {
+		if(json_impl_should_escape(codepoint, escape)) {
 			// needs place for 6 / UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION chars
 			const int8_t result = json_impl_escape_char_into(codepoint, buffer + current_size);
 
@@ -1992,17 +2065,17 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 	return tstr_own((char*)buffer, current_size, current_size);
 }
 
-static tstr get_tstr_from_json_string_escaped(const JsonString* const json_string) {
+static tstr get_tstr_from_json_string_escaped(const JsonString* const json_string,
+                                              const JsonSerializeEscapeOption escape) {
 
-	return get_normalized_string_from_codepoints_json_escaped(json_string->value);
+	return get_normalized_string_from_codepoints_json_escaped(json_string->value, escape);
 }
 
 static void json_to_string_string_impl(StringBuilder* const string_builder,
                                        const JsonString* const json_string,
                                        const JsonSerializeOptions options) {
-	UNUSED(options);
 
-	tstr string_escaped = get_tstr_from_json_string_escaped(json_string);
+	tstr string_escaped = get_tstr_from_json_string_escaped(json_string, options.escape);
 
 	if(tstr_is_null(&string_escaped)) {
 		OOM_ASSERT(false, "error in formatting json string");
