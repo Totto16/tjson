@@ -39,15 +39,9 @@ jobs:
                       os-version: 26.04
                       use-clang: true
 
-                    - name: MacOS (x86_64)
-                      os: macos
-                      os-version: 26-intel
-                      arm: false
-
                     - name: MacOS (Arm64)
                       os: macos
                       os-version: 26
-                      arm: true
 
         steps:
             - uses: actions/checkout@v7
