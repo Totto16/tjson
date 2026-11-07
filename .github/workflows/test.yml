@@ -65,7 +65,7 @@ jobs:
 
             - name: Unit Tests
               run: |
-                  meson setup test_build -Dbuildtype=debug -Db_coverage=true -Dtests=true --fatal-meson-warnings
+                  meson setup test_build -Dbuildtype=debug -Db_coverage=true -Dtests=true -Dc_variant_generator:b_coverage=false --fatal-meson-warnings
                   meson compile -C test_build
                   meson test -C test_build --verbose -j $(nproc) -t 3
                   GCOV=gcov-14 ninja coverage -C test_build
