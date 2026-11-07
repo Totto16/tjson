@@ -75,7 +75,7 @@ RC_DEFINE_TYPE(JsonString)
  */
 
 static void tstr_view_advance_by(tstr_view* const str, size_t amount) {
-	assert(str->len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(str->len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	str->data += amount;
 	str->len -= amount;
 }
@@ -123,7 +123,7 @@ NODISCARD static size_t json_parse_state_get_str_len(const JsonParseState state)
 }
 
 static void json_parse_state_skip_by(JsonParseState* const state, size_t amount, bool advance_loc) {
-	assert(state->view.len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state->view.len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	tstr_view_advance_by(&(state->view), amount);
 	if(advance_loc) {
 		source_position_location_advance_col_by(&(state->loc), amount);
@@ -131,14 +131,14 @@ static void json_parse_state_skip_by(JsonParseState* const state, size_t amount,
 }
 
 NODISCARD static LibCChar json_parse_state_get_next_char(JsonParseState* const state) {
-	assert(state->view.len > 0); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state->view.len > 0); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	const LibCChar result = state->view.data[0];
 	json_parse_state_skip_by(state, 1, true);
 	return result;
 }
 
 NODISCARD static LibCChar json_parse_state_peek_char_at(const JsonParseState state, size_t index) {
-	assert(state.view.len > index); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state.view.len > index); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	return state.view.data[index];
 }
 
@@ -493,7 +493,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least '{'
 		// as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty object: missing 'begin-object'")));
 	}
@@ -506,7 +506,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '{'
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty object: missing '{'")));
 		}
@@ -517,7 +517,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '{'
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(make_json_error_at(
 			    state->loc, TSTR_STATIC_LIT("wrong begin-object: expected '{'")));
 		}
@@ -710,7 +710,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 		// '['
 		// as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_json_parse_result_error(
 		    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty array: missing 'begin-array'")));
@@ -724,7 +724,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '['
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty array: missing '['")));
 		}
@@ -735,7 +735,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '['
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("wrong begin-array: expected '['")));
 		}
@@ -859,7 +859,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_int_part(JsonParseState*
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have not EOF
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(state->loc, TSTR_STATIC_LIT("empty number int part"));
 	}
 
@@ -921,7 +921,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_frac_part(JsonParseState
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have '.' as char
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty number frac part: expected '.' but got <EOF>"));
 	}
@@ -931,7 +931,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_frac_part(JsonParseState
 	if(next_char != '.') { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have '.' as char
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(state->loc,
 		                          TSTR_STATIC_LIT("wrong number frac part: missing starting '.'"));
 	}
@@ -1004,7 +1004,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_exp_part(JsonParseState*
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have 'e' or 'E' as
 		// char but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc,
 		    TSTR_STATIC_LIT("empty number exp part: expected 'e' or 'E' but got <EOF>"));
@@ -1015,7 +1015,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_exp_part(JsonParseState*
 	if(next_char != 'e' && next_char != 'E') { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
 		// NOTE: unreachable, as all the calling functions make sure,. that we have 'e' or 'E' as
 		// char but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("wrong number exp part: missing starting 'e' / 'E'"));
 	}
@@ -1134,7 +1134,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least '-'
 		// or '0'..'9' as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty number: expected number-start but got <EOF>")));
 	}
@@ -1209,7 +1209,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 	}
 
 	// saw frac or exp
-	assert(saw_frac || saw_exp); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
+	ASSERT(saw_frac || saw_exp); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
 
 	// are eof
 	if(json_parse_state_is_eof(*state)) {
@@ -1249,7 +1249,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 
 	// we are already finished
 	if(saw_exp) {
-		assert(!saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+		ASSERT(!saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 
 		// have: minus + int + exp
 		const JsonNumber number = JSON_NUMBER_FROM_MINUS_INT_EXP();
@@ -1269,13 +1269,13 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 			return new_json_parse_result_error(exp_result);
 		}
 	} else {
-		assert(saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+		ASSERT(saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// have: minus + int + frac
 		const JsonNumber number = JSON_NUMBER_FROM_MINUS_INT_FRAC();
 		return new_json_parse_result_ok(new_json_value_number(number));
 	}
 
-	assert(saw_exp && saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+	ASSERT(saw_exp && saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
 
 #define JSON_NUMBER_FROM_MINUS_INT_FRAC_EXP() \
 	{ \
@@ -1307,7 +1307,7 @@ NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseStat
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we are not eof, but
 		// this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_utf8_next_char_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty string: <EOF> when getting next char")));
 	}
@@ -1325,7 +1325,7 @@ NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseStat
 		// NOTE: utf8proc_iterate only returns 0, when strlen is 0, but we already checked that and
 		// its > 0, so this never happens
 
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_utf8_next_char_result_error(
 		    make_json_error_at(state->loc, TSTR_STATIC_LIT("invalid codepoint length")));
@@ -1356,7 +1356,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we are not EOF (note NOT
 		// that we have '"'), but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty string: expected '\"' but got <EOF>")));
@@ -1411,7 +1411,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			// codpoint that is negative, it isn't for error reporting, as for that we use a
 			// separate variable and Unicode only allows positive values, so no clue, so this is a
 			// safeguard, but can#t really be covered
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			FREE_AT_END();
 			return new_json_parse_result_error(make_json_error_at(
 			    state->loc, TSTR_STATIC_LIT("invalid string char: range (-inf, 0)")));
@@ -1454,7 +1454,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 
 		// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught earlier!
 
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		FREE_AT_END();
 		return new_json_parse_result_error(make_json_error_at(
@@ -2347,7 +2347,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 
 		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, codepoints, i);
 
-		// needs place for 4  chars
+		// needs place for 4 / NORMALIZED_STR_NORMAL_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION chars
 		const utf8proc_ssize_t result = utf8proc_encode_char(codepoint, buffer + current_size);
 
 		if(result <= 0) {
@@ -2405,7 +2405,7 @@ NODISCARD size_t json_array_get_size(const JsonArray* const array) {
 }
 
 NODISCARD const JsonValue* json_array_get_at(const JsonArray* const array, const size_t index) {
-	assert(index < json_array_get_size(array)); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(index < json_array_get_size(array)); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 
 	return TVEC_GET_AT(JsonValue, &(array->value), index);
 }
