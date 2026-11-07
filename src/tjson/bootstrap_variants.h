@@ -226,24 +226,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_ \
-	    json_value_get_as_object(JsonValue const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_ \
+	json_value_get_as_object(JsonValue const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry._variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeObject); \
 		return variant_entry._variant_data_for_json_value_data_member.object; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_* \
-	    json_value_get_as_object_mut_ref(JsonValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_* \
+	json_value_get_as_object_mut_ref(JsonValue* const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry->_variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeObject); \
 		return &(variant_entry->_variant_data_for_json_value_data_member.object); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_* \
-	    json_value_get_as_object_const_ref(const JsonValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_value_id_0_name_object_impl_* \
+	json_value_get_as_object_const_ref(const JsonValue* const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry->_variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeObject); \
 		return &(variant_entry->_variant_data_for_json_value_data_member.object); \
@@ -262,24 +262,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_ \
-	    json_value_get_as_array(JsonValue const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_ \
+	json_value_get_as_array(JsonValue const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry._variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeArray); \
 		return variant_entry._variant_data_for_json_value_data_member.array; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_* \
-	    json_value_get_as_array_mut_ref(JsonValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_* \
+	json_value_get_as_array_mut_ref(JsonValue* const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry->_variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeArray); \
 		return &(variant_entry->_variant_data_for_json_value_data_member.array); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_* \
-	    json_value_get_as_array_const_ref(const JsonValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_value_id_1_name_array_impl_* \
+	json_value_get_as_array_const_ref(const JsonValue* const variant_entry) { \
 		VARIANT_JSON_VALUE_STATE_ASSERT(variant_entry->_variant_tag_for_json_value_tag_member, \
 		                                JsonValueTypeArray); \
 		return &(variant_entry->_variant_data_for_json_value_data_member.array); \
@@ -2628,24 +2628,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_ \
-	    json_schema_get_as_object(JsonSchema const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_ \
+	json_schema_get_as_object(JsonSchema const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry._variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeObject); \
 		return variant_entry._variant_data_for_json_schema_data_member.object; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_* \
-	    json_schema_get_as_object_mut_ref(JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_* \
+	json_schema_get_as_object_mut_ref(JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeObject); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.object); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_* \
-	    json_schema_get_as_object_const_ref(const JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_2_name_object_impl_* \
+	json_schema_get_as_object_const_ref(const JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeObject); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.object); \
@@ -2664,24 +2664,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_ \
-	    json_schema_get_as_array(JsonSchema const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_ \
+	json_schema_get_as_array(JsonSchema const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry._variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeArray); \
 		return variant_entry._variant_data_for_json_schema_data_member.array; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_* \
-	    json_schema_get_as_array_mut_ref(JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_* \
+	json_schema_get_as_array_mut_ref(JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeArray); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.array); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_* \
-	    json_schema_get_as_array_const_ref(const JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_3_name_array_impl_* \
+	json_schema_get_as_array_const_ref(const JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeArray); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.array); \
@@ -2707,24 +2707,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_ \
-	    json_schema_get_as_string(JsonSchema const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_ \
+	json_schema_get_as_string(JsonSchema const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry._variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeString); \
 		return variant_entry._variant_data_for_json_schema_data_member.string; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_* \
-	    json_schema_get_as_string_mut_ref(JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_* \
+	json_schema_get_as_string_mut_ref(JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeString); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.string); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_* \
-	    json_schema_get_as_string_const_ref(const JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_4_name_string_impl_* \
+	json_schema_get_as_string_const_ref(const JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeString); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.string); \
@@ -2757,24 +2757,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_ \
-	    json_schema_get_as_one_of(JsonSchema const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_ \
+	json_schema_get_as_one_of(JsonSchema const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry._variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeOneOf); \
 		return variant_entry._variant_data_for_json_schema_data_member.one_of; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_* \
-	    json_schema_get_as_one_of_mut_ref(JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_* \
+	json_schema_get_as_one_of_mut_ref(JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeOneOf); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.one_of); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_* \
-	    json_schema_get_as_one_of_const_ref(const JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_5_name_one_of_impl_* \
+	json_schema_get_as_one_of_const_ref(const JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeOneOf); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.one_of); \
@@ -2793,24 +2793,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_ \
-	    json_schema_get_as_literal(JsonSchema const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_ \
+	json_schema_get_as_literal(JsonSchema const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry._variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeLiteral); \
 		return variant_entry._variant_data_for_json_schema_data_member.literal; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_* \
-	    json_schema_get_as_literal_mut_ref(JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_* \
+	json_schema_get_as_literal_mut_ref(JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeLiteral); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.literal); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_* \
-	    json_schema_get_as_literal_const_ref(const JsonSchema* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_schema_id_6_name_literal_impl_* \
+	json_schema_get_as_literal_const_ref(const JsonSchema* const variant_entry) { \
 		VARIANT_JSON_SCHEMA_STATE_ASSERT(variant_entry->_variant_tag_for_json_schema_tag_member, \
 		                                 JsonSchemaTypeLiteral); \
 		return &(variant_entry->_variant_data_for_json_schema_data_member.literal); \
@@ -4003,8 +4003,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_ \
-	    json_iterate_value_get_as_object_entry(JsonIterateValue const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_ \
+	json_iterate_value_get_as_object_entry(JsonIterateValue const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeObjectEntry); \
@@ -4012,8 +4012,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_* \
-	    json_iterate_value_get_as_object_entry_mut_ref(JsonIterateValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_* \
+	json_iterate_value_get_as_object_entry_mut_ref(JsonIterateValue* const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeObjectEntry); \
@@ -4021,9 +4021,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_* \
-	    json_iterate_value_get_as_object_entry_const_ref( \
-	        const JsonIterateValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_7_name_object_entry_impl_* \
+	json_iterate_value_get_as_object_entry_const_ref( \
+	    const JsonIterateValue* const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeObjectEntry); \
@@ -4061,8 +4061,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_ \
-	    json_iterate_value_get_as_array_push(JsonIterateValue const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_ \
+	json_iterate_value_get_as_array_push(JsonIterateValue const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeArrayPush); \
@@ -4070,8 +4070,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_* \
-	    json_iterate_value_get_as_array_push_mut_ref(JsonIterateValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_* \
+	json_iterate_value_get_as_array_push_mut_ref(JsonIterateValue* const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeArrayPush); \
@@ -4079,9 +4079,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_* \
-	    json_iterate_value_get_as_array_push_const_ref( \
-	        const JsonIterateValue* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_value_id_8_name_array_push_impl_* \
+	json_iterate_value_get_as_array_push_const_ref(const JsonIterateValue* const variant_entry) { \
 		VARIANT_JSON_ITERATE_VALUE_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_value_tag_member, \
 		    JsonIterateValueTypeArrayPush); \
@@ -5683,8 +5682,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_ \
-	    json_iterate_result_get_as_error(JsonIterateResult const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_ \
+	json_iterate_result_get_as_error(JsonIterateResult const variant_entry) { \
 		VARIANT_JSON_ITERATE_RESULT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_iterate_result_tag_member, \
 		    JsonIterateResultTypeError); \
@@ -5692,8 +5691,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_* \
-	    json_iterate_result_get_as_error_mut_ref(JsonIterateResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_* \
+	json_iterate_result_get_as_error_mut_ref(JsonIterateResult* const variant_entry) { \
 		VARIANT_JSON_ITERATE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_result_tag_member, \
 		    JsonIterateResultTypeError); \
@@ -5701,8 +5700,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_* \
-	    json_iterate_result_get_as_error_const_ref(const JsonIterateResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_iterate_result_id_9_name_error_impl_* \
+	json_iterate_result_get_as_error_const_ref(const JsonIterateResult* const variant_entry) { \
 		VARIANT_JSON_ITERATE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_iterate_result_tag_member, \
 		    JsonIterateResultTypeError); \
@@ -6316,8 +6315,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
-	    json_path_segment_get_as_object_key(JsonPathSegment const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
+	json_path_segment_get_as_object_key(JsonPathSegment const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeObjectKey); \
@@ -6325,8 +6324,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
-	    json_path_segment_get_as_object_key_mut_ref(JsonPathSegment* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
+	json_path_segment_get_as_object_key_mut_ref(JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeObjectKey); \
@@ -6334,9 +6333,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
-	    json_path_segment_get_as_object_key_const_ref( \
-	        const JsonPathSegment* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
+	json_path_segment_get_as_object_key_const_ref(const JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeObjectKey); \
@@ -6356,8 +6354,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
-	    json_path_segment_get_as_array_index(JsonPathSegment const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
+	json_path_segment_get_as_array_index(JsonPathSegment const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeArrayIndex); \
@@ -6365,8 +6363,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
-	    json_path_segment_get_as_array_index_mut_ref(JsonPathSegment* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
+	json_path_segment_get_as_array_index_mut_ref(JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeArrayIndex); \
@@ -6374,9 +6372,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
-	    json_path_segment_get_as_array_index_const_ref( \
-	        const JsonPathSegment* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
+	json_path_segment_get_as_array_index_const_ref(const JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
 		    JsonPathSegmentTypeArrayIndex); \
@@ -8345,24 +8342,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ \
-	    read_file_result_get_as_ok(ReadFileResult const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ \
+	read_file_result_get_as_ok(ReadFileResult const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
 		return variant_entry._variant_data_for_read_file_result_data_member.ok; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
-	    read_file_result_get_as_ok_mut_ref(ReadFileResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
+	read_file_result_get_as_ok_mut_ref(ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
 		return &(variant_entry->_variant_data_for_read_file_result_data_member.ok); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
-	    read_file_result_get_as_ok_const_ref(const ReadFileResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
+	read_file_result_get_as_ok_const_ref(const ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
 		return &(variant_entry->_variant_data_for_read_file_result_data_member.ok); \
@@ -8381,24 +8378,24 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ \
-	    read_file_result_get_as_error(ReadFileResult const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ \
+	read_file_result_get_as_error(ReadFileResult const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
 		return variant_entry._variant_data_for_read_file_result_data_member.error; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
-	    read_file_result_get_as_error_mut_ref(ReadFileResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
+	read_file_result_get_as_error_mut_ref(ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
 		return &(variant_entry->_variant_data_for_read_file_result_data_member.error); \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
-	    read_file_result_get_as_error_const_ref(const ReadFileResult* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
+	read_file_result_get_as_error_const_ref(const ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
 		return &(variant_entry->_variant_data_for_read_file_result_data_member.error); \
@@ -10190,8 +10187,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
-	    new_allocator_function_handle_content_fail_always(void) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
+	new_allocator_function_handle_content_fail_always(void) { \
 		return (AllocatorFunctionHandleContent){ \
 			._variant_tag_for_allocator_function_handle_content_tag_member = \
 			    AllocatorFunctionHandleTypeFailAlways, \
@@ -10201,8 +10198,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
-	    new_allocator_function_handle_content_fail_after(size_t const count) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
+	new_allocator_function_handle_content_fail_after(size_t const count) { \
 		return (AllocatorFunctionHandleContent){ \
 			._variant_tag_for_allocator_function_handle_content_tag_member = \
 			    AllocatorFunctionHandleTypeFailAfter, \
@@ -10215,9 +10212,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
-	    allocator_function_handle_content_get_as_fail_after( \
-	        AllocatorFunctionHandleContent const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
+	allocator_function_handle_content_get_as_fail_after( \
+	    AllocatorFunctionHandleContent const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_allocator_function_handle_content_tag_member, \
 		    AllocatorFunctionHandleTypeFailAfter); \
@@ -10226,9 +10223,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
-	    allocator_function_handle_content_get_as_fail_after_mut_ref( \
-	        AllocatorFunctionHandleContent* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
+	allocator_function_handle_content_get_as_fail_after_mut_ref( \
+	    AllocatorFunctionHandleContent* const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_allocator_function_handle_content_tag_member, \
 		    AllocatorFunctionHandleTypeFailAfter); \
@@ -10237,9 +10234,9 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
-	    allocator_function_handle_content_get_as_fail_after_const_ref( \
-	        const AllocatorFunctionHandleContent* const variant_entry) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
+	allocator_function_handle_content_get_as_fail_after_const_ref( \
+	    const AllocatorFunctionHandleContent* const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_allocator_function_handle_content_tag_member, \
 		    AllocatorFunctionHandleTypeFailAfter); \
@@ -10248,8 +10245,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	    JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
-	    new_allocator_function_handle_content_fail_never(void) { \
+	JSON_VARIANTS_MAYBE_UNUSED static inline AllocatorFunctionHandleContent \
+	new_allocator_function_handle_content_fail_never(void) { \
 		return (AllocatorFunctionHandleContent){ \
 			._variant_tag_for_allocator_function_handle_content_tag_member = \
 			    AllocatorFunctionHandleTypeFailNever, \
