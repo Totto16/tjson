@@ -606,6 +606,39 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_EQ(expected_error, actual_error);
 		}();
 	}
+
+	SUBCASE("json_string_starts_with cases") {
+		[]() -> void {
+			JsonString* str1 = json_get_string_from_cstr("string1");
+
+			REQUIRE_NE(str1, nullptr);
+			CAutoFreePtr<JsonString> defer1 = { str1, free_json_string };
+
+			JsonString* str2 = json_get_string_from_cstr("string2");
+
+			REQUIRE_NE(str2, nullptr);
+			CAutoFreePtr<JsonString> defer2 = { str2, free_json_string };
+
+			auto res1 = json_string_starts_with(str1, str2);
+			REQUIRE_FALSE(res1);
+
+			JsonString* str3 = json_get_string_from_cstr("long string");
+
+			REQUIRE_NE(str3, nullptr);
+			CAutoFreePtr<JsonString> defer3 = { str3, free_json_string };
+
+			auto res2 = json_string_starts_with(str2, str3);
+			REQUIRE_FALSE(res2);
+
+			JsonString* str4 = json_get_string_from_cstr("string");
+
+			REQUIRE_NE(str4, nullptr);
+			CAutoFreePtr<JsonString> defer4 = { str4, free_json_string };
+
+			auto res3 = json_string_starts_with(str2, str4);
+			REQUIRE_TRUE(res3);
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {

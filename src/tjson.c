@@ -2379,7 +2379,7 @@ json_to_string_variant_impl(StringBuilder* const string_builder, // NOLINT(misc-
 		break;
 		VARIANT_CASE_END();
 		default: {
-			break;
+			break; // GCOVR_EXCL_LINE
 		}
 	}
 }
