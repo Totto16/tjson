@@ -540,9 +540,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 		[]() -> void {
 			JsonObject* const object = json_object_get_empty();
 
-			if(object == nullptr) {
-				throw std::runtime_error("JSON object initialization failed");
-			}
+			REQUIRE_NE(object, nullptr);
 
 			{
 				const auto key = "key_null"_tstr;
@@ -637,6 +635,31 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			auto res3 = json_string_starts_with(str2, str4);
 			REQUIRE_TRUE(res3);
+		}();
+	}
+
+	SUBCASE("json_object_get_entry_by_key on null key") {
+		[]() -> void {
+			JsonObject* object = json_object_get_empty();
+
+			REQUIRE_NE(object, nullptr);
+
+			{
+				const auto key = "key_null"_tstr;
+
+				const auto add_result = json_object_add_entry_tstr(object, &key, json::null());
+				if(!tstr_static_is_null(add_result)) {
+					throw std::runtime_error(
+					    std::string{ "JSON object entry addition failed for key: " } +
+					    string_from_tstr_static(add_result));
+				}
+			}
+
+			CAutoFreePtr<JsonObject> defer = { object, free_json_object };
+
+			const JsonObjectEntry* obj_entry = json_object_get_entry_by_key(object, nullptr);
+
+			REQUIRE_EQ(obj_entry, nullptr);
 		}();
 	}
 }
