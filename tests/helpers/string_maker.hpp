@@ -125,6 +125,18 @@ template <> struct StringMaker<JsonParseResultType> {
 	}
 };
 
+template <> struct StringMaker<Utf8DataResult> {
+	static String convert(const Utf8DataResult& result) {
+		return ::os_stream_formattable_to_doctest(result);
+	}
+};
+
+template <> struct StringMaker<Utf8DataResultType> {
+	static String convert(const Utf8DataResultType& result_type) {
+		return ::os_stream_formattable_to_doctest(result_type);
+	}
+};
+
 template <> struct StringMaker<RTTIAnnotatedValue> {
 	static String convert(const RTTIAnnotatedValue& rtti_value) {
 		return ::os_stream_formattable_to_doctest(rtti_value);

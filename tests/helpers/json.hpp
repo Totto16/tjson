@@ -4,6 +4,7 @@
 
 #include <tjson.h>
 
+#include <_impl/utf8.h>
 #include <_impl/utils.h>
 
 #include <ostream>
@@ -131,6 +132,13 @@ std::ostream& operator<<(std::ostream& os, const JsonError& json_error);
 std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result);
 
 std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type);
+
+[[nodiscard]] bool operator==(const Utf8DataResult& result, Utf8DataResultType result_type);
+
+
+std::ostream& operator<<(std::ostream& os, const Utf8DataResult& utf8_data_result);
+
+std::ostream& operator<<(std::ostream& os, Utf8DataResultType result_type);
 
 namespace json {
 

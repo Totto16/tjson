@@ -21,6 +21,14 @@ typedef struct {
 
 GENERATE_VARIANT_ALL_UTF8_DATA_RESULT() // GCOVR_EXCL_LINE
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 NODISCARD Utf8DataResult get_utf8_string(tstr_view str_view);
 
 void free_utf8_data(Utf8Data data);
+
+#ifdef __cplusplus
+}
+#endif

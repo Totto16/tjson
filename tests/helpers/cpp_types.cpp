@@ -71,6 +71,10 @@ TstrIsNull::TstrIsNull() {}
 	return str1.c_str() == str2;
 }
 
+[[nodiscard]] bool operator==(const tstr_static& str1, const tstr_static& str2) {
+	return tstr_static_eq(str1, str2);
+}
+
 [[nodiscard]] std::string string_from_tstr(const tstr& value) {
 	if(tstr_is_null(&value)) {
 		throw std::runtime_error("tstr is NULL!");

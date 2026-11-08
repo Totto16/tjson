@@ -865,6 +865,23 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			}
 		}();
 	}
+
+	SUBCASE("get_utf8_string: invalid utf8") {
+		[]() -> void {
+			std::array<char, 1> json_invalid_utf8 = { '\xFF' };
+
+			const tstr_view str_view =
+			    tstr_view{ .data = json_invalid_utf8.data(), .len = json_invalid_utf8.size() };
+
+			const Utf8DataResult parse_result = get_utf8_string(str_view);
+
+			REQUIRE_EQ(parse_result, Utf8DataResultTypeError);
+
+			tstr_static actual_error = utf8_data_result_get_as_error(parse_result);
+
+			REQUIRE_EQ(actual_error, "Invalid UTF-8 string"_tstr_static);
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {

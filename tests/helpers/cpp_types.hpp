@@ -197,6 +197,8 @@ struct TstrIsNull {
 
 [[nodiscard]] bool operator==(const std::string& str1, const tstr& str2);
 
+[[nodiscard]] bool operator==(const tstr_static& str1, const tstr_static& str2);
+
 std::ostream& operator<<(std::ostream& os, const IsNotError& error);
 
 template <typename T, typename E>

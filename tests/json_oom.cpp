@@ -12,6 +12,8 @@
 #include "helpers/allocators.hpp"
 #include "helpers/string_maker.hpp"
 
+#include <_impl/utf8.h>
+
 TEST_SUITE_BEGIN("json_oom" * doctest::description("json oom tests") * doctest::timeout(2.0));
 
 TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
@@ -298,6 +300,48 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			    "json string add error", dummy_str_view, JsonSourcePosition{ .line = 0, .col = 2 });
 
 			REQUIRE_EQ(actual_error, expected_error);
+		}();
+	}
+
+	SUBCASE("parsing: utf8 parsing fails: case 1") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const bool mock_res = mock_allocator.malloc().always_fail();
+			REQUIRE_TRUE(mock_res);
+
+			std::string json_str = "test";
+
+			const tstr_view str_view = helpers::tstr_view_from_str(json_str);
+
+			const Utf8DataResult parse_result = get_utf8_string(str_view);
+
+			REQUIRE_EQ(parse_result, Utf8DataResultTypeError);
+
+			tstr_static actual_error = utf8_data_result_get_as_error(parse_result);
+
+			REQUIRE_EQ(actual_error, "failed malloc"_tstr_static);
+		}();
+	}
+
+	SUBCASE("parsing: utf8 parsing fails: case 2") {
+		[]() -> void {
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const bool mock_res = mock_allocator.realloc().always_fail();
+			REQUIRE_TRUE(mock_res);
+
+			std::string json_str = "test 🙃";
+
+			const tstr_view str_view = helpers::tstr_view_from_str(json_str);
+
+			const Utf8DataResult parse_result = get_utf8_string(str_view);
+
+			REQUIRE_EQ(parse_result, Utf8DataResultTypeError);
+
+			tstr_static actual_error = utf8_data_result_get_as_error(parse_result);
+
+			REQUIRE_EQ(actual_error, "failed realloc"_tstr_static);
 		}();
 	}
 }

@@ -472,3 +472,52 @@ std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type) {
 		}
 	}
 }
+
+[[nodiscard]] bool operator==(const Utf8DataResult& result, Utf8DataResultType result_type) {
+	return get_current_tag_type_for_utf8_data_result(result) == result_type;
+}
+
+std::ostream& operator<<(std::ostream& os, const Utf8DataResult& utf8_data_result) {
+	SWITCH_UTF8_DATA_RESULT(utf8_data_result) {
+		CASE_UTF8_DATA_RESULT_IS_ERROR_CONST(utf8_data_result) {
+			os << "Utf8DataResult::Error -> ";
+
+			os << error;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		CASE_UTF8_DATA_RESULT_IS_OK_CONST(utf8_data_result) {
+			os << "Utf8DataResult::Ok -> ";
+
+			// TODO
+			UNUSED(ok);
+			os << "<TODO>";
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		default: {
+			return os;
+		}
+	}
+}
+
+std::ostream& operator<<(std::ostream& os, Utf8DataResultType result_type) {
+
+	switch(result_type) {
+		case Utf8DataResultTypeError: {
+			os << "Utf8DataResult::Error";
+
+			return os;
+		}
+		case Utf8DataResultTypeOk: {
+			os << "Utf8DataResult::Ok";
+
+			return os;
+		}
+		default: {
+			return os;
+		}
+	}
+}
