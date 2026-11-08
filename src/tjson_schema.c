@@ -466,7 +466,7 @@ json_schema_to_string_string_impl(const JsonSchemaString* const string,
 
 		if(HAS_FLAG(string_props.flags, JsonSchemaStringPropertiesFlagsPattern)) {
 
-			assert(string_props.pattern != NULL);
+			ASSERT(string_props.pattern != NULL);
 
 			tstr_static insert_result =
 			    json_object_add_entry_cstr(root, "pattern",
@@ -961,7 +961,7 @@ static void json_schema_string_destroy_impl(JsonSchemaString* const json_schema_
 
 	if(HAS_FLAG(json_schema_string->props.flags, JsonSchemaStringPropertiesFlagsPattern)) {
 
-		assert(json_schema_string->props.pattern != NULL);
+		OOM_ASSERT(json_schema_string->props.pattern != NULL, "pattern was not set");
 
 		free_json_schema_regex(json_schema_string->props.pattern);
 	}
@@ -1553,7 +1553,7 @@ json_schema_validate_string_schema_data_impl(const JsonSchemaString* json_schema
 	if(HAS_FLAG(string_props.flags, JsonSchemaStringPropertiesFlagsPattern)) {
 
 		const JsonSchemaRegex* pattern = string_props.pattern;
-		assert(pattern != NULL);
+		ASSERT(pattern != NULL);
 
 		tstr value_str = json_string_get_as_str(value);
 

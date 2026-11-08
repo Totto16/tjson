@@ -36,7 +36,7 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 
 	LibCChar* const file_data = (LibCChar*)TJSON_MALLOC(file_size * sizeof(LibCChar));
 
-	if(!file_data) {
+	if(file_data == NULL) {
 		FREE_AT_END();
 		return new_read_file_result_error(TSTR_STATIC_LIT("Couldn't allocate file data"));
 	}

@@ -75,7 +75,7 @@ RC_DEFINE_TYPE(JsonString)
  */
 
 static void tstr_view_advance_by(tstr_view* const str, size_t amount) {
-	assert(str->len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(str->len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	str->data += amount;
 	str->len -= amount;
 }
@@ -123,7 +123,7 @@ NODISCARD static size_t json_parse_state_get_str_len(const JsonParseState state)
 }
 
 static void json_parse_state_skip_by(JsonParseState* const state, size_t amount, bool advance_loc) {
-	assert(state->view.len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state->view.len >= amount); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	tstr_view_advance_by(&(state->view), amount);
 	if(advance_loc) {
 		source_position_location_advance_col_by(&(state->loc), amount);
@@ -131,14 +131,14 @@ static void json_parse_state_skip_by(JsonParseState* const state, size_t amount,
 }
 
 NODISCARD static LibCChar json_parse_state_get_next_char(JsonParseState* const state) {
-	assert(state->view.len > 0); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state->view.len > 0); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	const LibCChar result = state->view.data[0];
 	json_parse_state_skip_by(state, 1, true);
 	return result;
 }
 
 NODISCARD static LibCChar json_parse_state_peek_char_at(const JsonParseState state, size_t index) {
-	assert(state.view.len > index); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(state.view.len > index); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 	return state.view.data[index];
 }
 
@@ -493,7 +493,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least '{'
 		// as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty object: missing 'begin-object'")));
 	}
@@ -506,7 +506,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '{'
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty object: missing '{'")));
 		}
@@ -517,7 +517,7 @@ json_parse_impl_parse_object(JsonParseState* const state) { // NOLINT(misc-no-re
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '{'
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(make_json_error_at(
 			    state->loc, TSTR_STATIC_LIT("wrong begin-object: expected '{'")));
 		}
@@ -710,7 +710,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 		// '['
 		// as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_json_parse_result_error(
 		    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty array: missing 'begin-array'")));
@@ -724,7 +724,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '['
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("empty array: missing '['")));
 		}
@@ -735,7 +735,7 @@ json_parse_impl_parse_array(JsonParseState* const state) { // NOLINT(misc-no-rec
 			// NOTE: unreachable, as all the calling functions make sure,. that we have at least
 			// '['
 			// as char, but this might be usefull, if we ever expose this function
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			return new_json_parse_result_error(
 			    make_json_error_at(state->loc, TSTR_STATIC_LIT("wrong begin-array: expected '['")));
 		}
@@ -859,7 +859,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_int_part(JsonParseState*
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have not EOF
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(state->loc, TSTR_STATIC_LIT("empty number int part"));
 	}
 
@@ -921,7 +921,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_frac_part(JsonParseState
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have '.' as char
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty number frac part: expected '.' but got <EOF>"));
 	}
@@ -931,7 +931,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_frac_part(JsonParseState
 	if(next_char != '.') { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have '.' as char
 		// but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(state->loc,
 		                          TSTR_STATIC_LIT("wrong number frac part: missing starting '.'"));
 	}
@@ -1004,7 +1004,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_exp_part(JsonParseState*
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have 'e' or 'E' as
 		// char but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc,
 		    TSTR_STATIC_LIT("empty number exp part: expected 'e' or 'E' but got <EOF>"));
@@ -1015,7 +1015,7 @@ NODISCARD static JsonError json_parse_impl_parse_number_exp_part(JsonParseState*
 	if(next_char != 'e' && next_char != 'E') { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
 		// NOTE: unreachable, as all the calling functions make sure,. that we have 'e' or 'E' as
 		// char but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("wrong number exp part: missing starting 'e' / 'E'"));
 	}
@@ -1134,7 +1134,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we have at least '-'
 		// or '0'..'9' as char, but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty number: expected number-start but got <EOF>")));
 	}
@@ -1209,7 +1209,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 	}
 
 	// saw frac or exp
-	assert(saw_frac || saw_exp); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
+	ASSERT(saw_frac || saw_exp); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/4
 
 	// are eof
 	if(json_parse_state_is_eof(*state)) {
@@ -1249,7 +1249,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 
 	// we are already finished
 	if(saw_exp) {
-		assert(!saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+		ASSERT(!saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 
 		// have: minus + int + exp
 		const JsonNumber number = JSON_NUMBER_FROM_MINUS_INT_EXP();
@@ -1269,13 +1269,13 @@ NODISCARD static JsonParseResult json_parse_impl_parse_number(JsonParseState* co
 			return new_json_parse_result_error(exp_result);
 		}
 	} else {
-		assert(saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+		ASSERT(saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// have: minus + int + frac
 		const JsonNumber number = JSON_NUMBER_FROM_MINUS_INT_FRAC();
 		return new_json_parse_result_ok(new_json_value_number(number));
 	}
 
-	assert(saw_exp && saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+	ASSERT(saw_exp && saw_frac); // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
 
 #define JSON_NUMBER_FROM_MINUS_INT_FRAC_EXP() \
 	{ \
@@ -1300,14 +1300,14 @@ NODISCARD static tstr_static json_string_add_char_impl(JsonString* const json_st
 	return tstr_static_null();
 }
 
-GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT()
+GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_LINE GCOVR_EXCL_LINE
 
 NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseState* const state) {
 
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we are not eof, but
 		// this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 		return new_utf8_next_char_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty string: <EOF> when getting next char")));
 	}
@@ -1325,7 +1325,7 @@ NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseStat
 		// NOTE: utf8proc_iterate only returns 0, when strlen is 0, but we already checked that and
 		// its > 0, so this never happens
 
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_utf8_next_char_result_error(
 		    make_json_error_at(state->loc, TSTR_STATIC_LIT("invalid codepoint length")));
@@ -1334,6 +1334,8 @@ NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseStat
 
 	return new_utf8_next_char_result_ok(codepoint);
 }
+
+#define UNICODE_MAX_VALUE_OVERALL 0x10FFFF
 
 NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* const state) {
 	// see: https://datatracker.ietf.org/doc/html/rfc8259#section-7
@@ -1356,7 +1358,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 	if(json_parse_state_is_eof(*state)) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		// NOTE: unreachable, as all the calling functions make sure,. that we are not EOF (note NOT
 		// that we have '"'), but this might be usefull, if we ever expose this function
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		return new_json_parse_result_error(make_json_error_at(
 		    state->loc, TSTR_STATIC_LIT("empty string: expected '\"' but got <EOF>")));
@@ -1399,7 +1401,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 
 		const Utf8NextCharResult result = utf8_get_next_char_and_consume(state);
 
-		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) {
+		IF_UTF8_NEXT_CHAR_RESULT_IS_ERROR_CONST(result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/6
 			FREE_AT_END();
 			return new_json_parse_result_error(error);
 		}
@@ -1411,7 +1413,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			// codpoint that is negative, it isn't for error reporting, as for that we use a
 			// separate variable and Unicode only allows positive values, so no clue, so this is a
 			// safeguard, but can#t really be covered
-			assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+			ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 			FREE_AT_END();
 			return new_json_parse_result_error(make_json_error_at(
 			    state->loc, TSTR_STATIC_LIT("invalid string char: range (-inf, 0)")));
@@ -1448,13 +1450,14 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			goto escape_logic;
 		}
 
-		if(codepoint >= 0x5D && codepoint <= 0x10FFFF) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+		if(codepoint >= 0x5D && // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+		   codepoint <= UNICODE_MAX_VALUE_OVERALL) {
 			goto add_codepoint_raw;
 		}
 
 		// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught earlier!
 
-		assert(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+		ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
 
 		FREE_AT_END();
 		return new_json_parse_result_error(make_json_error_at(
@@ -1533,7 +1536,7 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 				        "requires at least 4 chars after it")));
 			}
 
-			Utf8Codepoint composed_codepoint = 0;
+			uint32_t composed_codepoint = 0;
 
 			for(size_t i = 0; i < 4; ++i) {
 				const LibCChar value = json_parse_state_peek_char_at(*state, i);
@@ -1558,7 +1561,103 @@ NODISCARD static JsonParseResult json_parse_impl_parse_string(JsonParseState* co
 			}
 			json_parse_state_skip_by(state, 4, true);
 
-			codepoint = composed_codepoint;
+			if(composed_codepoint >= 0xDC00 && composed_codepoint <= 0xDFFF) {
+				// this is a value reserved for the second pair of a UTF-16 surrogate pair, so it
+				// can't be in this range! see
+				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				FREE_AT_END();
+				return new_json_parse_result_error(make_json_error_at(
+				    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode value "
+				                                "is reserved for the second part of "
+				                                "a surrogate pair")));
+			}
+
+			if(composed_codepoint >= 0xD800 && composed_codepoint <= 0xDBFF) {
+				// if the codepoint is a surrogate start, we need more data
+				// see https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				if(json_parse_state_get_str_len(*state) < 6) {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                                "surrogate pair is missing its second value")));
+				}
+
+				const LibCChar value1 = json_parse_state_peek_char_at(*state, 0);
+
+				if(value1 != '\\') {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc,
+					    TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                    "surrogate pair has an invalid second value: it needs a "
+					                    "\\uYYYY escape sequence but is missing the '\\'")));
+				}
+
+				const LibCChar value2 = json_parse_state_peek_char_at(*state, 1);
+
+				if(value2 != 'u') {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc,
+					    TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                    "surrogate pair has an invalid second value: it needs a "
+					                    "\\uYYYY escape sequence but is missing the 'u'")));
+				}
+
+				uint32_t second_composed_codepoint = 0;
+
+				for(size_t i = 2; i < 6; ++i) {
+					const LibCChar value = json_parse_state_peek_char_at(*state, i);
+
+					uint8_t num = 0;
+
+					if(value >= '0' && value <= '9') {
+						num = (uint8_t)(value - '0');
+					} else if(value >= 'A' && value <= 'F') {
+						num = (uint8_t)(value - 'A') + 10;
+					} else if(value >= 'a' && value <= 'f') {
+						num = (uint8_t)(value - 'a') + 10;
+					} else {
+						FREE_AT_END();
+						return new_json_parse_result_error(make_json_error_at(
+						    state->loc,
+						    TSTR_STATIC_LIT(
+						        "invalid string escape sequence: the unicode "
+						        "surrogate pair has an invalid second value: it needs a "
+						        "\\uYYYY escape sequence but the escape sequence has invalid "
+						        "digits")));
+					}
+
+					second_composed_codepoint = (second_composed_codepoint * 0x10) + num;
+				}
+				json_parse_state_skip_by(state, 6, true);
+
+				if(second_composed_codepoint < 0xDC00 || second_composed_codepoint > 0xDFFF) {
+					FREE_AT_END();
+					return new_json_parse_result_error(make_json_error_at(
+					    state->loc, TSTR_STATIC_LIT("invalid string escape sequence: the unicode "
+					                                "surrogate pair has an invalid second value: "
+					                                "it has to be in the correct range")));
+				}
+
+				// create the full codepoint
+				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.2
+
+				const uint16_t high_surrogate_pair =
+				    (uint16_t)(composed_codepoint & (uint32_t)0x3FFULL);
+				const uint16_t low_surrogate_pair =
+				    (uint16_t)(second_composed_codepoint & (uint32_t)0x3FFULL);
+
+				const uint32_t surrogate_result =
+				    (uint32_t)0x10000ULL +
+				    ((((uint32_t)high_surrogate_pair) << 10) | (uint32_t)low_surrogate_pair);
+
+				codepoint = (Utf8Codepoint)surrogate_result;
+			} else {
+				codepoint = (Utf8Codepoint)composed_codepoint;
+			}
 
 			goto add_codepoint_raw;
 		} else {
@@ -1691,7 +1790,7 @@ NODISCARD JsonParseResult json_value_parse_from_file(const tstr* const file_path
 
 	ReadFileResult file_result = read_entire_file(file_path);
 
-	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) {
+	IF_READ_FILE_RESULT_IS_ERROR_CONST(file_result) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/6
 		return new_json_parse_result_error(
 		    make_json_error_at(json_source_location_get_null(), error.error));
 	}
@@ -1764,7 +1863,10 @@ void free_json_value(JsonValue* const json_value) { // NOLINT(misc-no-recursion)
 }
 
 NODISCARD tstr json_value_to_string(const JsonValue* const json_value) {
-	return json_value_to_string_advanced(json_value, (JsonSerializeOptions){ .indent_size = 0 });
+	return json_value_to_string_advanced(json_value, (JsonSerializeOptions){
+	                                                     .indent_size = 0,
+	                                                     .escape = JsonSerializeEscapeOptionDefault,
+	                                                 });
 }
 
 static void json_to_string_null_impl(StringBuilder* const string_builder,
@@ -1807,7 +1909,9 @@ static void json_to_string_number_impl(StringBuilder* const string_builder,
 	}
 }
 
-NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
+NODISCARD static bool json_impl_should_escape(
+    const Utf8Codepoint codepoint, // NOLINT(bugprone-easily-swappable-parameters)
+    const JsonSerializeEscapeOption escape) {
 
 	// note: not all escapable chars are required to be escaped
 
@@ -1829,7 +1933,7 @@ NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
 		}
 		case '/': {
 			// can be, but not required
-			return false;
+			return escape >= JsonSerializeEscapeOptionMore;
 		}
 		case '\b':
 		case '\f':
@@ -1839,9 +1943,73 @@ NODISCARD static bool json_impl_needs_escaping(Utf8Codepoint codepoint) {
 			return true;
 		}
 		default: {
-			// utf8 control characters need also an escaping
+
 			const utf8proc_category_t cat = utf8proc_category(codepoint);
-			return (cat == UTF8PROC_CATEGORY_CC);
+
+			switch(escape) {
+				case JsonSerializeEscapeOptionMore: {
+					// escape utf8 control characters or surrogates
+					switch(cat) {
+						case UTF8PROC_CATEGORY_CS:
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
+						}
+						default: {
+							return false;
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionMost: {
+					// escape most special chars
+					switch(cat) {
+						case UTF8PROC_CATEGORY_LU:
+						case UTF8PROC_CATEGORY_LL:
+						case UTF8PROC_CATEGORY_LT:
+						case UTF8PROC_CATEGORY_LM:
+						case UTF8PROC_CATEGORY_LO:
+						case UTF8PROC_CATEGORY_ND:
+						case UTF8PROC_CATEGORY_NL:
+						case UTF8PROC_CATEGORY_NO:
+							//
+						case UTF8PROC_CATEGORY_PC:
+						case UTF8PROC_CATEGORY_PD:
+						case UTF8PROC_CATEGORY_PS:
+						case UTF8PROC_CATEGORY_PE:
+						case UTF8PROC_CATEGORY_PI:
+						case UTF8PROC_CATEGORY_PF:
+						case UTF8PROC_CATEGORY_PO:
+						case UTF8PROC_CATEGORY_ZS:
+						case UTF8PROC_CATEGORY_ZL:
+						case UTF8PROC_CATEGORY_ZP: {
+							return false;
+						}
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
+						}
+						default: {
+							// never escape ascii, but all the rest
+							return (codepoint > 0x7F); // NOLINT(readability-magic-numbers)
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionAll: {
+					// escape all but a few
+					switch(cat) {
+						case UTF8PROC_CATEGORY_CC: {
+							return true;
+						}
+						default: {
+							// never escape ascii, but all the rest
+							return (codepoint > 0x7F); // NOLINT(readability-magic-numbers)
+						}
+					}
+				}
+				case JsonSerializeEscapeOptionDefault:
+				default: {
+					// utf8 control characters always need an escaping
+					return (cat == UTF8PROC_CATEGORY_CC);
+				}
+			}
 		}
 	}
 }
@@ -1892,7 +2060,50 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 		default: {
 
 			if(codepoint > 0xFFFF) { // NOLINT(readability-magic-numbers)
-				OOM_ASSERT(false, "Surrogate pair escaping not implemented yet");
+
+				// Surrogate pair escaping, see
+				// https://datatracker.ietf.org/doc/html/rfc2781#section-2
+
+				if(codepoint > UNICODE_MAX_VALUE_OVERALL) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+					// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught
+					// earlier!
+
+					ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+				}
+
+				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.1
+				const uint32_t surrogate_rest = (uint32_t)codepoint - (uint32_t)0x10000ULL;
+
+				const uint16_t low_surrogate_pair =
+				    (uint16_t)0xDC00UL + (uint16_t)(surrogate_rest & 0x3FFU);
+				const uint16_t high_surrogate_pair =
+				    (uint16_t)0xD800UL + ((uint16_t)(surrogate_rest >> 10) & 0x3FFU);
+
+				dst[0] = '\\';
+				dst[1] = 'u';
+
+				char hex_buf[5]; // NOLINT(readability-magic-numbers)
+
+				LibCInt result = snprintf(hex_buf, sizeof(hex_buf), "%04X", high_surrogate_pair);
+				if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+					              // NOTE: unreachable, as snprintf with 04X always produces 4 chars
+					return -1;    // GCOVR_EXCL_LINE
+				}
+
+				memcpy(dst + 2, hex_buf, 4);
+
+				dst[6] = '\\'; // NOLINT(readability-magic-numbers)
+				dst[7] = 'u';  // NOLINT(readability-magic-numbers)
+
+				result = snprintf(hex_buf, sizeof(hex_buf), "%04X", low_surrogate_pair);
+				if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+					// NOTE: unreachable, as snprintf with 04X always produces 4 chars
+					return -1; // GCOVR_EXCL_LINE
+				}
+
+				memcpy(dst + 8, hex_buf, 4); // NOLINT(readability-magic-numbers)
+
+				return 12; // NOLINT(readability-magic-numbers)
 			}
 
 			const uint16_t small_codepoint = (uint16_t)codepoint;
@@ -1903,8 +2114,9 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 			char hex_buf[5]; // NOLINT(readability-magic-numbers)
 
 			const LibCInt result = snprintf(hex_buf, sizeof(hex_buf), "%04X", small_codepoint);
-			if(result != 4) {
-				return -1;
+			if(result != 4) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+				// NOTE: unreachable, as snprintf with 04X always produces 4 chars
+				return -1; // GCOVR_EXCL_LINE
 			}
 
 			memcpy(dst + 2, hex_buf, 4);
@@ -1917,10 +2129,13 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 // from my project ass_parser_c, modified slightly
 #define NORMALIZED_STR_JSON_ESCAPED_UTF8_CHUNK_SIZE_NORMALIZE 256
 
-// 4 for unicode chars, 6 for escaped chars, as the max there is \uXXXX
-#define NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION 6
+// 4 for unicode chars, 6 for escaped chars, as the max there is \uXXXX and 12 for surrogates ->
+// \uXXXX\uYYYYY
+#define NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION 12
 
-static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints) {
+static tstr
+get_normalized_string_from_codepoints_json_escaped(const JsonCharArr codepoints,
+                                                   const JsonSerializeEscapeOption escape) {
 	if(codepoints.data == NULL) {
 		return tstr_null();
 	}
@@ -1930,7 +2145,7 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 
 	size_t current_size = 0;
 
-	if(!buffer) {
+	if(buffer == NULL) {
 		return tstr_null();
 	}
 
@@ -1941,7 +2156,7 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 			buffer_size = buffer_size + NORMALIZED_STR_JSON_ESCAPED_UTF8_CHUNK_SIZE_NORMALIZE;
 			uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-			if(!new_buffer) {
+			if(new_buffer == NULL) {
 				TJSON_FREE(buffer);
 				return tstr_null();
 			}
@@ -1951,8 +2166,9 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 
 		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, codepoints, i);
 
-		if(json_impl_needs_escaping(codepoint)) {
-			// needs place for 6 / UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION chars
+		if(json_impl_should_escape(codepoint, escape)) {
+			// needs place for 12 / NORMALIZED_STR_JSON_ESCAPED_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION
+			// chars
 			const int8_t result = json_impl_escape_char_into(codepoint, buffer + current_size);
 
 			if(result <= 0) {
@@ -1979,7 +2195,7 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 		buffer_size = buffer_size + 1;
 		uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-		if(!new_buffer) {
+		if(new_buffer == NULL) {
 			TJSON_FREE(buffer);
 			return tstr_null();
 		}
@@ -1992,17 +2208,17 @@ static tstr get_normalized_string_from_codepoints_json_escaped(const JsonCharArr
 	return tstr_own((char*)buffer, current_size, current_size);
 }
 
-static tstr get_tstr_from_json_string_escaped(const JsonString* const json_string) {
+static tstr get_tstr_from_json_string_escaped(const JsonString* const json_string,
+                                              const JsonSerializeEscapeOption escape) {
 
-	return get_normalized_string_from_codepoints_json_escaped(json_string->value);
+	return get_normalized_string_from_codepoints_json_escaped(json_string->value, escape);
 }
 
 static void json_to_string_string_impl(StringBuilder* const string_builder,
                                        const JsonString* const json_string,
                                        const JsonSerializeOptions options) {
-	UNUSED(options);
 
-	tstr string_escaped = get_tstr_from_json_string_escaped(json_string);
+	tstr string_escaped = get_tstr_from_json_string_escaped(json_string, options.escape);
 
 	if(tstr_is_null(&string_escaped)) {
 		OOM_ASSERT(false, "error in formatting json string");
@@ -2163,7 +2379,7 @@ json_to_string_variant_impl(StringBuilder* const string_builder, // NOLINT(misc-
 		break;
 		VARIANT_CASE_END();
 		default: {
-			break;
+			break; // GCOVR_EXCL_LINE
 		}
 	}
 }
@@ -2217,7 +2433,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 
 	size_t current_size = 0;
 
-	if(!buffer) {
+	if(buffer == NULL) {
 		return tstr_null();
 	}
 
@@ -2227,7 +2443,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 			buffer_size = buffer_size + NORMALIZED_STR_NORMAL_UTF8_CHUNK_SIZE_NORMALIZE;
 			uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-			if(!new_buffer) {
+			if(new_buffer == NULL) {
 				TJSON_FREE(buffer);
 				return tstr_null();
 			}
@@ -2237,7 +2453,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 
 		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, codepoints, i);
 
-		// needs place for 4  chars
+		// needs place for 4 / NORMALIZED_STR_NORMAL_UTF8_MAX_AMOUNT_PER_CHUNK_ITERATION chars
 		const utf8proc_ssize_t result = utf8proc_encode_char(codepoint, buffer + current_size);
 
 		if(result <= 0) {
@@ -2252,7 +2468,7 @@ static tstr get_normalized_string_from_codepoints(const JsonCharArr codepoints) 
 		buffer_size = buffer_size + 1;
 		uint8_t* new_buffer = (uint8_t*)TJSON_REALLOC(buffer, buffer_size);
 
-		if(!new_buffer) {
+		if(new_buffer == NULL) {
 			TJSON_FREE(buffer);
 			return tstr_null();
 		}
@@ -2295,7 +2511,7 @@ NODISCARD size_t json_array_get_size(const JsonArray* const array) {
 }
 
 NODISCARD const JsonValue* json_array_get_at(const JsonArray* const array, const size_t index) {
-	assert(index < json_array_get_size(array)); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+	ASSERT(index < json_array_get_size(array)); // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 
 	return TVEC_GET_AT(JsonValue, &(array->value), index);
 }
@@ -2475,24 +2691,25 @@ static void json_format_source_location_impl(StringBuilder* const string_builder
 
 	// NOTE: add 1 to both line and col, as they need to be human readable
 
-	SWITCH_JSON_SOURCE(location.source) {
-		CASE_JSON_SOURCE_IS_FILE_CONST(location.source) {
-			STRING_BUILDER_APPENDF(string_builder, return;
+	SWITCH_JSON_SOURCE(location.source) {                 // GCOVR_EXCL_BR_WITHOUT_HIT: 1/3
+		CASE_JSON_SOURCE_IS_FILE_CONST(location.source) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+			STRING_BUILDER_APPENDF(string_builder,        // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			                       OOM_ASSERT(false, "error in formatting location");
 			                       , TSTR_FMT ":%zu:%zu", TSTR_FMT_ARGS(*file.file_path),
 			                       location.pos.line + 1, location.pos.col + 1)
 			return;
 		}
-		VARIANT_CASE_END();
+		VARIANT_CASE_END(); // GCOVR_EXCL_LINE
 		CASE_JSON_SOURCE_IS_STRING_IGN() {
 			// TODO(Totto): print the whole line of this string and after that the error
-			STRING_BUILDER_APPENDF(string_builder, return;, "<string source>:%zu:%zu",
-			                                              location.pos.line + 1,
-			                                              location.pos.col + 1)
+			STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			    string_builder, OOM_ASSERT(false, "error in formatting location");
+			    , "<string source>:%zu:%zu", location.pos.line + 1, location.pos.col + 1)
 			return;
 		}
 		VARIANT_CASE_END();
 		default: {
-			return;
+			UNREACHABLE(); // GCOVR_EXCL_LINE
 		}
 	}
 }

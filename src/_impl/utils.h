@@ -93,7 +93,7 @@ extern "C" {
 			statement \
 		} \
 		internalBuffer = (char*)TJSON_MALLOC((size_t)toWrite * sizeof(char)); \
-		if(!internalBuffer) { \
+		if(internalBuffer == NULL) { \
 			logger_fn("Couldn't allocate memory for %d bytes!\n", toWrite); \
 			statement \
 		} \

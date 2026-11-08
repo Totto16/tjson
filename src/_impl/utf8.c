@@ -8,7 +8,7 @@ NODISCARD Utf8DataResult get_utf8_string(const tstr_view str_view) {
 
 	utf8proc_int32_t* buffer = TJSON_MALLOC(sizeof(utf8proc_int32_t) * str_view.len);
 
-	if(!buffer) {
+	if(buffer == NULL) {
 		return new_utf8_data_result_error(TSTR_STATIC_LIT("failed malloc"));
 	}
 
@@ -26,7 +26,7 @@ NODISCARD Utf8DataResult get_utf8_string(const tstr_view str_view) {
 		Utf8Codepoint* const new_buffer = // NOLINT(totto-const-correctness-c)
 		    TJSON_REALLOC(buffer, sizeof(utf8proc_int32_t) * (size_t)result);
 
-		if(!new_buffer) {
+		if(new_buffer == NULL) {
 			TJSON_FREE(buffer);
 			return new_utf8_data_result_error(TSTR_STATIC_LIT("failed realloc"));
 		}
