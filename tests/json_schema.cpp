@@ -566,7 +566,7 @@ TEST_CASE("testing invalid json schema construction <json_schema_errors>") {
 	std::vector<JsonSchemaErrorThrows> json_schema_error_tests = {
 		JsonSchemaErrorThrows{
 		    .schema_fn = []() -> JsonSchemaCpp { return json_schema::string().regex("\\").get(); },
-		    .throw_msg = "Regex was invalid!" },
+		    .throw_msg = "Regex was invalid: Trailing backslash" },
 		//
 		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
 		                          return json_schema::string().min(2).max(1).get();

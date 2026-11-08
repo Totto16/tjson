@@ -49,11 +49,15 @@ JsonSchemaStringBuilder::JsonSchemaStringBuilder()
 
 [[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(const std::string& str) {
 
-	auto* regex = json_schema_regex_get(str.c_str());
+	auto regex_result = json_schema_regex_get(str.c_str());
 
-	if(regex == nullptr) {
-		throw std::runtime_error("Regex was invalid!");
+	IF_JSON_SCHEMA_REGEX_RESULT_IS_ERROR_MUT_REF(&regex_result) {
+		std::string err = string_from_tstr(error->err);
+		free_json_schema_regex_error(error);
+		throw std::runtime_error("Regex was invalid: " + err);
 	}
+
+	auto regex = json_schema_regex_result_get_as_ok(regex_result);
 
 	const auto result = json_schema_string_set_regex(this->value(), regex);
 

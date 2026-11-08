@@ -1058,8 +1058,8 @@ TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* con
 	return new_json_schema_regex_result_ok(json_schema_regex);
 }
 
-void free_json_schema_regex_error(JsonSchemaRegexError error) {
-	tstr_free(&(error.err));
+void free_json_schema_regex_error(JsonSchemaRegexError* error) {
+	tstr_free(&(error->err));
 }
 
 void free_json_schema_regex(JsonSchemaRegex* const json_schema_regex) {

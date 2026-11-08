@@ -88,7 +88,7 @@ TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* str);
 
 TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* str);
 
-void free_json_schema_regex_error(JsonSchemaRegexError error);
+void free_json_schema_regex_error(JsonSchemaRegexError* error);
 
 void free_json_schema_regex(JsonSchemaRegex* json_schema_regex);
 
