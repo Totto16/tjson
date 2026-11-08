@@ -78,9 +78,17 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* json_sc
 
 typedef struct JsonSchemaRegexImpl JsonSchemaRegex;
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get(const char* str);
+typedef struct {
+	tstr err;
+} JsonSchemaRegexError;
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* str);
+GENERATE_VARIANT_ALL_JSON_SCHEMA_REGEX_RESULT()
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* str);
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* str);
+
+void free_json_schema_regex_error(JsonSchemaRegexError error);
 
 void free_json_schema_regex(JsonSchemaRegex* json_schema_regex);
 

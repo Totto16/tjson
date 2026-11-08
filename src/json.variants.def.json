@@ -533,5 +533,31 @@
                 "order": "best_size"
             }
         }
+    },
+    {
+        "name": "JsonSchemaRegexResult",
+        "member": [
+            {
+                "name": "Ok",
+                "type": {
+                    "name": "JsonSchemaRegex*"
+                }
+            },
+            {
+                "name": "Error",
+                "type": {
+                    "name": "JsonSchemaRegexError"
+                }
+            }
+        ],
+        "enum": {
+            "name": "JsonSchemaRegexResultType",
+            "underlyingType": "bool"
+        },
+        "options": {
+            "requirements": {
+                "order": "best_size"
+            }
+        }
     }
 ]

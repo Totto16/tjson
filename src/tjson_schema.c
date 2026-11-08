@@ -1020,9 +1020,9 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* const j
 	return tstr_static_null();
 }
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get(const char* const str) {
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* const str) {
 	tstr temp = tstr_from(str);
-	JsonSchemaRegex* const result = json_schema_regex_get_tstr(&temp);
+	JsonSchemaRegexResult const result = json_schema_regex_get_tstr(&temp);
 	tstr_free(&temp);
 	return result;
 }
@@ -1034,13 +1034,12 @@ static void json_schema_regex_destroy_impl(JsonSchemaRegex* const json_schema_re
 	tstr_free(&(json_schema_regex->original));
 }
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const str) {
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* const str) {
 
 	SimpleRegexResult result = simple_regex_compile(str);
 
-	IF_SIMPLE_REGEX_RESULT_IS_ERROR_MUT_REF(&result) {
-		tstr_free(error);
-		return NULL;
+	IF_SIMPLE_REGEX_RESULT_IS_ERROR_CONST(result) {
+		return new_json_schema_regex_result_error((JsonSchemaRegexError){ .err = error });
 	}
 
 	const SimpleRegex regex = simple_regex_result_get_as_ok(result);
@@ -1049,13 +1048,18 @@ TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const st
 	    RC_ALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);
 
 	if(json_schema_regex == NULL) {
-		return NULL;
+		return new_json_schema_regex_result_error(
+		    (JsonSchemaRegexError){ .err = TSTR_LIT("allocation error") });
 	}
 
 	json_schema_regex->regex = regex;
 	json_schema_regex->original = tstr_dup(str);
 
-	return json_schema_regex;
+	return new_json_schema_regex_result_ok(json_schema_regex);
+}
+
+void free_json_schema_regex_error(JsonSchemaRegexError error) {
+	tstr_free(&(error.err));
 }
 
 void free_json_schema_regex(JsonSchemaRegex* const json_schema_regex) {
@@ -1240,7 +1244,7 @@ TMAP_HASH_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequire
 }
 
 TMAP_EQ_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredIdName) {
-	// compare ptres
+	// compare ptrs
 	return key1.schema_ptr == key2.schema_ptr;
 }
 

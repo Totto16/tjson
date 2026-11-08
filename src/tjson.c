@@ -903,8 +903,8 @@ NODISCARD static JsonError json_parse_impl_parse_number_int_part(JsonParseState*
 		}
 	}
 
-	// TODO(Totto): JSON overflows much earlier, Number.MAX_SAFE_INTEGER is the limit in js, but is this in
-	// the spec?
+	// TODO(Totto): JSON overflows much earlier, Number.MAX_SAFE_INTEGER is the limit in js, but is
+	// this in the spec?
 
 	// TODO(Totto): check if this has rounding errors!
 	*out_result = (double)value;
