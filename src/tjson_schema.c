@@ -961,7 +961,7 @@ static void json_schema_string_destroy_impl(JsonSchemaString* const json_schema_
 
 	if(HAS_FLAG(json_schema_string->props.flags, JsonSchemaStringPropertiesFlagsPattern)) {
 
-		ASSERT(json_schema_string->props.pattern != NULL);
+		OOM_ASSERT(json_schema_string->props.pattern != NULL, "pattern was not set");
 
 		free_json_schema_regex(json_schema_string->props.pattern);
 	}
