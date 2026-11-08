@@ -1300,7 +1300,7 @@ NODISCARD static tstr_static json_string_add_char_impl(JsonString* const json_st
 	return tstr_static_null();
 }
 
-GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_LINE
+GENERATE_VARIANT_ALL_UTF8_NEXT_CHAR_RESULT() // GCOVR_EXCL_BR_LINE GCOVR_EXCL_LINE
 
 NODISCARD static Utf8NextCharResult utf8_get_next_char_and_consume(JsonParseState* const state) {
 
