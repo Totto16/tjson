@@ -55,6 +55,22 @@ TstrIsNull::TstrIsNull() {}
 	return tstr_eq(&str1, &str2);
 }
 
+[[nodiscard]] bool operator==(const tstr& str1, const tstr_static& str2) {
+	return tstr_eq_static_tstr(&str1, str2);
+}
+
+[[nodiscard]] bool operator==(const tstr_static& str1, const tstr& str2) {
+	return str2 == str1;
+}
+
+[[nodiscard]] bool operator==(const char* str1, const tstr& str2) {
+	return tstr_static_from_static_cstr(str1) == str2;
+}
+
+[[nodiscard]] bool operator==(const std::string& str1, const tstr& str2) {
+	return str1.c_str() == str2;
+}
+
 [[nodiscard]] std::string string_from_tstr(const tstr& value) {
 	if(tstr_is_null(&value)) {
 		throw std::runtime_error("tstr is NULL!");

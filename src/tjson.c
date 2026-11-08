@@ -2691,24 +2691,25 @@ static void json_format_source_location_impl(StringBuilder* const string_builder
 
 	// NOTE: add 1 to both line and col, as they need to be human readable
 
-	SWITCH_JSON_SOURCE(location.source) {
-		CASE_JSON_SOURCE_IS_FILE_CONST(location.source) {
-			STRING_BUILDER_APPENDF(string_builder, return;
+	SWITCH_JSON_SOURCE(location.source) {                 // GCOVR_EXCL_BR_WITHOUT_HIT: 1/3
+		CASE_JSON_SOURCE_IS_FILE_CONST(location.source) { // GCOVR_EXCL_BR_WITHOUT_HIT: 2/4
+			STRING_BUILDER_APPENDF(string_builder,        // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			                       OOM_ASSERT(false, "error in formatting location");
 			                       , TSTR_FMT ":%zu:%zu", TSTR_FMT_ARGS(*file.file_path),
 			                       location.pos.line + 1, location.pos.col + 1)
 			return;
 		}
-		VARIANT_CASE_END();
+		VARIANT_CASE_END(); // GCOVR_EXCL_LINE
 		CASE_JSON_SOURCE_IS_STRING_IGN() {
 			// TODO(Totto): print the whole line of this string and after that the error
-			STRING_BUILDER_APPENDF(string_builder, return;, "<string source>:%zu:%zu",
-			                                              location.pos.line + 1,
-			                                              location.pos.col + 1)
+			STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			    string_builder, OOM_ASSERT(false, "error in formatting location");
+			    , "<string source>:%zu:%zu", location.pos.line + 1, location.pos.col + 1)
 			return;
 		}
 		VARIANT_CASE_END();
 		default: {
-			return;
+			UNREACHABLE(); // GCOVR_EXCL_LINE
 		}
 	}
 }

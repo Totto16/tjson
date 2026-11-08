@@ -662,6 +662,95 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_EQ(obj_entry, nullptr);
 		}();
 	}
+
+	SUBCASE("json_format_source_location works as expected") {
+		[]() -> void {
+			{
+				const tstr_static nonnull_src_str = "nothing"_tstr_static;
+
+				const auto nonnull_src =
+				    JsonSourceLocation{ .source = new_json_source_string(JsonStringSource{
+					                        .data = tstr_static_as_view(nonnull_src_str) }),
+					                    .pos = JsonSourcePosition{ .line = 0, .col = 0 } };
+
+				tstr res = json_format_source_location(nonnull_src);
+
+				REQUIRE_NE(TstrIsNull{}, res);
+
+				CAutoFreePtr<tstr> defer = { &res, tstr_free };
+
+				REQUIRE_EQ("<string source>:1:1", res);
+			}
+
+			{
+				const tstr_static nonnull_src_str = "nothing"_tstr_static;
+
+				const auto nonnull_src =
+				    JsonSourceLocation{ .source = new_json_source_string(JsonStringSource{
+					                        .data = tstr_static_as_view(nonnull_src_str) }),
+					                    .pos = JsonSourcePosition{ .line = 146, .col = 13 } };
+
+				tstr res = json_format_source_location(nonnull_src);
+
+				REQUIRE_NE(TstrIsNull{}, res);
+
+				CAutoFreePtr<tstr> defer = { &res, tstr_free };
+
+				REQUIRE_EQ("<string source>:147:14", res);
+			}
+
+			{
+				tstr nonnull_file = "nothing.c"_tstr;
+
+				CAutoFreePtr<tstr> defer1 = { &nonnull_file, tstr_free };
+
+				const auto nonnull_src = JsonSourceLocation{
+					.source = new_json_source_file(JsonFileSource{ .file_path = &nonnull_file }),
+					.pos = JsonSourcePosition{ .line = 0, .col = 0 }
+				};
+
+				tstr res = json_format_source_location(nonnull_src);
+
+				REQUIRE_NE(TstrIsNull{}, res);
+
+				CAutoFreePtr<tstr> defer = { &res, tstr_free };
+
+				REQUIRE_EQ("nothing.c:1:1", res);
+			}
+
+			{
+				tstr nonnull_file = "nothing.c"_tstr;
+
+				CAutoFreePtr<tstr> defer1 = { &nonnull_file, tstr_free };
+
+				const auto nonnull_src = JsonSourceLocation{
+					.source = new_json_source_file(JsonFileSource{ .file_path = &nonnull_file }),
+					.pos = JsonSourcePosition{ .line = 146, .col = 13 }
+				};
+
+				tstr res = json_format_source_location(nonnull_src);
+
+				REQUIRE_NE(TstrIsNull{}, res);
+
+				CAutoFreePtr<tstr> defer = { &res, tstr_free };
+
+				REQUIRE_EQ("nothing.c:147:14", res);
+			}
+
+			{
+
+				const auto null_src = json_source_location_get_null();
+
+				tstr res = json_format_source_location(null_src);
+
+				REQUIRE_NE(TstrIsNull{}, res);
+
+				CAutoFreePtr<tstr> defer = { &res, tstr_free };
+
+				REQUIRE_EQ("<Nowhere>", res);
+			}
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {
