@@ -19,9 +19,12 @@ NODISCARD SimpleRegexResult simple_regex_compile(const tstr* const str) {
 
 		const size_t bytes_written = regerror(compile_result, NULL, errbuf, ERR_BUF_SIZE);
 
-		if(bytes_written > ERR_BUF_SIZE) {
-			TJSON_FREE(errbuf);
-			return new_simple_regex_result_error(TSTR_LIT("error in error allocation"));
+		if(bytes_written > ERR_BUF_SIZE) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+			// NOTE: I checked all possible errors, and there are no big ones, so this can't bet
+			// tested
+			TJSON_FREE(errbuf);                         // GCOVR_EXCL_LINE
+			return new_simple_regex_result_error(       // GCOVR_EXCL_LINE
+			    TSTR_LIT("error in error allocation")); // GCOVR_EXCL_LINE
 		}
 
 		errbuf[bytes_written] = (LibCChar)'\0';
@@ -35,7 +38,7 @@ NODISCARD SimpleRegexResult simple_regex_compile(const tstr* const str) {
 
 NODISCARD bool simple_regex_match(const SimpleRegex* const regex, const tstr* const str) {
 
-	if(regex == NULL) {
+	if(regex == NULL || str == NULL) {
 		return false;
 	}
 

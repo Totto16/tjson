@@ -15,6 +15,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <_impl/simple_regex.h>
+
 namespace {
 
 struct JsonParseTestCaseSuccess {
@@ -880,6 +882,36 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			tstr_static actual_error = utf8_data_result_get_as_error(parse_result);
 
 			REQUIRE_EQ(actual_error, "Invalid UTF-8 string"_tstr_static);
+		}();
+	}
+
+	SUBCASE("null source handling") {
+		[]() -> void {
+			{
+				bool res = simple_regex_match(nullptr, nullptr);
+
+				REQUIRE_FALSE(res);
+			}
+
+			{
+
+				tstr regex_str = TSTR_LIT("^hello$");
+
+				CAutoFreePtr<tstr> defer = { &regex_str, tstr_free };
+
+				SimpleRegexResult regex_result = simple_regex_compile(&regex_str);
+
+				REQUIRE_EQ(get_current_tag_type_for_simple_regex_result(regex_result),
+				           SimpleRegexResultTypeOk);
+
+				SimpleRegex regex = simple_regex_result_get_as_ok(regex_result);
+
+				CAutoFreePtr<SimpleRegex> defer2 = { &regex, free_simple_regex };
+
+				bool res = simple_regex_match(&regex, nullptr);
+
+				REQUIRE_FALSE(res);
+			}
 		}();
 	}
 }
