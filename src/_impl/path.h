@@ -12,7 +12,7 @@
 
 #include "../tjson/variants.h"
 
-GENERATE_VARIANT_ALL_READ_FILE_RESULT()
+GENERATE_VARIANT_ALL_READ_FILE_RESULT() // GCOVR_EXCL_LINE
 
 #ifdef __cplusplus
 extern "C" {

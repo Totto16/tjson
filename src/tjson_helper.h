@@ -33,7 +33,7 @@ typedef struct {
 	tstr err;
 } JsonIterateError;
 
-GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT()
+GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT() // GCOVR_EXCL_LINE
 
 typedef struct {
 	RTTIAnnotatedValue handle;

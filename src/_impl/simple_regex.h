@@ -17,7 +17,7 @@ typedef struct {
 
 #include "../tjson/variants.h"
 
-GENERATE_VARIANT_ALL_SIMPLE_REGEX_RESULT()
+GENERATE_VARIANT_ALL_SIMPLE_REGEX_RESULT() // GCOVR_EXCL_LINE
 
 NODISCARD SimpleRegexResult simple_regex_compile(const tstr* str);
 

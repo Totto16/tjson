@@ -19,7 +19,7 @@ typedef struct {
 
 #include "../tjson/variants.h"
 
-GENERATE_VARIANT_ALL_UTF8_DATA_RESULT()
+GENERATE_VARIANT_ALL_UTF8_DATA_RESULT() // GCOVR_EXCL_LINE
 
 NODISCARD Utf8DataResult get_utf8_string(tstr_view str_view);
 
