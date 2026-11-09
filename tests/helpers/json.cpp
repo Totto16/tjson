@@ -268,15 +268,18 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return new_json_value_array_rc(array);
 }
 
-[[nodiscard]] JsonValue
-json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+template <typename A>
+[[nodiscard]] static JsonValue object_impl(std::move_iterator<A> begin, std::move_iterator<A> end) {
 	JsonObject* const object = json_object_get_empty();
 
 	if(object == nullptr) {
 		throw std::runtime_error("JSON object initialization failed");
 	}
 
-	for(auto&& value : values) {
+	for(; begin != end; ++begin) {
+
+		auto value = std::move(*begin);
+
 		JsonString* key_moved =
 		    json_get_string_from_tstr_view(helpers::tstr_view_from_str(value.first));
 		if(key_moved == nullptr) {
@@ -293,6 +296,17 @@ json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) 
 	}
 
 	return new_json_value_object_rc(object);
+}
+
+[[nodiscard]] JsonValue
+json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+	return object_impl(std::make_move_iterator(values.begin()),
+	                   std::make_move_iterator(values.end()));
+}
+
+[[nodiscard]] JsonValue json::object(std::vector<std::pair<std::string, JsonValue>>&& values) {
+	return object_impl(std::make_move_iterator(values.begin()),
+	                   std::make_move_iterator(values.end()));
 }
 
 JsonErrorCpp::JsonErrorCpp(std::string&& message, JsonSourceLocation loc)
