@@ -857,7 +857,19 @@ TJSON_NODISCARD tstr_static json_schema_object_add_entry(JsonSchemaObject* const
 
 	const JsonObjectEntrySchema entry = { .schema = value, .required = required };
 
-	return json_schema_object_add_entry_impl(json_schema_object, key, entry);
+	tstr_static result = json_schema_object_add_entry_impl(json_schema_object, key, entry);
+
+	if(tstr_static_is_null(result)) {
+
+		tstr_free(moved_key);
+		*moved_key = tstr_null();
+
+		return tstr_static_null();
+	}
+
+	*moved_key = tstr_null();
+
+	return result;
 }
 
 TJSON_NODISCARD tstr_static
@@ -1146,7 +1158,19 @@ TJSON_NODISCARD static JsonSchemaLiteral* json_schema_literal_get_impl(tstr valu
 TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get(tstr* value_moved) {
 	const tstr value = *value_moved;
 
-	return json_schema_literal_get_impl(value);
+	JsonSchemaLiteral* result = json_schema_literal_get_impl(value);
+
+	if(result == NULL) {
+
+		tstr_free(value_moved);
+		*value_moved = tstr_null();
+
+		return NULL;
+	}
+
+	*value_moved = tstr_null();
+
+	return result;
 }
 
 TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_dup(const tstr* value) {

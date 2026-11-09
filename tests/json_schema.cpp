@@ -724,6 +724,10 @@ get_schema_value_with_defs(std::initializer_list<std::pair<std::string, JsonValu
 
 TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 
+	tstr literal_str_moved = TSTR_LIT("hello_tstr moved");
+	tstr literal_str_duped = TSTR_LIT("hello_tstr duped");
+	CAutoFreePtr<tstr> defer_literal_str_duped = { &literal_str_duped, tstr_free };
+
 	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
 		JsonSchemaStringifyTestCase{ .schema = json_schema::null(),
 		                             .result =
@@ -763,6 +767,18 @@ TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 		                             .result = get_schema_value({
 		                                 { "type", json::string("string") },
 		                                 { "const", json::string("hello") },
+		                             }) },
+		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		                                 json_schema_literal_get(&literal_str_moved)) },
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello_tstr moved") },
+		                             }) },
+		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		                                 json_schema_literal_get_dup(&literal_str_duped)) },
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello_tstr duped") },
 		                             }) },
 		JsonSchemaStringifyTestCase{
 		    .schema = json_schema::one_of({
@@ -942,6 +958,9 @@ TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 
 		REQUIRE_EQ(json_result, test_case.result);
 	}
+
+	REQUIRE_EQ(TstrIsNull{}, literal_str_moved);
+	REQUIRE_NE(TstrIsNull{}, literal_str_duped);
 }
 
 TEST_SUITE_END();
