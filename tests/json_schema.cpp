@@ -769,7 +769,7 @@ TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 		                                 { "const", json::string("hello") },
 		                             }) },
 		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
-		                                 json_schema_literal_get(&literal_str_moved)) },
+		                                 json_schema_literal_get_moved(&literal_str_moved)) },
 		                             .result = get_schema_value({
 		                                 { "type", json::string("string") },
 		                                 { "const", json::string("hello_tstr moved") },

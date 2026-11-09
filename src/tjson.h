@@ -18,6 +18,24 @@
 	#define TJSON_MAYBE_UNUSED __attribute__((__unused__))
 #endif
 
+#define TJSON_MOVE(val) &(val)
+
+#if defined(__GNUC__) || defined(__clang__)
+	#if defined(__clang__)
+		#define TJSON_MOVED(T) [[clang::param_typestate(unconsumed)]] T*
+		#define TJSON_CAN_CONSUME [[clang::consumable(unconsumed)]]
+	#else
+		#define TJSON_MOVED(T) T*
+		#define TJSON_CAN_CONSUME
+	#endif
+#elif defined(_MSC_VER)
+	#define TJSON_MOVED(T) _Post_invalid_ T*
+	#define TJSON_CAN_CONSUME
+#else
+	#define TJSON_MOVED(T) T*
+	#define TJSON_CAN_CONSUME
+#endif
+
 #define TJSON_UNUSED(v) ((void)(v))
 
 // cool trick from here:
@@ -66,7 +84,7 @@ typedef struct JsonObjectImpl JsonObject;
 
 typedef struct JsonArrayImpl JsonArray;
 
-typedef struct JsonStringImpl JsonString;
+typedef struct TJSON_CAN_CONSUME JsonStringImpl JsonString;
 
 typedef struct {
 	double value;
@@ -209,8 +227,8 @@ void free_json_array(JsonArray* json_arr);
 
 TJSON_NODISCARD JsonObject* json_object_get_empty(void);
 
-TJSON_NODISCARD tstr_static json_object_add_entry(JsonObject* json_object, JsonString** key_moved,
-                                                  JsonValue value);
+TJSON_NODISCARD tstr_static json_object_add_entry(JsonObject* json_object,
+                                                  TJSON_MOVED(JsonString*) key, JsonValue value);
 
 TJSON_NODISCARD tstr_static json_object_add_entry_dup(JsonObject* json_object, JsonString* key,
                                                       JsonValue value);

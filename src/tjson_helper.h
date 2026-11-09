@@ -15,9 +15,9 @@ typedef struct JsonPathImpl JsonPath;
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void);
 
-TJSON_NODISCARD bool json_path_add_object_key(JsonPath* path, const tstr* key);
+TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* path, const tstr* key);
 
-TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved);
+TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key);
 
 TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index);
 

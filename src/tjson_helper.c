@@ -33,7 +33,7 @@ TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	return path;
 }
 
-TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* key) {
+TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* const path, const tstr* key) {
 
 	tstr key_duped = tstr_dup(key);
 
@@ -44,20 +44,20 @@ TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* 
 	return json_path_add_object_key_moved(path, &key_duped);
 }
 
-TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved) {
+TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
 
 	TvecResult result =
-	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(*key_moved));
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(*key));
 
 	if(result != TvecResultOk) {
 
-		tstr_free(key_moved);
-		*key_moved = tstr_null();
+		tstr_free(key);
+		*key = tstr_null();
 
 		return false;
 	}
 
-	*key_moved = tstr_null();
+	*key = tstr_null();
 
 	return true;
 }
@@ -252,7 +252,8 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					bool add_result = json_path_add_object_key(json_path, &key_tstr);
+					bool add_result =
+					    json_path_add_object_key_moved(json_path, TJSON_MOVE(key_tstr));
 
 					if(!add_result) {
 						FREE_AT_END();
