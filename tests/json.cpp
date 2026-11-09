@@ -1212,6 +1212,37 @@ TEST_CASE("testing forced escaped stringification of json values <json_parser_es
 				CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
 
 				REQUIRE_EQ(result, test_case.input);
+
+				{ // extra check, check if parsing of the same thing with another indentation
+				  // results in the same value too
+
+					std::array<size_t, 4> indentations = { 2, 4, 8, 16 };
+
+					for(size_t j = 0; j < indentations.size(); ++j) {
+
+						const auto indentation = indentations.at(j);
+
+						auto stringify_result2 = json_value_to_string_advanced(
+						    &test_case.input, {
+						                          .indent_size = indentation,
+						                          .escape = escape,
+						                      });
+						CAutoFreePtr<tstr> defer_str2 = { &stringify_result2, tstr_free };
+
+						REQUIRE_NE(TstrIsNull{}, stringify_result2);
+
+						const tstr_view str_view2 = tstr_as_view(&stringify_result2);
+
+						const auto parse_result2 = json_value_parse_from_str(str_view2);
+
+						REQUIRE_EQ(parse_result2, JsonParseResultTypeOk);
+
+						JsonValue result2 = json_parse_result_get_as_ok(parse_result2);
+						CAutoFreePtr<JsonValue> defer_str_str2 = { &result2, free_json_value };
+
+						REQUIRE_EQ(result2, test_case.input);
+					}
+				}
 			}
 		}
 	}
