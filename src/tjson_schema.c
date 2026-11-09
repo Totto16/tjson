@@ -858,17 +858,17 @@ TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(
 
 	tstr_static result = json_schema_object_add_entry_impl(json_schema_object, key_normal, entry);
 
-	if(tstr_static_is_null(result)) {
+	if(!tstr_static_is_null(result)) {
 
 		tstr_free(TJSON_GET_MOVED_VALUE(key));
 		*TJSON_GET_MOVED_VALUE(key) = tstr_null();
 
-		return tstr_static_null();
+		return result;
 	}
 
 	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
 
-	return result;
+	return tstr_static_null();
 }
 
 TJSON_NODISCARD tstr_static

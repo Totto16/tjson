@@ -46,13 +46,15 @@ TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* const path, const ts
 
 TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
 
-	TvecResult result = TVEC_PUSH(JsonPathSegment, &(path->segments),
-	                              new_json_path_segment_object_key(*TJSON_GET_MOVED_VALUE(key)));
+	const tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
+
+	TvecResult result =
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(key_normal));
 
 	if(result != TvecResultOk) {
 
-		tstr_free(TJSON_GET_MOVED_VALUE(key));
 		*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+		tstr_free(TJSON_GET_MOVED_VALUE(key));
 
 		return false;
 	}
