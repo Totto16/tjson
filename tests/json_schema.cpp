@@ -724,10 +724,6 @@ get_schema_value_with_defs(std::initializer_list<std::pair<std::string, JsonValu
 
 TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 
-	tstr literal_str_moved = TSTR_LIT("hello_tstr moved");
-	tstr literal_str_duped = TSTR_LIT("hello_tstr duped");
-	CAutoFreePtr<tstr> defer_literal_str_duped = { &literal_str_duped, tstr_free };
-
 	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
 		JsonSchemaStringifyTestCase{ .schema = json_schema::null(),
 		                             .result =
@@ -767,18 +763,6 @@ TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 		                             .result = get_schema_value({
 		                                 { "type", json::string("string") },
 		                                 { "const", json::string("hello") },
-		                             }) },
-		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
-		                                 json_schema_literal_get_moved(&literal_str_moved)) },
-		                             .result = get_schema_value({
-		                                 { "type", json::string("string") },
-		                                 { "const", json::string("hello_tstr moved") },
-		                             }) },
-		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
-		                                 json_schema_literal_get_dup(&literal_str_duped)) },
-		                             .result = get_schema_value({
-		                                 { "type", json::string("string") },
-		                                 { "const", json::string("hello_tstr duped") },
 		                             }) },
 		JsonSchemaStringifyTestCase{
 		    .schema = json_schema::one_of({
@@ -936,6 +920,74 @@ TEST_CASE("testing json schema stringification <json_schema_stringification>") {
 		            { 1, json::object({ { "type", json::string("null") } }) },
 
 		        }) },
+	};
+
+	CAutoFreePtr<std::vector<JsonSchemaStringifyTestCase>> defer_tests = {
+		&json_schema_stringify_tests,
+		[](std::vector<JsonSchemaStringifyTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    free_json_value(&(value->result));
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_schema_stringify_tests) {
+		INFO("Test case: ", test_case.schema);
+
+		tstr schema_result = json_schema_to_string(test_case.schema.ptr());
+
+		CAutoFreePtr<tstr> defer_schema = { &schema_result, tstr_free };
+
+		REQUIRE_NE(TstrIsNull{}, schema_result);
+
+		const tstr_view result_str_view = tstr_as_view(&schema_result);
+
+		const auto parse_result = json_value_parse_from_str(result_str_view);
+
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+		JsonValue json_result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer2 = { &json_result, free_json_value };
+
+		REQUIRE_EQ(json_result, test_case.result);
+	}
+}
+
+TEST_CASE("testing json schema special cases stringification "
+          "<json_schema_special_case_stringification>") {
+
+	tstr literal_str_moved = TSTR_LIT("hello_tstr moved");
+	tstr literal_str_duped = TSTR_LIT("hello_tstr duped");
+	CAutoFreePtr<tstr> defer_literal_str_duped = { &literal_str_duped, tstr_free };
+
+	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
+
+		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		                                 json_schema_literal_get_moved(&literal_str_moved)) },
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello_tstr moved") },
+		                             }) },
+		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		                                 json_schema_literal_get_dup(&literal_str_duped)) },
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello_tstr duped") },
+		                             }) },
+
+	};
+
+	CAutoFreePtr<std::vector<JsonSchemaStringifyTestCase>> defer_tests = {
+		&json_schema_stringify_tests,
+		[](std::vector<JsonSchemaStringifyTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    free_json_value(&(value->result));
+		    }
+		}
 	};
 
 	for(const auto& test_case : json_schema_stringify_tests) {
