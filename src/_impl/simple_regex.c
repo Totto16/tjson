@@ -61,13 +61,14 @@ NODISCARD bool simple_regex_match(const SimpleRegex* const regex, const tstr* co
 		return false;
 	}
 
-	if(match_result == 0) {
+	if(match_result == 0) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		return true;
 	}
 
-	// TODO(Totto): maybe log that error
-	// an error occurred
-	return false;
+	// NOTE: this is never reached, as glibc regexec returns a boolean (0 or 1 (REG_NOMATCH == 1))
+	// and only returns an error (REG_BADPAT) when passed invalid flags, but the user can never
+	// specify bad flags, except REG_STARTEND is defined and not supported? (so never I hope)
+	return false; // GCOVR_EXCL_LINE
 }
 
 void free_simple_regex(SimpleRegex* const regex) {

@@ -126,7 +126,7 @@ typedef struct {
 	JsonDefEntryMap defs;
 } JsonSchemaState;
 
-GENERATE_VARIANT_ALL_JSON_SCHEMA_ADD_RESULT()
+GENERATE_VARIANT_ALL_JSON_SCHEMA_ADD_RESULT() // GCOVR_EXCL_LINE
 
 struct JsonSchemaRegexImpl {
 	SimpleRegex regex;
