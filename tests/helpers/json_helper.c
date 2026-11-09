@@ -274,6 +274,11 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				    .err = TSTR_LIT("Error: invalid json value for type that expected: 'tstr'") });
 			}
 
+			if(tstr_is_null(object_entry.entry.key)) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("implementation error, the object entry key is <NULL>") });
+			}
+
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
 			    "Error: unhandled object key in root object: <no more info>",
 			    "Error: unhandled object key in root object: " TSTR_FMT,

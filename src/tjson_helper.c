@@ -252,8 +252,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					bool add_result =
-					    json_path_add_object_key_moved(json_path, TJSON_MOVE(key_tstr));
+					bool add_result = json_path_add_object_key_dup(json_path, &key_tstr);
 
 					if(!add_result) {
 						FREE_AT_END();
