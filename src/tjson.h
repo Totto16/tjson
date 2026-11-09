@@ -52,19 +52,11 @@
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-	#if defined(__clang__)
-		#define TJSON_MOVED(T) [[clang::param_typestate(unconsumed)]] TJSON_MOVE_TYPE_FOR(T)
-		#define TJSON_CAN_CONSUME [[clang::consumable(unconsumed)]]
-	#else
-		#define TJSON_MOVED(T) TJSON_MOVE_TYPE_FOR(T)
-		#define TJSON_CAN_CONSUME
-	#endif
+	#define TJSON_MOVED(T) TJSON_MOVE_TYPE_FOR(T)
 #elif defined(_MSC_VER)
 	#define TJSON_MOVED(T) _Post_invalid_ TJSON_MOVE_TYPE_FOR(T)
-	#define TJSON_CAN_CONSUME
 #else
 	#define TJSON_MOVED(T) TJSON_MOVE_TYPE_FOR(T)
-	#define TJSON_CAN_CONSUME
 #endif
 
 #define TJSON_UNUSED(v) ((void)(v))
@@ -115,7 +107,7 @@ typedef struct JsonObjectImpl JsonObject;
 
 typedef struct JsonArrayImpl JsonArray;
 
-typedef struct TJSON_CAN_CONSUME JsonStringImpl JsonString;
+typedef struct JsonStringImpl JsonString;
 
 typedef struct {
 	double value;

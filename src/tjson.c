@@ -39,7 +39,7 @@ struct JsonStringImpl {
 };
 
 // keys can only be strings
-typedef struct TJSON_CAN_CONSUME {
+typedef struct {
 	JsonString* string;
 } JsonObjectKey;
 
