@@ -288,7 +288,8 @@ template <typename A>
 		}
 
 		const JsonValue final_value = value.second;
-		const auto add_result = json_object_add_entry(object, &key_moved, final_value);
+		const auto add_result = json_object_add_entry_moved(
+		    object, TJSON_MOVE_EXTENDED(JsonString*, JsonStringPtr, key_moved), final_value);
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(std::string{ "JSON object entry addition failed for key: " } +
 			                         string_from_tstr_static(add_result));

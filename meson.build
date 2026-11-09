@@ -27,6 +27,7 @@ inc_dirs = []
 if get_option('tests') and get_option('b_coverage')
     allocators_used = 'tjson_coverage_allocators'
     internal_c_args += '-DTJSON_ALLOCATOR_PREFIX=tjson_coverage_allocator'
+    internal_c_args += '-DTJSON_STRONGLY_TYPED_MOVE'
     subdir('src/_impl/allocators')
 endif
 

@@ -964,12 +964,13 @@ TEST_CASE("testing json schema special cases stringification "
 
 	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
 
-		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
-		                                 json_schema_literal_get_moved(&literal_str_moved)) },
-		                             .result = get_schema_value({
-		                                 { "type", json::string("string") },
-		                                 { "const", json::string("hello_tstr moved") },
-		                             }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		        json_schema_literal_get_moved(TJSON_MOVE(tstr, literal_str_moved))) },
+		    .result = get_schema_value({
+		        { "type", json::string("string") },
+		        { "const", json::string("hello_tstr moved") },
+		    }) },
 		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
 		                                 json_schema_literal_get_dup(&literal_str_duped)) },
 		                             .result = get_schema_value({

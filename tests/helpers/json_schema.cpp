@@ -156,7 +156,7 @@ json_schema::object(const bool allow_additional_properties,
 		tstr key_moved = tstr_from_view(helpers::tstr_view_from_str(value.key));
 
 		const auto add_result = json_schema_object_add_entry_moved(
-		    object, TJSON_MOVE(key_moved), value.value.get(), value.required);
+		    object, TJSON_MOVE(tstr, key_moved), value.value.get(), value.required);
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(
 			    std::string{ "JSON Schema object entry addition failed for key: " } +

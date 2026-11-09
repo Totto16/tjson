@@ -852,7 +852,7 @@ json_schema_object_add_entry_impl(JsonSchemaObject* const json_schema_object, ts
 TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(
     JsonSchemaObject* const json_schema_object, TJSON_MOVED(tstr) key, const JsonSchema value,
     const bool required) {
-	const tstr key_normal = *key;
+	const tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
 
 	const JsonObjectEntrySchema entry = { .schema = value, .required = required };
 
@@ -860,13 +860,13 @@ TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(
 
 	if(tstr_static_is_null(result)) {
 
-		tstr_free(key);
-		*key = tstr_null();
+		tstr_free(TJSON_GET_MOVED_VALUE(key));
+		*TJSON_GET_MOVED_VALUE(key) = tstr_null();
 
 		return tstr_static_null();
 	}
 
-	*key = tstr_null();
+	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
 
 	return result;
 }
@@ -1155,19 +1155,19 @@ TJSON_NODISCARD static JsonSchemaLiteral* json_schema_literal_get_impl(tstr valu
 }
 
 TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_moved(TJSON_MOVED(tstr) value) {
-	const tstr value_normal = *value;
+	const tstr value_normal = *TJSON_GET_MOVED_VALUE(value);
 
 	JsonSchemaLiteral* result = json_schema_literal_get_impl(value_normal);
 
 	if(result == NULL) {
 
-		tstr_free(value);
-		*value = tstr_null();
+		tstr_free(TJSON_GET_MOVED_VALUE(value));
+		*TJSON_GET_MOVED_VALUE(value) = tstr_null();
 
 		return NULL;
 	}
 
-	*value = tstr_null();
+	*TJSON_GET_MOVED_VALUE(value) = tstr_null();
 
 	return result;
 }

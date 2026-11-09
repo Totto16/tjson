@@ -9,7 +9,7 @@
 
 // public part of the utils
 
-#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000) || __cplusplus
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000) || defined(__cplusplus)
 	#define TJSON_NODISCARD [[nodiscard]]
 	#define TJSON_MAYBE_UNUSED [[maybe_unused]]
 #else
@@ -18,21 +18,52 @@
 	#define TJSON_MAYBE_UNUSED __attribute__((__unused__))
 #endif
 
-#define TJSON_MOVE(val) &(val)
+#ifdef TJSON_STRONGLY_TYPED_MOVE
+
+	#define TJSON_DECLARE_AS_MOVEABLE_EXTENDED(Type, Typename) \
+		struct TJSON_MOVE_TYPE_NAME_FOR(Typename) { \
+			Type* __moved_impl; \
+		};
+
+	#define TJSON_DECLARE_AS_MOVEABLE(T) TJSON_DECLARE_AS_MOVEABLE_EXTENDED(T, T)
+
+	#if defined(__cplusplus)
+		#define TJSON_MOVE_EXTENDED(Type, Typename, val) \
+			(TJSON_MOVE_TYPE_NAME_FOR(Typename){ .__moved_impl = &(val) })
+	#else
+		#define TJSON_MOVE_EXTENDED(Type, Typename, val) \
+			((struct TJSON_MOVE_TYPE_NAME_FOR(Typename)){ .__moved_impl = &(val) })
+	#endif
+
+	#define TJSON_GET_MOVED_VALUE(val) ((val).__moved_impl)
+
+	#define TJSON_MOVE(Type, val) TJSON_MOVE_EXTENDED(Type, Type, val)
+	#define TJSON_MOVE_TYPE_NAME_FOR(T) T##_moved_struct_impl
+	#define TJSON_MOVE_TYPE_FOR(T) struct TJSON_MOVE_TYPE_NAME_FOR(T)
+	#define TJSON_MOVED_EXTENDED(Type, Typename) TJSON_MOVED(Typename)
+#else
+	#define TJSON_DECLARE_AS_MOVEABLE_EXTENDED(Type, Typename)
+	#define TJSON_DECLARE_AS_MOVEABLE(T) TJSON_DECLARE_AS_MOVEABLE_EXTENDED(T, T)
+	#define TJSON_MOVE_EXTENDED(Type, Typename, val) (&(val))
+	#define TJSON_MOVE(Type, val) TJSON_MOVE_EXTENDED(Type, Type, val)
+	#define TJSON_MOVE_TYPE_FOR(T) T*
+	#define TJSON_MOVED_EXTENDED(Type, Typename) TJSON_MOVED(Type)
+	#define TJSON_GET_MOVED_VALUE(val) (val)
+#endif
 
 #if defined(__GNUC__) || defined(__clang__)
 	#if defined(__clang__)
-		#define TJSON_MOVED(T) [[clang::param_typestate(unconsumed)]] T*
+		#define TJSON_MOVED(T) [[clang::param_typestate(unconsumed)]] TJSON_MOVE_TYPE_FOR(T)
 		#define TJSON_CAN_CONSUME [[clang::consumable(unconsumed)]]
 	#else
-		#define TJSON_MOVED(T) T*
+		#define TJSON_MOVED(T) TJSON_MOVE_TYPE_FOR(T)
 		#define TJSON_CAN_CONSUME
 	#endif
 #elif defined(_MSC_VER)
-	#define TJSON_MOVED(T) _Post_invalid_ T*
+	#define TJSON_MOVED(T) _Post_invalid_ TJSON_MOVE_TYPE_FOR(T)
 	#define TJSON_CAN_CONSUME
 #else
-	#define TJSON_MOVED(T) T*
+	#define TJSON_MOVED(T) TJSON_MOVE_TYPE_FOR(T)
 	#define TJSON_CAN_CONSUME
 #endif
 
@@ -227,8 +258,11 @@ void free_json_array(JsonArray* json_arr);
 
 TJSON_NODISCARD JsonObject* json_object_get_empty(void);
 
-TJSON_NODISCARD tstr_static json_object_add_entry(JsonObject* json_object,
-                                                  TJSON_MOVED(JsonString*) key, JsonValue value);
+TJSON_DECLARE_AS_MOVEABLE_EXTENDED(JsonString*, JsonStringPtr)
+TJSON_DECLARE_AS_MOVEABLE(tstr)
+
+TJSON_NODISCARD tstr_static json_object_add_entry_moved(
+    JsonObject* json_object, TJSON_MOVED_EXTENDED(JsonString*, JsonStringPtr) key, JsonValue value);
 
 TJSON_NODISCARD tstr_static json_object_add_entry_dup(JsonObject* json_object, JsonString* key,
                                                       JsonValue value);

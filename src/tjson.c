@@ -319,17 +319,19 @@ NODISCARD static JsonString* get_empty_json_string_impl(void) {
 	return string;
 }
 
-NODISCARD tstr_static json_object_add_entry(JsonObject* const json_object,
-                                            JsonString** const key_moved, const JsonValue value) {
+NODISCARD tstr_static json_object_add_entry_moved(JsonObject* const json_object,
+                                                  TJSON_MOVED_EXTENDED(JsonString*, JsonStringPtr)
+                                                      const key,
+                                                  const JsonValue value) {
 
-	JsonObjectKey key = { .string = *key_moved };
+	JsonObjectKey key_normal = { .string = *TJSON_GET_MOVED_VALUE(key) };
 
-	*key_moved = NULL;
+	*TJSON_GET_MOVED_VALUE(key) = NULL;
 
-	const tstr_static add_result = json_object_add_entry_impl(json_object, key, value);
+	const tstr_static add_result = json_object_add_entry_impl(json_object, key_normal, value);
 
 	if(!tstr_static_is_null(add_result)) {
-		free_json_object_key(&key);
+		free_json_object_key(&key_normal);
 	}
 
 	return add_result;
@@ -466,7 +468,8 @@ json_parse_impl_parse_object_member(JsonParseState* const state, // NOLINT(misc-
 		free_json_value(&value); \
 	} while(false)
 
-	const tstr_static add_result = json_object_add_entry(json_object, &key, value);
+	const tstr_static add_result = json_object_add_entry_moved(
+	    json_object, TJSON_MOVE_EXTENDED(JsonString*, JsonStringPtr, key), value);
 
 	if(!tstr_static_is_null(add_result)) {
 		FREE_AT_END();
