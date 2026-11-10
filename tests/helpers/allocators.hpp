@@ -6,6 +6,8 @@
 
 namespace mock {
 
+namespace alloc {
+
 using FunctionMockMember = struct FunctionMockMemberImpl;
 
 class FunctionMock {
@@ -29,11 +31,13 @@ class FunctionMock {
 	~FunctionMock();
 };
 
+} // namespace alloc
+
 class CMockAllocator {
 	// members
-	FunctionMock m_malloc;
-	FunctionMock m_calloc;
-	FunctionMock m_realloc;
+	alloc::FunctionMock m_malloc;
+	alloc::FunctionMock m_calloc;
+	alloc::FunctionMock m_realloc;
 	void* m_associated_instance;
 
 	explicit CMockAllocator(void* associated_instance);
@@ -41,11 +45,11 @@ class CMockAllocator {
   public:
 	[[nodiscard]] static CMockAllocator get_instance();
 
-	[[nodiscard]] const FunctionMock& malloc() const;
+	[[nodiscard]] const alloc::FunctionMock& malloc() const;
 
-	[[nodiscard]] const FunctionMock& calloc() const;
+	[[nodiscard]] const alloc::FunctionMock& calloc() const;
 
-	[[nodiscard]] const FunctionMock& realloc() const;
+	[[nodiscard]] const alloc::FunctionMock& realloc() const;
 
 	CMockAllocator(CMockAllocator const&) = delete;
 	CMockAllocator& operator=(CMockAllocator const&) = delete;

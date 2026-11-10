@@ -86,6 +86,12 @@ if get_option('b_coverage')
         'helpers/allocators.hpp',
     )
 
+    test_files_manual += 'json_mock.cpp'
+    test_src += files(
+        'helpers/mock.cpp',
+        'helpers/mock.hpp',
+    )
+
     test_deps += mock_deps
 endif
 

@@ -14,12 +14,12 @@ struct FunctionMockMemberImpl {
 	AllocatorFunctionHandle* handle;
 };
 
-mock::FunctionMock::FunctionMock() : m_impl{ nullptr } {}
+mock::alloc::FunctionMock::FunctionMock() : m_impl{ nullptr } {}
 
-mock::FunctionMock::FunctionMock(FunctionMockMember*&& member) : m_impl{ std::move(member) } {}
+mock::alloc::FunctionMock::FunctionMock(FunctionMockMember*&& member) : m_impl{ std::move(member) } {}
 
 template <typename T>
-T call_c_fn(mock::FunctionMockMember* orig_handle,
+T call_c_fn(mock::alloc::FunctionMockMember* orig_handle,
             const std::function<T(AllocatorFunctionHandle*)>& fn) {
 	if(orig_handle == nullptr) {
 		throw std::runtime_error("Wrong initialized FunctionMockMember");
@@ -29,30 +29,30 @@ T call_c_fn(mock::FunctionMockMember* orig_handle,
 	return fn(handle);
 }
 
-bool mock::FunctionMock::always_fail() const {
+bool mock::alloc::FunctionMock::always_fail() const {
 	return call_c_fn<bool>(this->m_impl, [](AllocatorFunctionHandle* handle) -> bool {
 		return tjson_coverage_allocator_handle_fail_always(handle);
 	});
 }
 
-bool mock::FunctionMock::fail_after(size_t count) const {
+bool mock::alloc::FunctionMock::fail_after(size_t count) const {
 	return call_c_fn<bool>(this->m_impl, [count](AllocatorFunctionHandle* handle) -> bool {
 		return tjson_coverage_allocator_handle_fail_after(handle, count);
 	});
 }
 
-bool mock::FunctionMock::never_fail() const {
+bool mock::alloc::FunctionMock::never_fail() const {
 	return call_c_fn<bool>(this->m_impl, [](AllocatorFunctionHandle* handle) -> bool {
 		return tjson_coverage_allocator_handle_fail_never(handle);
 	});
 }
 
-mock::FunctionMock::FunctionMock(FunctionMock&& other) noexcept {
+mock::alloc::FunctionMock::FunctionMock(FunctionMock&& other) noexcept {
 	this->m_impl = other.m_impl;
 	other.m_impl = nullptr;
 }
 
-mock::FunctionMock& mock::FunctionMock::operator=(FunctionMock&& other) noexcept {
+mock::alloc::FunctionMock& mock::alloc::FunctionMock::operator=(FunctionMock&& other) noexcept {
 
 	this->m_impl = other.m_impl;
 	other.m_impl = nullptr;
@@ -60,7 +60,7 @@ mock::FunctionMock& mock::FunctionMock::operator=(FunctionMock&& other) noexcept
 	return *this;
 }
 
-mock::FunctionMock::~FunctionMock() {
+mock::alloc::FunctionMock::~FunctionMock() {
 	if(this->m_impl == NULL) {
 		return;
 	}
@@ -69,15 +69,15 @@ mock::FunctionMock::~FunctionMock() {
 	this->m_impl = nullptr;
 }
 
-static mock::FunctionMock new_function_mock(AllocatorFunctionType type) {
+static mock::alloc::FunctionMock new_function_mock(AllocatorFunctionType type) {
 	auto* handle = tjson_coverage_allocator_get_handle(type);
 	if(handle == nullptr) {
 		throw std::runtime_error("Error on getting C handle for FunctionMock");
 	}
 
-	mock::FunctionMockMember* cast_handle = (mock::FunctionMockMember*)handle;
+	mock::alloc::FunctionMockMember* cast_handle = (mock::alloc::FunctionMockMember*)handle;
 
-	return mock::FunctionMock(std::move(cast_handle));
+	return mock::alloc::FunctionMock(std::move(cast_handle));
 }
 
 mock::CMockAllocator::CMockAllocator(void* associated_instance)
@@ -88,7 +88,7 @@ mock::CMockAllocator::CMockAllocator(void* associated_instance)
 }
 
 // this is a singleton!
-mock::CMockAllocator* mock_allocator_instance = nullptr;
+static mock::CMockAllocator* mock_allocator_instance = nullptr;
 
 mock::CMockAllocator mock::CMockAllocator::get_instance() {
 	if(mock_allocator_instance == nullptr) {
@@ -103,15 +103,15 @@ mock::CMockAllocator mock::CMockAllocator::get_instance() {
 	}
 }
 
-[[nodiscard]] const mock::FunctionMock& mock::CMockAllocator::malloc() const {
+[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::malloc() const {
 	return this->m_malloc;
 }
 
-[[nodiscard]] const mock::FunctionMock& mock::CMockAllocator::calloc() const {
+[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::calloc() const {
 	return this->m_calloc;
 }
 
-[[nodiscard]] const mock::FunctionMock& mock::CMockAllocator::realloc() const {
+[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::realloc() const {
 	return this->m_realloc;
 }
 

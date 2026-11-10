@@ -213,7 +213,7 @@ if mock_impl.has_key('mock')
         override_options: {
             'warning_level': '3',
             'werror': true,
-            'b_coverage': get_option('b_coverage'),
+            'b_coverage': false,
         },
     )
 
@@ -223,13 +223,11 @@ if mock_impl.has_key('mock')
         version: meson.project_version(),
     )
 
-    deps += tjson_mock_allocators_impl_dep
-    mock_deps += tjson_mock_allocators_impl_dep
 
     tjson_mock_general_impl_lib = shared_library(
         'tjson_mock_general_impl_lib',
         mock_impl.get('general').get('files'),
-        dependencies: [deps, public_deps],
+        dependencies: [deps, public_deps, tjson_mock_allocators_impl_dep],
         include_directories: [inc_dirs, mock_impl.get('general').get('inc')],
         c_args: [
             compile_flags,
@@ -238,7 +236,7 @@ if mock_impl.has_key('mock')
         override_options: {
             'warning_level': '3',
             'werror': true,
-            'b_coverage': get_option('b_coverage'),
+            'b_coverage': false,
         },
         link_args: [mock_impl.get('general').get('link_options')],
     )
@@ -249,8 +247,9 @@ if mock_impl.has_key('mock')
         version: meson.project_version(),
     )
 
-    deps += tjson_mock_general_impl_dep
-    mock_deps += tjson_mock_general_impl_dep
+
+    deps += [tjson_mock_general_impl_dep, tjson_mock_allocators_impl_dep]
+    mock_deps += [tjson_mock_general_impl_dep, tjson_mock_allocators_impl_dep]
 endif
 
 tjson_lib = library(
