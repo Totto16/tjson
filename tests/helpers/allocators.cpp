@@ -61,7 +61,7 @@ mock::alloc::FunctionMock& mock::alloc::FunctionMock::operator=(FunctionMock&& o
 }
 
 mock::alloc::FunctionMock::~FunctionMock() {
-	if(this->m_impl == NULL) {
+	if(this->m_impl == nullptr) {
 		return;
 	}
 
@@ -156,7 +156,7 @@ mock::CMockAllocator::~CMockAllocator() noexcept(false) {
 	if(mock_allocator_instance == nullptr) {
 		throw std::runtime_error(
 		    "Only one instance of the mock allocator can be used at a time, but this one was "
-		    "release with the global instance being NULL?? Was it copied somehow?");
+		    "release with the global instance being nullptr?? Was it copied somehow?");
 	}
 
 	free(mock_allocator_instance);

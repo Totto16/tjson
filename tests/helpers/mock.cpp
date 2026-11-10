@@ -6,8 +6,22 @@
 #include <functional>
 #include <stdexcept>
 
+#define CUSTOM_MOCK_INIT_ENTRY(name, fn_type, number) \
+	this->m_##name = general::Handle<fn_type, number>{ general::FnHolder<fn_type>{ \
+		CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(name), \
+		CUSTOM_MOCK_WRAP_NAME_WRAP(name), \
+		CUSTOM_MOCK_WRAP_NAME_UNWRAP(name), \
+		CUSTOM_MOCK_WRAP_COUNT_NAME(name), \
+	} };
+
 mock::CMockGeneral::CMockGeneral(void* associated_instance)
-    : m_associated_instance{ associated_instance } {}
+    : m_associated_instance{ associated_instance } {
+
+	CUSTOM_MOCK_INIT_ENTRY(open, open_function_type, 0)
+	CUSTOM_MOCK_INIT_ENTRY(fstat, fstat_function_type, 1)
+	CUSTOM_MOCK_INIT_ENTRY(read, read_function_type, 2)
+	CUSTOM_MOCK_INIT_ENTRY(close, close_function_type, 3)
+}
 
 // this is a singleton!
 static mock::CMockGeneral* mock_general_instance = nullptr;
@@ -25,10 +39,25 @@ mock::CMockGeneral mock::CMockGeneral::get_instance() {
 	}
 }
 
+#define CUSTOM_MOCK_IMPLEMENT_ENTRY(name, fn_type, number) \
+	[[nodiscard]] mock::general::Handle<fn_type, number>& mock::CMockGeneral::name() { \
+		return this->m_##name; \
+	}
+
+CUSTOM_MOCK_IMPLEMENT_ENTRY(open, open_function_type, 0)
+CUSTOM_MOCK_IMPLEMENT_ENTRY(fstat, fstat_function_type, 1)
+CUSTOM_MOCK_IMPLEMENT_ENTRY(read, read_function_type, 2)
+CUSTOM_MOCK_IMPLEMENT_ENTRY(close, close_function_type, 3)
+
 mock::CMockGeneral::CMockGeneral(CMockGeneral&& other) noexcept {
 
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
+
+	this->m_open = std::move(other.m_open);
+	this->m_fstat = std::move(other.m_fstat);
+	this->m_read = std::move(other.m_read);
+	this->m_close = std::move(other.m_close);
 }
 
 mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept {
@@ -36,14 +65,12 @@ mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	return *this;
-}
+	this->m_open = std::move(other.m_open);
+	this->m_fstat = std::move(other.m_fstat);
+	this->m_read = std::move(other.m_read);
+	this->m_close = std::move(other.m_close);
 
-static void impl_unwrap_all() {
-	CUSTOM_MOCK_WRAP_NAME_UNWRAP(open)();
-	CUSTOM_MOCK_WRAP_NAME_UNWRAP(fstat)();
-	CUSTOM_MOCK_WRAP_NAME_UNWRAP(read)();
-	CUSTOM_MOCK_WRAP_NAME_UNWRAP(close)();
+	return *this;
 }
 
 mock::CMockGeneral::~CMockGeneral() noexcept(false) {
@@ -58,7 +85,10 @@ mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 
 	this->m_associated_instance = nullptr;
 
-	impl_unwrap_all();
+	this->m_open.~Handle();
+	this->m_fstat.~Handle();
+	this->m_read.~Handle();
+	this->m_close.~Handle();
 
 	if(mock_general_instance == nullptr) {
 		throw std::runtime_error(

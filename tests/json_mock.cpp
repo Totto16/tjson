@@ -16,12 +16,14 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 	SUBCASE("testing custom open wrap (variadic)") {
 		[]() -> void {
-			const auto mock_general = mock::CMockGeneral::get_instance();
+			auto mock_general = mock::CMockGeneral::get_instance();
 
 			auto i = 0;
 
-			auto open_handle =
-			    mock_general.open([&i](const char* path, int flags, mode_t mode) -> int {
+			auto& open_handle = mock_general.open();
+
+			auto used_handle =
+			    open_handle.use([&i](const char* path, int flags, mode_t mode) -> int {
 				    UNUSED(path);
 				    if(flags & O_CREAT) {
 					    return -((int)mode);
@@ -29,8 +31,6 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 				    return -1 + i;
 			    });
-
-			auto used_handle = open_handle.use_local();
 
 			int res = wrapped_fn_open("test", O_WRONLY);
 
