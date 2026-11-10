@@ -51,6 +51,7 @@ deps += dependency(
     allow_fallback: true,
     default_options: {
         'tests': 'disabled',
+        'b_coverage': false,
     },
     version: ['>=2.0.0', '<3'],
 )
@@ -60,6 +61,9 @@ tvec_dep = dependency(
     'tvec.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 deps += tvec_dep
@@ -70,6 +74,9 @@ deps += dependency(
     'tmap.h',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 #note: this lib is compiled, so it hasn't custom allocators, so we can't test against that, but that is no problem, as this lib has a custom type for json strings and therefore no testing is needed atm
@@ -79,6 +86,7 @@ tstr_dep = dependency(
     allow_fallback: true,
     default_options: {
         'static_string_modification_behavior': 'error',
+        'b_coverage': false,
     },
     version: ['>=1.0.0', '<2'],
 )
@@ -90,6 +98,9 @@ trtti_dep = dependency(
     'trtti',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 public_deps += trtti_dep
@@ -99,6 +110,9 @@ deps += dependency(
     'tstr_builder',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 # allocators are defined, as this is a header only library
@@ -106,6 +120,9 @@ deps += dependency(
     'trc',
     allow_fallback: true,
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 cc = meson.get_compiler('c')
@@ -213,7 +230,7 @@ if mock_impl.has_key('mock')
         override_options: {
             'warning_level': '3',
             'werror': true,
-            'b_coverage': false,
+            'b_coverage': get_option('b_coverage'),
         },
     )
 
@@ -236,7 +253,7 @@ if mock_impl.has_key('mock')
         override_options: {
             'warning_level': '3',
             'werror': true,
-            'b_coverage': false,
+            'b_coverage': get_option('b_coverage'),
         },
         link_args: [mock_impl.get('general').get('link_options')],
     )
@@ -245,11 +262,12 @@ if mock_impl.has_key('mock')
         link_with: tjson_mock_general_impl_lib,
         include_directories: [mock_impl.get('general').get('inc')],
         version: meson.project_version(),
+        dependencies: [tjson_mock_allocators_impl_dep],
     )
 
 
-    deps += [tjson_mock_general_impl_dep, tjson_mock_allocators_impl_dep]
-    mock_deps += [tjson_mock_general_impl_dep, tjson_mock_allocators_impl_dep]
+    deps += [tjson_mock_general_impl_dep]
+    mock_deps += [tjson_mock_general_impl_dep]
 endif
 
 tjson_lib = library(

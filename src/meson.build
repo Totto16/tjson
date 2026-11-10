@@ -29,7 +29,6 @@ if mock_impl.has_key('mock')
             ],
             'link_options': [
                 mock_impl.get('general').get('link_options'),
-                '-Wl,--wrap=open',
                 '-Wl,--wrap=fstat',
                 '-Wl,--wrap=read',
                 '-Wl,--wrap=close',

@@ -38,9 +38,6 @@
 		return true; \
 	}
 
-CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(open, int,
-                                                (const char* path, int flags, mode_t mode),
-                                                (path, flags, mode), open_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(fstat, int, (int fd, struct stat* statbuf),
                                                 (fd, statbuf), fstat_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(read, ssize_t, (int fd, void* buf, size_t count),

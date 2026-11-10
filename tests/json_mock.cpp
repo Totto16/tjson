@@ -19,25 +19,6 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 TEST_CASE("testing general mock implementation <general_mock_impl>") {
 
-	SUBCASE("testing duplicate setting of wrap fn: open") {
-		[]() -> void {
-			open_function_type wrap_fn_open = [](const char* path, int flags, mode_t mode) -> int {
-				UNUSED(path);
-				UNUSED(flags);
-				UNUSED(mode);
-				return -1;
-			};
-
-			bool res1 = wrap_open(wrap_fn_open);
-
-			REQUIRE_EQ(res1, true);
-
-			bool res2 = wrap_open(wrap_fn_open);
-
-			REQUIRE_EQ(res2, false);
-		}();
-	}
-
 	SUBCASE("testing duplicate setting of wrap fn: fstat") {
 		[]() -> void {
 			fstat_function_type wrap_fn_fstat = [](int fd, struct stat* statbuf) -> int {
