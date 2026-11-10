@@ -12,6 +12,7 @@
                                                         fn_type) \
 	typedef struct { \
 		fn_type wrapped_fn_ptr; \
+		size_t call_count; \
 	} CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name); \
 \
 	return_type CUSTOM_MOCK_WRAP_NAME(name) params; \
@@ -21,12 +22,16 @@
 	} \
 \
 	[[maybe_unused]] static CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name) \
-	    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = { .wrapped_fn_ptr = NULL }; \
+	    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = { \
+		    .wrapped_fn_ptr = NULL, \
+		    .call_count = 0, \
+	    }; \
 \
 	return_type CUSTOM_MOCK_REAL_NAME(name) params; \
 \
 	return_type CUSTOM_MOCK_WRAP_NAME(name) params { \
 		if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).wrapped_fn_ptr != NULL) { \
+			CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).call_count++; \
 			return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).wrapped_fn_ptr param_names; \
 		} \
 \
@@ -46,12 +51,18 @@
 			return false; \
 		} \
 \
-		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).wrapped_fn_ptr = fun; \
+		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = \
+		    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name)){ .wrapped_fn_ptr = fun, .call_count = 0 }; \
 		return true; \
 	} \
 \
 	void CUSTOM_MOCK_WRAP_NAME_UNWRAP(name)(void) { \
-		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).wrapped_fn_ptr = NULL; \
+		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = \
+		    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name)){ .wrapped_fn_ptr = NULL, .call_count = 0 }; \
+	} \
+\
+	size_t CUSTOM_MOCK_WRAP_COUNT_NAME(name)(void) { \
+		return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name).call_count; \
 	}
 
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(fstat, int, (int fd, struct stat* statbuf),
@@ -92,10 +103,14 @@ static int _wrap_open_helper_orig_impl__(open_function_type_orig fun, const char
 
 typedef struct {
 	open_function_type wrapped_fn_ptr;
+	size_t call_count;
 } CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open);
 
 [[maybe_unused]] static CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open)
-    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open) = { .wrapped_fn_ptr = NULL };
+    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open) = {
+	    .wrapped_fn_ptr = NULL,
+	    .call_count = 0,
+    };
 
 int CUSTOM_MOCK_REAL_NAME(open)(const char* path, int flags, ...);
 
@@ -117,6 +132,7 @@ int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 	va_start(args, flags);
 
 	if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr != NULL) {
+		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).call_count++;
 		const int result = _wrap_open_helper_impl__(
 		    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr, path, flags, args);
 
@@ -144,10 +160,16 @@ bool CUSTOM_MOCK_WRAP_NAME_WRAP(open)(open_function_type fun) {
 		return false;
 	}
 
-	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr = fun;
+	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open) =
+	    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open)){ .wrapped_fn_ptr = fun, .call_count = 0 };
 	return true;
 }
 
 void CUSTOM_MOCK_WRAP_NAME_UNWRAP(open)(void) {
-	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr = NULL;
+	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open) =
+	    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open)){ .wrapped_fn_ptr = NULL, .call_count = 0 };
+}
+
+size_t CUSTOM_MOCK_WRAP_COUNT_NAME(open)(void) {
+	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).call_count;
 }

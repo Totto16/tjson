@@ -37,6 +37,10 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 			int res2 = wrapped_fn_open("test", O_CREAT, 17);
 
 			REQUIRE_EQ(res2, -17);
+
+			const size_t open_count = wrapped_calls_count_open();
+
+			REQUIRE_EQ(open_count, 2);
 		}();
 	}
 }
@@ -58,10 +62,12 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			bool res0 = wrap_fstat(nullptr);
 
 			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(fstat_is_wrapped(), false);
 
 			bool res1 = wrap_fstat(wrap_fn_fstat);
 
 			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(fstat_is_wrapped(), true);
 
 			bool res2 = wrap_fstat(wrap_fn_fstat);
 
@@ -85,10 +91,12 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			bool res0 = wrap_read(nullptr);
 
 			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(read_is_wrapped(), false);
 
 			bool res1 = wrap_read(wrap_fn_read);
 
 			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(read_is_wrapped(), true);
 
 			bool res2 = wrap_read(wrap_fn_read);
 
@@ -110,10 +118,12 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			bool res0 = wrap_close(nullptr);
 
 			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(close_is_wrapped(), false);
 
 			bool res1 = wrap_close(wrap_fn_close);
 
 			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(close_is_wrapped(), true);
 
 			bool res2 = wrap_close(wrap_fn_close);
 
@@ -137,10 +147,12 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			bool res0 = wrap_open(nullptr);
 
 			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(open_is_wrapped(), false);
 
 			bool res1 = wrap_open(wrap_fn_open);
 
 			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(open_is_wrapped(), true);
 
 			bool res2 = wrap_open(wrap_fn_open);
 

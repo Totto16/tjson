@@ -15,12 +15,14 @@ extern "C" {
 #define CUSTOM_MOCK_WRAP_NAME_WRAP(name) wrap_##name
 #define CUSTOM_MOCK_WRAP_NAME_UNWRAP(name) unwrap_##name
 #define CUSTOM_MOCK_WRAP_WRAPPED_NAME(name) wrapped_fn_##name
+#define CUSTOM_MOCK_WRAP_COUNT_NAME(name) wrapped_calls_count_##name
 
 #define CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(name, return_type, params, fn_type) \
 	return_type CUSTOM_MOCK_WRAP_WRAPPED_NAME(name) params; \
 	bool CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(name)(void); \
 	bool CUSTOM_MOCK_WRAP_NAME_WRAP(name)(fn_type fun); \
-	void CUSTOM_MOCK_WRAP_NAME_UNWRAP(name)(void);
+	void CUSTOM_MOCK_WRAP_NAME_UNWRAP(name)(void); \
+	size_t CUSTOM_MOCK_WRAP_COUNT_NAME(name)(void);
 
 typedef int (*fstat_function_type)(int fd, struct stat* statbuf);
 
