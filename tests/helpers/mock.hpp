@@ -43,7 +43,7 @@ template <typename fn_type> struct FnHolder {
 
 template <typename fn_type> class Handle {
   private:
-	helper::to_std_function_t<fn_type> m_fun;
+	fn_type m_fun;
 	FnHolder<fn_type> m_holder;
 
   public:

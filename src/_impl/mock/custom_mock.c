@@ -16,6 +16,10 @@
 \
 	return_type CUSTOM_MOCK_WRAP_NAME(name) params; \
 \
+	return_type CUSTOM_MOCK_WRAP_WRAPPED_NAME(name) params { \
+		return CUSTOM_MOCK_WRAP_NAME(name) param_names; \
+	} \
+\
 	[[maybe_unused]] static CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name) \
 	    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = { .wrapped_fn_ptr = NULL }; \
 \
@@ -96,6 +100,17 @@ typedef struct {
 int CUSTOM_MOCK_REAL_NAME(open)(const char* path, int flags, ...);
 
 int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...);
+
+int CUSTOM_MOCK_WRAP_WRAPPED_NAME(open)(const char* path, int flags, ...) {
+	va_list args;
+	va_start(args, flags);
+
+	const int result =
+	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_WRAP_NAME(open), path, flags, args);
+
+	va_end(args);
+	return result;
+}
 
 int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 	va_list args;

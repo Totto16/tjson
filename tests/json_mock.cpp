@@ -21,12 +21,22 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 			auto open_handle =
 			    mock_general.open([](const char* path, int flags, mode_t mode) -> int {
 				    UNUSED(path);
-				    UNUSED(flags);
-				    UNUSED(mode);
+				    if(flags & O_CREAT) {
+					    return -((int)mode);
+				    }
+
 				    return -1;
 			    });
 
 			auto used_handle = open_handle.use_local();
+
+			int res = wrapped_fn_open("test", O_WRONLY);
+
+			REQUIRE_EQ(res, -1);
+
+			int res2 = wrapped_fn_open("test", O_CREAT, 17);
+
+			REQUIRE_EQ(res2, -17);
 		}();
 	}
 }
