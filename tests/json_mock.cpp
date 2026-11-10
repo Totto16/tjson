@@ -14,7 +14,21 @@ TEST_SUITE_BEGIN("json_mock" * doctest::description("json mock tests") * doctest
 
 TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
-	// TODO
+	SUBCASE("testing custom open wrap (variadic)") {
+		[]() -> void {
+			const auto mock_general = mock::CMockGeneral::get_instance();
+
+			auto open_handle =
+			    mock_general.open([](const char* path, int flags, mode_t mode) -> int {
+				    UNUSED(path);
+				    UNUSED(flags);
+				    UNUSED(mode);
+				    return -1;
+			    });
+
+			auto used_handle = open_handle.use_local();
+		}();
+	}
 }
 
 TEST_CASE("testing general mock implementation <general_mock_impl>") {
@@ -30,6 +44,10 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			};
 
 			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_fstat(); });
+
+			bool res0 = wrap_fstat(nullptr);
+
+			REQUIRE_EQ(res0, false);
 
 			bool res1 = wrap_fstat(wrap_fn_fstat);
 
@@ -54,6 +72,10 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 
 			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_read(); });
 
+			bool res0 = wrap_read(nullptr);
+
+			REQUIRE_EQ(res0, false);
+
 			bool res1 = wrap_read(wrap_fn_read);
 
 			REQUIRE_EQ(res1, true);
@@ -74,6 +96,10 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			};
 
 			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_close(); });
+
+			bool res0 = wrap_close(nullptr);
+
+			REQUIRE_EQ(res0, false);
 
 			bool res1 = wrap_close(wrap_fn_close);
 
@@ -97,6 +123,10 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			};
 
 			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_open(); });
+
+			bool res0 = wrap_open(nullptr);
+
+			REQUIRE_EQ(res0, false);
 
 			bool res1 = wrap_open(wrap_fn_open);
 

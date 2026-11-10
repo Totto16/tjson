@@ -14,6 +14,8 @@
 		fn_type wrapped_fn_ptr; \
 	} CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name); \
 \
+	return_type CUSTOM_MOCK_WRAP_NAME(name) params; \
+\
 	[[maybe_unused]] static CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name) \
 	    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(name) = { .wrapped_fn_ptr = NULL }; \
 \
@@ -92,6 +94,8 @@ typedef struct {
     CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open) = { .wrapped_fn_ptr = NULL };
 
 int CUSTOM_MOCK_REAL_NAME(open)(const char* path, int flags, ...);
+
+int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...);
 
 int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 	va_list args;

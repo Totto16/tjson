@@ -39,6 +39,13 @@ mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept
 	return *this;
 }
 
+static void impl_unwrap_all() {
+	CUSTOM_MOCK_WRAP_NAME_UNWRAP(open)();
+	CUSTOM_MOCK_WRAP_NAME_UNWRAP(fstat)();
+	CUSTOM_MOCK_WRAP_NAME_UNWRAP(read)();
+	CUSTOM_MOCK_WRAP_NAME_UNWRAP(close)();
+}
+
 mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 	if(m_associated_instance == nullptr) {
 		return;
@@ -50,6 +57,8 @@ mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 	}
 
 	this->m_associated_instance = nullptr;
+
+	impl_unwrap_all();
 
 	if(mock_general_instance == nullptr) {
 		throw std::runtime_error(
