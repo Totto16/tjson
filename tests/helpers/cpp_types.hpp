@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -68,7 +69,13 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const std::opti
 std::ostream& operator<<(std::ostream& os,
                          const std::vector<std::pair<std::string, std::string>>& string_map);
 
-template <typename T> using CAutoFreePtr = std::unique_ptr<T, void (*)(T*)>;
+template <typename T> using CAutoFreePtr = std::unique_ptr<T, std::function<void(T*)>>;
+
+template <typename F> inline CAutoFreePtr<void> auto_free_ign(F&& fn) {
+	return CAutoFreePtr<void>{ reinterpret_cast<void*>(1),
+		                       [fn = std::forward<F>(fn)](
+		                           [[maybe_unused]] void* const value) -> void { fn(); } };
+}
 
 [[nodiscard]] std::string string_from_tstr(const tstr& value);
 
