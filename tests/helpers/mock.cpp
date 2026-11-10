@@ -17,10 +17,10 @@
 mock::CMockGeneral::CMockGeneral(void* associated_instance)
     : m_associated_instance{ associated_instance } {
 
-	CUSTOM_MOCK_INIT_ENTRY(open, open_function_type, 0)
-	CUSTOM_MOCK_INIT_ENTRY(fstat, fstat_function_type, 1)
-	CUSTOM_MOCK_INIT_ENTRY(read, read_function_type, 2)
-	CUSTOM_MOCK_INIT_ENTRY(close, close_function_type, 3)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) \
+	CUSTOM_MOCK_INIT_ENTRY(name, fn_type, number)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 }
 
 // this is a singleton!
@@ -44,10 +44,10 @@ mock::CMockGeneral mock::CMockGeneral::get_instance() {
 		return this->m_##name; \
 	}
 
-CUSTOM_MOCK_IMPLEMENT_ENTRY(open, open_function_type, 0)
-CUSTOM_MOCK_IMPLEMENT_ENTRY(fstat, fstat_function_type, 1)
-CUSTOM_MOCK_IMPLEMENT_ENTRY(read, read_function_type, 2)
-CUSTOM_MOCK_IMPLEMENT_ENTRY(close, close_function_type, 3)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) \
+	CUSTOM_MOCK_IMPLEMENT_ENTRY(name, fn_type, number)
+CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 
 #define CUSTOM_MOCK_IMPLEMENT_MOVE(name) this->m_##name = std::move(other.m_##name);
 
@@ -56,10 +56,9 @@ mock::CMockGeneral::CMockGeneral(CMockGeneral&& other) noexcept {
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	CUSTOM_MOCK_IMPLEMENT_MOVE(open)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(fstat)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(read)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(close)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) CUSTOM_MOCK_IMPLEMENT_MOVE(name)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 }
 
 mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept {
@@ -67,10 +66,9 @@ mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	CUSTOM_MOCK_IMPLEMENT_MOVE(open)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(fstat)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(read)
-	CUSTOM_MOCK_IMPLEMENT_MOVE(close)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) CUSTOM_MOCK_IMPLEMENT_MOVE(name)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 
 	return *this;
 }
@@ -89,10 +87,9 @@ mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 
 	this->m_associated_instance = nullptr;
 
-	CUSTOM_MOCK_IMPLEMENT_DELETE(open)
-	CUSTOM_MOCK_IMPLEMENT_DELETE(fstat)
-	CUSTOM_MOCK_IMPLEMENT_DELETE(read)
-	CUSTOM_MOCK_IMPLEMENT_DELETE(close)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) CUSTOM_MOCK_IMPLEMENT_DELETE(name)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 
 	if(mock_general_instance == nullptr) {
 		throw std::runtime_error(

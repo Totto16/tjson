@@ -257,12 +257,20 @@ template <typename fn_type, size_t ID> class Handle {
 
 } // namespace general
 
+#define CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST \
+	CUSTOM_MOCK_FUNCTION_X_MACRO(open, open_function_type, 0) \
+	CUSTOM_MOCK_FUNCTION_X_MACRO(fstat, fstat_function_type, 1) \
+	CUSTOM_MOCK_FUNCTION_X_MACRO(read, read_function_type, 2) \
+	CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3)
+
 class CMockGeneral {
 	// members
-	CUSTOM_MOCK_DEFINE_MEMBER(open, open_function_type, 0)
-	CUSTOM_MOCK_DEFINE_MEMBER(fstat, fstat_function_type, 1)
-	CUSTOM_MOCK_DEFINE_MEMBER(read, read_function_type, 2)
-	CUSTOM_MOCK_DEFINE_MEMBER(close, close_function_type, 3)
+
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) \
+	CUSTOM_MOCK_DEFINE_MEMBER(name, fn_type, number)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
+
 	void* m_associated_instance;
 
 	explicit CMockGeneral(void* associated_instance);
@@ -270,10 +278,10 @@ class CMockGeneral {
   public:
 	[[nodiscard]] static CMockGeneral get_instance();
 
-	CUSTOM_MOCK_DEFINE_ENTRY(open, open_function_type, 0)
-	CUSTOM_MOCK_DEFINE_ENTRY(fstat, fstat_function_type, 1)
-	CUSTOM_MOCK_DEFINE_ENTRY(read, read_function_type, 2)
-	CUSTOM_MOCK_DEFINE_ENTRY(close, close_function_type, 3)
+#define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) \
+	CUSTOM_MOCK_DEFINE_ENTRY(name, fn_type, number)
+	CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
+#undef CUSTOM_MOCK_FUNCTION_X_MACRO
 
 	CMockGeneral(CMockGeneral const&) = delete;
 	CMockGeneral& operator=(CMockGeneral const&) = delete;
