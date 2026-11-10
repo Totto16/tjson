@@ -18,15 +18,15 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 		[]() -> void {
 			auto mock_general = mock::CMockGeneral::get_instance();
 
-			auto& open_handle = mock_general.open();
+			auto& handle = mock_general.open();
 
-			auto used_handle = open_handle.use([](const char* path, int flags, mode_t mode) -> int {
+			auto used_handle = handle.use([](const char* path, int flags, mode_t mode) -> int {
 				UNUSED(path);
 				if(flags & O_CREAT) {
 					return -((int)mode);
 				}
 
-				return -1;
+				return -1 + (int)mode;
 			});
 
 			int res = wrapped_fn_open("test", O_WRONLY);
@@ -37,9 +37,9 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 			REQUIRE_EQ(res2, -17);
 
-			const size_t open_count = used_handle.count();
+			const size_t count = used_handle.count();
 
-			REQUIRE_EQ(open_count, 2);
+			REQUIRE_EQ(count, 2);
 		}();
 	}
 }
@@ -159,53 +159,105 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 		}();
 	}
 
-	/* 	SUBCASE("testing if wrapping works") {
-	        []() -> void {
-	            const auto mock_allocator = mock::CMockGeneral::get_instance();
+	SUBCASE("testing if wrapping works: fstat") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
 
-	            const std::vector<size_t> fail_amounts = { 1, 30, 200 };
+			auto& handle = mock_general.fstat();
 
-	            for(const auto& fail_amount : fail_amounts) {
+			auto used_handle = handle.use([](int fd, struct stat* statbuf) -> int {
+				UNUSED(statbuf);
+				return -(fd + 1);
+			});
 
-	                const bool mock_res = mock_allocator.calloc().fail_after(fail_amount);
-	                REQUIRE_TRUE(mock_res);
+			int res = wrapped_fn_fstat(1, nullptr);
 
-	                for(size_t i = 0; i < fail_amount; ++i) {
-	                    AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+			REQUIRE_EQ(res, -2);
 
-	                    REQUIRE_NE(allocated, nullptr);
-	                    TJSON_FREE(allocated);
-	                }
+			int res2 = wrapped_fn_fstat(11, nullptr);
 
-	                AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+			REQUIRE_EQ(res2, -12);
 
-	                REQUIRE_EQ(allocated, nullptr);
-	            }
-	        }();
-	    }
-	 */
+			const size_t count = used_handle.count();
 
-	/* 	SUBCASE("testing recovery with fail never") {
-	        []() -> void {
-	            const auto mock_allocator = mock::CMockGeneral::get_instance();
+			REQUIRE_EQ(count, 2);
+		}();
+	}
 
-	            const bool mock_res1 = mock_allocator.malloc().always_fail();
-	            REQUIRE_TRUE(mock_res1);
+	SUBCASE("testing if wrapping works: read") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
 
-	            AllocTest* allocated1 = TJSON_NEW(AllocTest);
+			auto& handle = mock_general.read();
 
-	            REQUIRE_EQ(allocated1, nullptr);
+			auto used_handle = handle.use([](int fd, void* buf, size_t count) -> ssize_t {
+				UNUSED(buf);
+				UNUSED(count);
+				return -(fd + 1);
+			});
 
-	            const bool mock_res2 = mock_allocator.malloc().never_fail();
-	            REQUIRE_TRUE(mock_res2);
+			ssize_t res = wrapped_fn_read(1, nullptr, 0);
 
-	            AllocTest* allocated2 = TJSON_NEW(AllocTest);
+			REQUIRE_EQ(res, -2);
 
-	            REQUIRE_NE(allocated2, nullptr);
+			ssize_t res2 = wrapped_fn_read(11, nullptr, 0);
 
-	            TJSON_FREE(allocated2);
-	        }();
-	    } */
+			REQUIRE_EQ(res2, -12);
+
+			const size_t count = used_handle.count();
+
+			REQUIRE_EQ(count, 2);
+		}();
+	}
+
+	SUBCASE("testing if wrapping works: close") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			auto& handle = mock_general.close();
+
+			auto used_handle = handle.use([](int fd) -> int { return -(fd + 1); });
+
+			int res = wrapped_fn_close(1);
+
+			REQUIRE_EQ(res, -2);
+
+			int res2 = wrapped_fn_close(11);
+
+			REQUIRE_EQ(res2, -12);
+
+			const size_t count = used_handle.count();
+
+			REQUIRE_EQ(count, 2);
+		}();
+	}
+
+	SUBCASE("testing if wrapping works: open") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			auto& handle = mock_general.open();
+
+			auto used_handle = handle.use([](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(path);
+				UNUSED(flags);
+				UNUSED(mode);
+				return -(path[0]);
+			});
+
+			int res = wrapped_fn_open("\x02 test", 0, 0);
+
+			REQUIRE_EQ(res, -2);
+
+			int res2 = wrapped_fn_open("\x12 test", 0, 0);
+
+			REQUIRE_EQ(res2, -(0x12));
+
+			const size_t count = used_handle.count();
+
+			REQUIRE_EQ(count, 2);
+		}();
+	}
 }
 
 TEST_SUITE_END();
