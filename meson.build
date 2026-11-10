@@ -23,12 +23,26 @@ internal_c_args = []
 src_files = []
 inc_dirs = []
 
+mock_impl = {}
+
 
 if get_option('tests') and get_option('b_coverage')
+    mock_impl = {
+        'general': {
+            'files': [],
+            'link_options': [],
+            'inc': [],
+        },
+        'allocators': {
+            'files': [],
+            'inc': [],
+        },
+        'mock': true,
+    }
     allocators_used = 'tjson_coverage_allocators'
     internal_c_args += '-DTJSON_ALLOCATOR_PREFIX=tjson_coverage_allocator'
     internal_c_args += '-DTJSON_STRONGLY_TYPED_MOVE'
-    subdir('src/_impl/allocators')
+    internal_c_args += '-DTJSON_ALLOCATOR_INCLUDE=<tjson_coverage_allocators.h>'
 endif
 
 # allocators are not used, as this takes in buffers and never creates or frees them
@@ -183,6 +197,61 @@ endif
 subdir('src')
 
 public_deps += json_variants_dep
+mock_deps = []
+
+if mock_impl.has_key('mock')
+
+    tjson_mock_allocators_impl_lib = library(
+        'tjson_mock_allocators_impl_lib',
+        mock_impl.get('allocators').get('files'),
+        dependencies: [deps, public_deps],
+        include_directories: [inc_dirs, mock_impl.get('allocators').get('inc')],
+        c_args: [
+            compile_flags,
+            internal_c_args,
+        ],
+        override_options: {
+            'warning_level': '3',
+            'werror': true,
+            'b_coverage': get_option('b_coverage'),
+        },
+    )
+
+    tjson_mock_allocators_impl_dep = declare_dependency(
+        link_with: tjson_mock_allocators_impl_lib,
+        include_directories: [mock_impl.get('allocators').get('inc')],
+        version: meson.project_version(),
+    )
+
+    deps += tjson_mock_allocators_impl_dep
+    mock_deps += tjson_mock_allocators_impl_dep
+
+    tjson_mock_general_impl_lib = shared_library(
+        'tjson_mock_general_impl_lib',
+        mock_impl.get('general').get('files'),
+        dependencies: [deps, public_deps],
+        include_directories: [inc_dirs, mock_impl.get('general').get('inc')],
+        c_args: [
+            compile_flags,
+            internal_c_args,
+        ],
+        override_options: {
+            'warning_level': '3',
+            'werror': true,
+            'b_coverage': get_option('b_coverage'),
+        },
+        link_args: [mock_impl.get('general').get('link_options')],
+    )
+
+    tjson_mock_general_impl_dep = declare_dependency(
+        link_with: tjson_mock_general_impl_lib,
+        include_directories: [mock_impl.get('general').get('inc')],
+        version: meson.project_version(),
+    )
+
+    deps += tjson_mock_general_impl_dep
+    mock_deps += tjson_mock_general_impl_dep
+endif
 
 tjson_lib = library(
     'tjson',

@@ -1,6 +1,5 @@
 src_files += files(
-    '_impl/path.c',
-    '_impl/path.h',
+    
     '_impl/simple_regex.c',
     '_impl/simple_regex.h',
     '_impl/utf8.c',
@@ -15,6 +14,50 @@ src_files += files(
     'tjson_schema.c',
     'tjson_schema.h',
 )
+
+if mock_impl.has_key('mock')
+    mock_impl += {
+        'general': {
+            'files': [
+                mock_impl.get('general').get('files'),
+                files(
+                    '_impl/mock/custom_mock.c',
+                    '_impl/mock/custom_mock.h',
+                    '_impl/path.c',
+                    '_impl/path.h',
+                ),
+            ],
+            'link_options': [
+                mock_impl.get('general').get('link_options'),
+                '-Wl,--wrap=open',
+                '-Wl,--wrap=fstat',
+                '-Wl,--wrap=read',
+                '-Wl,--wrap=close',
+            ],
+            'inc': [mock_impl.get('general').get('inc'), include_directories('_impl/mock')],
+        },
+        'allocators': {
+            'files': [
+                mock_impl.get('allocators').get('files'),
+                files(
+                    '_impl/allocators/tjson_coverage_allocators.c',
+                    '_impl/allocators/tjson_coverage_allocators.h',
+                ),
+            ],
+            'inc': [mock_impl.get('allocators').get('inc'), include_directories('_impl/allocators')],
+        },
+    }
+
+
+
+else
+    src_files += files(
+        '_impl/path.c',
+        '_impl/path.h',
+    )
+
+endif
+
 
 
 install_headers(
