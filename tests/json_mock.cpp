@@ -17,109 +17,214 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 	// TODO
 }
 
-TEST_CASE("testing general mock implementation <general_mock_impl>") {
+#include <iostream>
 
-	SUBCASE("testing duplicate setting of wrap fn: fstat") {
-		[]() -> void {
-			fstat_function_type wrap_fn_fstat = [](int fd, struct stat* statbuf) -> int {
-				UNUSED(fd);
-				UNUSED(statbuf);
-				return -1;
-			};
+/* TEST_CASE("testing general mock implementation <general_mock_impl>") {
 
-			bool res1 = wrap_fstat(wrap_fn_fstat);
+    SUBCASE("testing duplicate setting of wrap fn: fstat") {
+        []() -> void {
+            fstat_function_type wrap_fn_fstat = [](int fd, struct stat* statbuf) -> int {
+                UNUSED(fd);
+                UNUSED(statbuf);
+                throw std::runtime_error(
+                    std::string{ "expecting this to never be called: fstat -> " } +
+                    std::to_string(fd));
+            };
 
-			REQUIRE_EQ(res1, true);
+            CAutoFreePtr<void> defer_unwrap = { nullptr, [](void* const value) -> void {
+                                                   UNUSED(value);
+                                                   unwrap_fstat();
+                                               } };
 
-			bool res2 = wrap_fstat(wrap_fn_fstat);
+            bool res1 = wrap_fstat(wrap_fn_fstat);
 
-			REQUIRE_EQ(res2, false);
-		}();
-	}
+            REQUIRE_EQ(res1, true);
 
-	SUBCASE("testing duplicate setting of wrap fn: read") {
-		[]() -> void {
-			read_function_type wrap_fn_read = [](int fd, void* buf, size_t count) -> ssize_t {
-				UNUSED(fd);
-				UNUSED(buf);
-				UNUSED(count);
-				return -1;
-			};
+            bool res2 = wrap_fstat(wrap_fn_fstat);
 
-			bool res1 = wrap_read(wrap_fn_read);
+            REQUIRE_EQ(res2, false);
+        }();
+    }
 
-			REQUIRE_EQ(res1, true);
+    SUBCASE("testing duplicate setting of wrap fn: read") {
+        []() -> void {
+            read_function_type wrap_fn_read = [](int fd, void* buf, size_t count) -> ssize_t {
+                UNUSED(fd);
+                UNUSED(buf);
+                UNUSED(count);
+                throw std::runtime_error(
+                    std::string{ "expecting this to never be called: read -> " } +
+                    std::to_string(fd));
+            };
 
-			bool res2 = wrap_read(wrap_fn_read);
+            CAutoFreePtr<void> defer_unwrap = { nullptr, [](void* const value) -> void {
+                                                   UNUSED(value);
+                                                   unwrap_read();
+                                               } };
 
-			REQUIRE_EQ(res2, false);
-		}();
-	}
+            bool res1 = wrap_read(wrap_fn_read);
 
-	SUBCASE("testing duplicate setting of wrap fn: close") {
-		[]() -> void {
-			close_function_type wrap_fn_close = [](int fd) -> int {
-				UNUSED(fd);
-				return -1;
-			};
+            REQUIRE_EQ(res1, true);
 
-			bool res1 = wrap_close(wrap_fn_close);
+            bool res2 = wrap_read(wrap_fn_read);
 
-			REQUIRE_EQ(res1, true);
+            REQUIRE_EQ(res2, false);
+        }();
+    }
 
-			bool res2 = wrap_close(wrap_fn_close);
+    SUBCASE("testing duplicate setting of wrap fn: close") {
+        []() -> void {
+            close_function_type wrap_fn_close = [](int fd) -> int {
+                UNUSED(fd);
+                throw std::runtime_error(
+                    std::string{ "expecting this to never be called: close -> " } +
+                    std::to_string(fd));
+            };
 
-			REQUIRE_EQ(res2, false);
-		}();
-	}
+            CAutoFreePtr<void> defer_unwrap = { nullptr, [](void* const value) -> void {
+                                                   UNUSED(value);
+                                                   unwrap_close();
+                                               } };
 
-	/* 	SUBCASE("testing if wrapping works") {
-	        []() -> void {
-	            const auto mock_allocator = mock::CMockGeneral::get_instance();
+            bool res1 = wrap_close(wrap_fn_close);
 
-	            const std::vector<size_t> fail_amounts = { 1, 30, 200 };
+            REQUIRE_EQ(res1, true);
 
-	            for(const auto& fail_amount : fail_amounts) {
+            bool res2 = wrap_close(wrap_fn_close);
 
-	                const bool mock_res = mock_allocator.calloc().fail_after(fail_amount);
-	                REQUIRE_TRUE(mock_res);
+            REQUIRE_EQ(res2, false);
+        }();
+    }
+*/
+/* SUBCASE("testing duplicate setting of wrap fn: open") {
+    []() -> void {
+        open_function_type wrap_fn_open = [](const char* path, int flags, mode_t mode) -> int {
+            // see:
+            //
+https://stackoverflow.com/questions/47201349/wrapping-open-for-unit-testing-will-make-gcov-not-able-to-open-gcda-file
+            if(strlen(path) > 5 && !strcmp(path + strlen(path) - 5, ".gcda")) {
+                return open(path, flags, mode);
+            }
+            UNUSED(path);
+            UNUSED(flags);
+            UNUSED(mode);
+            throw std::runtime_error(
+                std::string{ "expecting this to never be called: open -> " } + path + " -> " +
+                std::to_string(flags));
+        };
 
-	                for(size_t i = 0; i < fail_amount; ++i) {
-	                    AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+        CAutoFreePtr<void> defer_unwrap = { nullptr, [](void* const value) -> void {
+                                               UNUSED(value);
+                                               unwrap_open();
+                                           } };
 
-	                    REQUIRE_NE(allocated, nullptr);
-	                    TJSON_FREE(allocated);
-	                }
 
-	                AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+        bool res1 = wrap_open(wrap_fn_open);
 
-	                REQUIRE_EQ(allocated, nullptr);
-	            }
-	        }();
-	    }
-	 */
+        REQUIRE_EQ(res1, true);
 
-	/* 	SUBCASE("testing recovery with fail never") {
-	        []() -> void {
-	            const auto mock_allocator = mock::CMockGeneral::get_instance();
+        bool res2 = wrap_open(wrap_fn_open);
 
-	            const bool mock_res1 = mock_allocator.malloc().always_fail();
-	            REQUIRE_TRUE(mock_res1);
+        REQUIRE_EQ(res2, false);
+    }();
+} */
 
-	            AllocTest* allocated1 = TJSON_NEW(AllocTest);
+/* 	SUBCASE("testing if wrapping works") {
+        []() -> void {
+            const auto mock_allocator = mock::CMockGeneral::get_instance();
 
-	            REQUIRE_EQ(allocated1, nullptr);
+            const std::vector<size_t> fail_amounts = { 1, 30, 200 };
 
-	            const bool mock_res2 = mock_allocator.malloc().never_fail();
-	            REQUIRE_TRUE(mock_res2);
+            for(const auto& fail_amount : fail_amounts) {
 
-	            AllocTest* allocated2 = TJSON_NEW(AllocTest);
+                const bool mock_res = mock_allocator.calloc().fail_after(fail_amount);
+                REQUIRE_TRUE(mock_res);
 
-	            REQUIRE_NE(allocated2, nullptr);
+                for(size_t i = 0; i < fail_amount; ++i) {
+                    AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
 
-	            TJSON_FREE(allocated2);
-	        }();
-	    } */
-}
+                    REQUIRE_NE(allocated, nullptr);
+                    TJSON_FREE(allocated);
+                }
+
+                AllocTest* allocated = (AllocTest*)TJSON_CALLOC(2, sizeof(AllocTest));
+
+                REQUIRE_EQ(allocated, nullptr);
+            }
+        }();
+    }
+ */
+
+/* 	SUBCASE("testing recovery with fail never") {
+        []() -> void {
+            const auto mock_allocator = mock::CMockGeneral::get_instance();
+
+            const bool mock_res1 = mock_allocator.malloc().always_fail();
+            REQUIRE_TRUE(mock_res1);
+
+            AllocTest* allocated1 = TJSON_NEW(AllocTest);
+
+            REQUIRE_EQ(allocated1, nullptr);
+
+            const bool mock_res2 = mock_allocator.malloc().never_fail();
+            REQUIRE_TRUE(mock_res2);
+
+            AllocTest* allocated2 = TJSON_NEW(AllocTest);
+
+            REQUIRE_NE(allocated2, nullptr);
+
+            TJSON_FREE(allocated2);
+        }();
+    } */
+//}
 
 TEST_SUITE_END();
+
+static void gcov_guard() {
+	std::cerr << "UJNWRAPPING gcov guard\n";
+	unwrap_open();
+}
+
+TEST_CASE("example") {
+	fprintf(stderr, "Setup\n");
+	CAutoFreePtr<void> defer_unwrap1 = { nullptr, [](void* const value) -> void {
+		                                    UNUSED(value);
+		                                    std::cerr << "UJNWRAPPING global\n";
+		                                } };
+
+	SUBCASE("first") {
+		fprintf(stderr, "First\n");
+	}
+
+	SUBCASE("second") {
+
+		open_function_type wrap_fn_open = [](const char* path, int flags, mode_t mode) -> int {
+			UNUSED(path);
+			UNUSED(flags);
+			UNUSED(mode);
+			throw std::runtime_error(std::string{ "expecting this to never be called: open -> " } +
+			                         path + " -> " + std::to_string(flags));
+		};
+
+		CAutoFreePtr<void> defer_unwrap = { nullptr, [](void* const value) -> void {
+			                                   UNUSED(value);
+			                                   std::cerr << "UJNWRAPPING local\n";
+			                                   unwrap_open();
+			                               } };
+
+		std::cerr << "WRAPPING\n";
+
+		bool res1 = wrap_open(wrap_fn_open);
+
+		REQUIRE_EQ(res1, true);
+
+		fprintf(stderr, "Second\n");
+	}
+
+	SUBCASE("testing duplicate setting of wrap fn: open") {
+		[]() -> void { fprintf(stderr, "Third\n"); }();
+	}
+
+	fprintf(stderr, "Teardown\n");
+	gcov_guard();
+}

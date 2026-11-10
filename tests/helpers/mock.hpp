@@ -24,6 +24,7 @@ class CMockGeneral {
   public:
 	[[nodiscard]] static CMockGeneral get_instance();
 
+	CUSTOM_MOCK_DEFINE_ENTRY(open, open_function_type)
 	CUSTOM_MOCK_DEFINE_ENTRY(fstat, fstat_function_type)
 	CUSTOM_MOCK_DEFINE_ENTRY(read, read_function_type)
 	CUSTOM_MOCK_DEFINE_ENTRY(close, close_function_type)
