@@ -7,12 +7,13 @@
 #include <stdexcept>
 
 #define CUSTOM_MOCK_INIT_ENTRY(name, fn_type, number) \
-	this->m_##name = general::Handle<fn_type, number>{ general::FnHolder<fn_type>{ \
-		CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(name), \
-		CUSTOM_MOCK_WRAP_NAME_WRAP(name), \
-		CUSTOM_MOCK_WRAP_NAME_UNWRAP(name), \
-		CUSTOM_MOCK_WRAP_COUNT_NAME(name), \
-	} };
+	this->CUSTOM_MOCK_MEMBER_NAME(name) = \
+	    general::Handle<fn_type, number>{ general::FnHolder<fn_type>{ \
+		    CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(name), \
+		    CUSTOM_MOCK_WRAP_NAME_WRAP(name), \
+		    CUSTOM_MOCK_WRAP_NAME_UNWRAP(name), \
+		    CUSTOM_MOCK_WRAP_COUNT_NAME(name), \
+		} };
 
 mock::CMockGeneral::CMockGeneral(void* associated_instance)
     : m_associated_instance{ associated_instance } {
@@ -41,7 +42,7 @@ mock::CMockGeneral mock::CMockGeneral::get_instance() {
 
 #define CUSTOM_MOCK_IMPLEMENT_ENTRY(name, fn_type, number) \
 	[[nodiscard]] mock::general::Handle<fn_type, number>& mock::CMockGeneral::name() { \
-		return this->m_##name; \
+		return this->CUSTOM_MOCK_MEMBER_NAME(name); \
 	}
 
 #define CUSTOM_MOCK_FUNCTION_X_MACRO(name, fn_type, number) \
@@ -49,7 +50,8 @@ mock::CMockGeneral mock::CMockGeneral::get_instance() {
 CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST
 #undef CUSTOM_MOCK_FUNCTION_X_MACRO
 
-#define CUSTOM_MOCK_IMPLEMENT_MOVE(name) this->m_##name = std::move(other.m_##name);
+#define CUSTOM_MOCK_IMPLEMENT_MOVE(name) \
+	this->CUSTOM_MOCK_MEMBER_NAME(name) = std::move(other.CUSTOM_MOCK_MEMBER_NAME(name));
 
 mock::CMockGeneral::CMockGeneral(CMockGeneral&& other) noexcept {
 
@@ -73,7 +75,7 @@ mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept
 	return *this;
 }
 
-#define CUSTOM_MOCK_IMPLEMENT_DELETE(name) this->m_##name.~Handle();
+#define CUSTOM_MOCK_IMPLEMENT_DELETE(name) this->CUSTOM_MOCK_MEMBER_NAME(name).~Handle();
 
 mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 	if(m_associated_instance == nullptr) {

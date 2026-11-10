@@ -16,7 +16,8 @@ struct FunctionMockMemberImpl {
 
 mock::alloc::FunctionMock::FunctionMock() : m_impl{ nullptr } {}
 
-mock::alloc::FunctionMock::FunctionMock(FunctionMockMember*&& member) : m_impl{ std::move(member) } {}
+mock::alloc::FunctionMock::FunctionMock(FunctionMockMember*&& member)
+    : m_impl{ std::move(member) } {}
 
 template <typename T>
 T call_c_fn(mock::alloc::FunctionMockMember* orig_handle,
@@ -80,11 +81,16 @@ static mock::alloc::FunctionMock new_function_mock(AllocatorFunctionType type) {
 	return mock::alloc::FunctionMock(std::move(cast_handle));
 }
 
+#define ALLOCATOR_MOCK_INIT_ENTRY(name, name_upper) \
+	this->ALLOCATOR_MOCK_MEMBER_NAME(name) = new_function_mock(AllocatorFunctionType##name_upper);
+
 mock::CMockAllocator::CMockAllocator(void* associated_instance)
     : m_associated_instance{ associated_instance } {
-	this->m_malloc = new_function_mock(AllocatorFunctionTypeMalloc);
-	this->m_calloc = new_function_mock(AllocatorFunctionTypeCalloc);
-	this->m_realloc = new_function_mock(AllocatorFunctionTypeRealloc);
+
+#define ALLOCATOR_MOCK_FUNCTION_X_MACRO(name, name_upper) \
+	ALLOCATOR_MOCK_INIT_ENTRY(name, name_upper)
+	ALLOCATOR_MOCK_DEFINE_FUNCTIONS_LIST
+#undef ALLOCATOR_MOCK_FUNCTION_X_MACRO
 }
 
 // this is a singleton!
@@ -103,26 +109,26 @@ mock::CMockAllocator mock::CMockAllocator::get_instance() {
 	}
 }
 
-[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::malloc() const {
-	return this->m_malloc;
-}
+#define ALLOCATOR_MOCK_IMPLEMENT_ENTRY(name) \
+	[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::name() const { \
+		return this->ALLOCATOR_MOCK_MEMBER_NAME(name); \
+	}
 
-[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::calloc() const {
-	return this->m_calloc;
-}
+#define ALLOCATOR_MOCK_FUNCTION_X_MACRO(name, name_upper) ALLOCATOR_MOCK_IMPLEMENT_ENTRY(name)
+ALLOCATOR_MOCK_DEFINE_FUNCTIONS_LIST
+#undef ALLOCATOR_MOCK_FUNCTION_X_MACRO
 
-[[nodiscard]] const mock::alloc::FunctionMock& mock::CMockAllocator::realloc() const {
-	return this->m_realloc;
-}
+#define ALLOCATOR_MOCK_IMPLEMENT_MOVE(name) \
+	this->ALLOCATOR_MOCK_MEMBER_NAME(name) = std::move(other.ALLOCATOR_MOCK_MEMBER_NAME(name));
 
 mock::CMockAllocator::CMockAllocator(CMockAllocator&& other) noexcept {
 
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	this->m_malloc = std::move(other.m_malloc);
-	this->m_calloc = std::move(other.m_calloc);
-	this->m_realloc = std::move(other.m_realloc);
+#define ALLOCATOR_MOCK_FUNCTION_X_MACRO(name, name_upper) ALLOCATOR_MOCK_IMPLEMENT_MOVE(name)
+	ALLOCATOR_MOCK_DEFINE_FUNCTIONS_LIST
+#undef ALLOCATOR_MOCK_FUNCTION_X_MACRO
 }
 
 mock::CMockAllocator& mock::CMockAllocator::operator=(CMockAllocator&& other) noexcept {
@@ -130,12 +136,15 @@ mock::CMockAllocator& mock::CMockAllocator::operator=(CMockAllocator&& other) no
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	this->m_malloc = std::move(other.m_malloc);
-	this->m_calloc = std::move(other.m_calloc);
-	this->m_realloc = std::move(other.m_realloc);
+#define ALLOCATOR_MOCK_FUNCTION_X_MACRO(name, name_upper) ALLOCATOR_MOCK_IMPLEMENT_MOVE(name)
+	ALLOCATOR_MOCK_DEFINE_FUNCTIONS_LIST
+#undef ALLOCATOR_MOCK_FUNCTION_X_MACRO
 
 	return *this;
 }
+
+#define ALLOCATOR_MOCK_IMPLEMENT_DELETE(name) \
+	this->ALLOCATOR_MOCK_MEMBER_NAME(name).~FunctionMock();
 
 mock::CMockAllocator::~CMockAllocator() noexcept(false) {
 	if(m_associated_instance == nullptr) {
@@ -149,9 +158,9 @@ mock::CMockAllocator::~CMockAllocator() noexcept(false) {
 
 	this->m_associated_instance = nullptr;
 
-	this->m_calloc.~FunctionMock();
-	this->m_calloc.~FunctionMock();
-	this->m_calloc.~FunctionMock();
+#define ALLOCATOR_MOCK_FUNCTION_X_MACRO(name, name_upper) ALLOCATOR_MOCK_IMPLEMENT_DELETE(name)
+	ALLOCATOR_MOCK_DEFINE_FUNCTIONS_LIST
+#undef ALLOCATOR_MOCK_FUNCTION_X_MACRO
 
 	if(mock_allocator_instance == nullptr) {
 		throw std::runtime_error(

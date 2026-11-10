@@ -10,7 +10,9 @@
 
 #define CUSTOM_MOCK_HANDLER_AMOUNT 4
 
-#define CUSTOM_MOCK_DEFINE_MEMBER(name, fn_type, number) general::Handle<fn_type, number> m_##name;
+#define CUSTOM_MOCK_MEMBER_NAME(name)m_##name
+
+#define CUSTOM_MOCK_DEFINE_MEMBER(name, fn_type, number) general::Handle<fn_type, number> CUSTOM_MOCK_MEMBER_NAME(name);
 
 #define CUSTOM_MOCK_DEFINE_ENTRY(name, fn_type, number) \
 	[[nodiscard]] mock::general::Handle<fn_type, number>& name();
