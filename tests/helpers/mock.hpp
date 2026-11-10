@@ -8,11 +8,12 @@
 
 #include "./cpp_types.hpp"
 
-#define CUSTOM_MOCK_HANDLER_AMOUNT 4
+#define CUSTOM_MOCK_HANDLER_AMOUNT 5
 
-#define CUSTOM_MOCK_MEMBER_NAME(name)m_##name
+#define CUSTOM_MOCK_MEMBER_NAME(name) m_##name
 
-#define CUSTOM_MOCK_DEFINE_MEMBER(name, fn_type, number) general::Handle<fn_type, number> CUSTOM_MOCK_MEMBER_NAME(name);
+#define CUSTOM_MOCK_DEFINE_MEMBER(name, fn_type, number) \
+	general::Handle<fn_type, number> CUSTOM_MOCK_MEMBER_NAME(name);
 
 #define CUSTOM_MOCK_DEFINE_ENTRY(name, fn_type, number) \
 	[[nodiscard]] mock::general::Handle<fn_type, number>& name();
@@ -263,7 +264,8 @@ template <typename fn_type, size_t ID> class Handle {
 	CUSTOM_MOCK_FUNCTION_X_MACRO(open, open_function_type, 0) \
 	CUSTOM_MOCK_FUNCTION_X_MACRO(fstat, fstat_function_type, 1) \
 	CUSTOM_MOCK_FUNCTION_X_MACRO(read, read_function_type, 2) \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3)
+	CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3) \
+	CUSTOM_MOCK_FUNCTION_X_MACRO(open64, open64_function_type, 4)
 
 class CMockGeneral {
 	// members

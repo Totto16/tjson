@@ -42,6 +42,76 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 			REQUIRE_EQ(count, 2);
 		}();
 	}
+
+	SUBCASE("testing path reading: fstat fails") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			const auto open_wrapper = [](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(flags);
+				UNUSED(mode);
+
+				if(strcmp(path, "test.json") == 0) {
+					return open("/dev/null", flags, mode);
+				}
+
+				errno = ENOENT;
+				return -1;
+			};
+
+			auto& open_handle = mock_general.open();
+
+			auto used_open_handle = open_handle.use(open_wrapper);
+
+			auto& open64_handle = mock_general.open64();
+
+			auto used_open64_handle = open64_handle.use(open_wrapper);
+
+			auto& fstat_handle = mock_general.fstat();
+
+			auto used_fstat_handle = fstat_handle.use([](int fd, struct stat* statbuf) -> int {
+				UNUSED(fd);
+
+				if(statbuf == NULL) {
+					errno = EFAULT;
+					return -1;
+				}
+
+				errno = EBADF;
+				return -1;
+			});
+
+			{ // actual test
+
+				tstr file_path = TSTR_LIT("test.json");
+
+				JsonErrorCpp expected_error =
+				    JsonErrorCpp::with_file_loc("Couldn't get stats of the file", &file_path,
+				                                JsonSourcePosition{ .line = 0, .col = 0 });
+
+				CAutoFreePtr<tstr> defer_path = { &file_path, tstr_free };
+
+				const auto parse_result = json_value_parse_from_file(&file_path);
+
+				REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+				JsonError result = json_parse_result_get_as_error(parse_result);
+
+				const auto actual_error = JsonErrorCpp{ result };
+
+				REQUIRE_EQ(actual_error, expected_error);
+			}
+
+			const size_t open_count = used_open_handle.count();
+			const size_t open64_count = used_open64_handle.count();
+
+			REQUIRE_EQ(open_count + open64_count, 1);
+
+			const size_t fstat_count = used_fstat_handle.count();
+
+			REQUIRE_EQ(fstat_count, 1);
+		}();
+	}
 }
 
 TEST_CASE("testing general mock implementation <general_mock_impl>") {
@@ -159,6 +229,36 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 		}();
 	}
 
+	SUBCASE("testing duplicate setting of wrap fn: open64") {
+		[]() -> void {
+			open64_function_type wrap_fn_open64 = [](const char* path, int flags,
+			                                         mode_t mode) -> int {
+				UNUSED(path);
+				UNUSED(flags);
+				UNUSED(mode);
+				throw std::runtime_error(
+				    std::string{ "expecting this to never be called: open64 -> " } + path + " -> " +
+				    std::to_string(flags));
+			};
+
+			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_open64(); });
+
+			bool res0 = wrap_open64(nullptr);
+
+			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(open64_is_wrapped(), false);
+
+			bool res1 = wrap_open64(wrap_fn_open64);
+
+			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(open64_is_wrapped(), true);
+
+			bool res2 = wrap_open64(wrap_fn_open64);
+
+			REQUIRE_EQ(res2, false);
+		}();
+	}
+
 	SUBCASE("testing if wrapping works: fstat") {
 		[]() -> void {
 			auto mock_general = mock::CMockGeneral::get_instance();
@@ -250,6 +350,33 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			REQUIRE_EQ(res, -2);
 
 			int res2 = wrapped_fn_open("\x12 test", 0, 0);
+
+			REQUIRE_EQ(res2, -(0x12));
+
+			const size_t count = used_handle.count();
+
+			REQUIRE_EQ(count, 2);
+		}();
+	}
+
+	SUBCASE("testing if wrapping works: open64") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			auto& handle = mock_general.open64();
+
+			auto used_handle = handle.use([](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(path);
+				UNUSED(flags);
+				UNUSED(mode);
+				return -(path[0]);
+			});
+
+			int res = wrapped_fn_open64("\x02 test", 0, 0);
+
+			REQUIRE_EQ(res, -2);
+
+			int res2 = wrapped_fn_open64("\x12 test", 0, 0);
 
 			REQUIRE_EQ(res2, -(0x12));
 

@@ -32,18 +32,21 @@ typedef int (*close_function_type)(int fd);
 
 typedef int (*open_function_type)(const char* path, int flags, mode_t mode);
 
+typedef int (*open64_function_type)(const char* path, int flags, mode_t mode);
+
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(fstat, int, (int fd, struct stat* statbuf),
                                         fstat_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(read, ssize_t, (int fd, void* buf, size_t count),
                                         read_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(close, int, (int fd), close_function_type)
 
-// note open is special, as it is variadic
-
-// note open is special, as it is variadic
+// note open and open64 is special, as it is variadic
 
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(open, int, (const char* path, int flags, ...),
                                         open_function_type)
+
+CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(open64, int, (const char* path, int flags, ...),
+                                        open64_function_type)
 
 #ifdef __cplusplus
 }

@@ -71,7 +71,9 @@ CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(read, ssize_t, (int fd, void* bu
                                                 (fd, buf, count), read_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(close, int, (int fd), (fd), close_function_type)
 
-// note open is special, as it is variadic
+// note open and open64 is special, as it is variadic
+
+// open helper functions
 
 static int _wrap_open_helper_impl__(open_function_type fun, const char* pathname, int flags,
                                     va_list args) {
@@ -100,6 +102,8 @@ static int _wrap_open_helper_orig_impl__(open_function_type_orig fun, const char
 
 	return fun(pathname, flags);
 }
+
+// impl
 
 typedef struct {
 	open_function_type wrapped_fn_ptr;
@@ -172,4 +176,78 @@ void CUSTOM_MOCK_WRAP_NAME_UNWRAP(open)(void) {
 
 size_t CUSTOM_MOCK_WRAP_COUNT_NAME(open)(void) {
 	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).call_count;
+}
+
+
+typedef struct {
+	open64_function_type wrapped_fn_ptr;
+	size_t call_count;
+} CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open64);
+
+[[maybe_unused]] static CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open64)
+    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64) = {
+	    .wrapped_fn_ptr = NULL,
+	    .call_count = 0,
+    };
+
+int CUSTOM_MOCK_REAL_NAME(open64)(const char* path, int flags, ...);
+
+int CUSTOM_MOCK_WRAP_NAME(open64)(const char* path, int flags, ...);
+
+int CUSTOM_MOCK_WRAP_WRAPPED_NAME(open64)(const char* path, int flags, ...) {
+	va_list args;
+	va_start(args, flags);
+
+	const int result =
+	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_WRAP_NAME(open64), path, flags, args);
+
+	va_end(args);
+	return result;
+}
+
+int CUSTOM_MOCK_WRAP_NAME(open64)(const char* path, int flags, ...) {
+	va_list args;
+	va_start(args, flags);
+
+	if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr != NULL) {
+		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).call_count++;
+		const int result = _wrap_open_helper_impl__(
+		    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr, path, flags, args);
+
+		va_end(args);
+		return result;
+	}
+
+	const int result =
+	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_REAL_NAME(open64), path, flags, args);
+
+	va_end(args);
+	return result;
+}
+
+bool CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(open64)(void) {
+	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr != NULL;
+}
+
+bool CUSTOM_MOCK_WRAP_NAME_WRAP(open64)(open64_function_type fun) {
+	if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr != NULL) {
+		return false;
+	}
+
+	if(fun == NULL) {
+		return false;
+	}
+
+	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64) =
+	    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open64)){ .wrapped_fn_ptr = fun, .call_count = 0 };
+	return true;
+}
+
+void CUSTOM_MOCK_WRAP_NAME_UNWRAP(open64)(void) {
+	CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64) =
+	    (CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(open64)){ .wrapped_fn_ptr = NULL, .call_count = 0 };
+}
+
+size_t CUSTOM_MOCK_WRAP_COUNT_NAME(open64)(void) {
+	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).call_count;
 }

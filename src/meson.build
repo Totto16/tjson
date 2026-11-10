@@ -33,6 +33,7 @@ if mock_impl.has_key('mock')
                 '-Wl,--wrap=read',
                 '-Wl,--wrap=close',
                 '-Wl,--wrap=open',
+                '-Wl,--wrap=open64',
             ],
             'inc': [mock_impl.get('general').get('inc'), include_directories('_impl/mock')],
         },
