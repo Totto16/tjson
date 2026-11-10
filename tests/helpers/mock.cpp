@@ -49,15 +49,17 @@ CUSTOM_MOCK_IMPLEMENT_ENTRY(fstat, fstat_function_type, 1)
 CUSTOM_MOCK_IMPLEMENT_ENTRY(read, read_function_type, 2)
 CUSTOM_MOCK_IMPLEMENT_ENTRY(close, close_function_type, 3)
 
+#define CUSTOM_MOCK_IMPLEMENT_MOVE(name) this->m_##name = std::move(other.m_##name);
+
 mock::CMockGeneral::CMockGeneral(CMockGeneral&& other) noexcept {
 
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	this->m_open = std::move(other.m_open);
-	this->m_fstat = std::move(other.m_fstat);
-	this->m_read = std::move(other.m_read);
-	this->m_close = std::move(other.m_close);
+	CUSTOM_MOCK_IMPLEMENT_MOVE(open)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(fstat)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(read)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(close)
 }
 
 mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept {
@@ -65,13 +67,15 @@ mock::CMockGeneral& mock::CMockGeneral::operator=(CMockGeneral&& other) noexcept
 	this->m_associated_instance = other.m_associated_instance;
 	other.m_associated_instance = nullptr;
 
-	this->m_open = std::move(other.m_open);
-	this->m_fstat = std::move(other.m_fstat);
-	this->m_read = std::move(other.m_read);
-	this->m_close = std::move(other.m_close);
+	CUSTOM_MOCK_IMPLEMENT_MOVE(open)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(fstat)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(read)
+	CUSTOM_MOCK_IMPLEMENT_MOVE(close)
 
 	return *this;
 }
+
+#define CUSTOM_MOCK_IMPLEMENT_DELETE(name) this->m_##name.~Handle();
 
 mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 	if(m_associated_instance == nullptr) {
@@ -85,10 +89,10 @@ mock::CMockGeneral::~CMockGeneral() noexcept(false) {
 
 	this->m_associated_instance = nullptr;
 
-	this->m_open.~Handle();
-	this->m_fstat.~Handle();
-	this->m_read.~Handle();
-	this->m_close.~Handle();
+	CUSTOM_MOCK_IMPLEMENT_DELETE(open)
+	CUSTOM_MOCK_IMPLEMENT_DELETE(fstat)
+	CUSTOM_MOCK_IMPLEMENT_DELETE(read)
+	CUSTOM_MOCK_IMPLEMENT_DELETE(close)
 
 	if(mock_general_instance == nullptr) {
 		throw std::runtime_error(

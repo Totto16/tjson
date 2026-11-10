@@ -173,10 +173,9 @@ template <typename fn_type, size_t ID> class UsedHandle {
 	}
 
   public:
-	UsedHandle(helper::to_std_function_t<fn_type>&& fun, FnHolder<fn_type>* holder,
-	           Trampoline<fn_type, ID>* trampoline)
-	    : m_fun{ std::forward<helper::to_std_function_t<fn_type>>(fun) }, m_holder{ holder },
-	      m_trampoline{ trampoline } {
+	template <typename F>
+	UsedHandle(F&& fun, FnHolder<fn_type>* holder, Trampoline<fn_type, ID>* trampoline)
+	    : m_fun{ std::forward<F>(fun) }, m_holder{ holder }, m_trampoline{ trampoline } {
 		this->use();
 	}
 
@@ -227,9 +226,9 @@ template <typename fn_type, size_t ID> class Handle {
 
 	explicit Handle(FnHolder<fn_type>&& holder) : m_holder{ std::move(holder) }, m_trampoline{} {}
 
-	UsedHandle<fn_type, ID> use(helper::to_std_function_t<fn_type>&& fun) {
+	template <typename F> UsedHandle<fn_type, ID> use(F&& fun) {
 		return UsedHandle<fn_type, ID>{
-			std::forward<helper::to_std_function_t<fn_type>>(fun),
+			std::forward<F>(fun),
 			&(this->m_holder),
 			&(this->m_trampoline),
 		};

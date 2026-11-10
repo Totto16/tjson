@@ -18,19 +18,16 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 		[]() -> void {
 			auto mock_general = mock::CMockGeneral::get_instance();
 
-			auto i = 0;
-
 			auto& open_handle = mock_general.open();
 
-			auto used_handle =
-			    open_handle.use([&i](const char* path, int flags, mode_t mode) -> int {
-				    UNUSED(path);
-				    if(flags & O_CREAT) {
-					    return -((int)mode);
-				    }
+			auto used_handle = open_handle.use([](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(path);
+				if(flags & O_CREAT) {
+					return -((int)mode);
+				}
 
-				    return -1 + i;
-			    });
+				return -1;
+			});
 
 			int res = wrapped_fn_open("test", O_WRONLY);
 
