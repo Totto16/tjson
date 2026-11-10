@@ -18,14 +18,16 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 		[]() -> void {
 			const auto mock_general = mock::CMockGeneral::get_instance();
 
+			auto i = 0;
+
 			auto open_handle =
-			    mock_general.open([](const char* path, int flags, mode_t mode) -> int {
+			    mock_general.open([&i](const char* path, int flags, mode_t mode) -> int {
 				    UNUSED(path);
 				    if(flags & O_CREAT) {
 					    return -((int)mode);
 				    }
 
-				    return -1;
+				    return -1 + i;
 			    });
 
 			auto used_handle = open_handle.use_local();
@@ -38,7 +40,7 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 			REQUIRE_EQ(res2, -17);
 
-			const size_t open_count = wrapped_calls_count_open();
+			const size_t open_count = used_handle.count();
 
 			REQUIRE_EQ(open_count, 2);
 		}();

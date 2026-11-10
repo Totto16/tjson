@@ -17,6 +17,7 @@
 			                                 .is_wrapped = CUSTOM_MOCK_WRAP_NAME_IS_WRAPPED(name), \
 			                                 .wrap = CUSTOM_MOCK_WRAP_NAME_WRAP(name), \
 			                                 .unwrap = CUSTOM_MOCK_WRAP_NAME_UNWRAP(name), \
+			                                 .count = CUSTOM_MOCK_WRAP_COUNT_NAME(name), \
 			                             } }; \
 	}
 
@@ -39,11 +40,25 @@ template <typename fn_type> struct FnHolder {
 	bool (*is_wrapped)(void);
 	bool (*wrap)(fn_type fun);
 	void (*unwrap)(void);
+	size_t (*count)(void);
+};
+
+template <typename fn_type> class UsedHandle {
+  private:
+	CAutoFreePtr<void> m_impl;
+	FnHolder<fn_type>* m_holder;
+
+  public:
+	template <typename F>
+	UsedHandle(F&& fun, FnHolder<fn_type>* holder)
+	    : m_impl{ auto_free_ign(std::forward<F>(fun)) }, m_holder{ std::move(holder) } {}
+
+	[[nodiscard]] size_t count() const;
 };
 
 template <typename fn_type> class Handle {
   private:
-	fn_type m_fun;
+	helper::to_std_function_t<fn_type> m_fun;
 	FnHolder<fn_type> m_holder;
 
   public:
@@ -53,9 +68,12 @@ template <typename fn_type> class Handle {
 
 	void use() { this->m_holder.wrap(this->m_fun); }
 
-	CAutoFreePtr<void> use_local() {
+	UsedHandle<fn_type> use_local() {
 		this->use();
-		return auto_free_ign([this]() -> void { this->unset(); });
+		return UsedHandle<fn_type>{
+			[this]() -> void { this->unset(); },
+			&(this->m_holder),
+		};
 	}
 
 	[[nodiscard]] operator bool() const { return this->is_used(); }
