@@ -321,14 +321,7 @@
             {
                 "name": "ObjectKey",
                 "type": {
-                    "struct": {
-                        "members": [
-                            {
-                                "name": "name",
-                                "typeName": "tstr"
-                            }
-                        ]
-                    }
+                    "name": "JsonPathSegmentObjectKey"
                 }
             },
             {

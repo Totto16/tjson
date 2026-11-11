@@ -3,7 +3,12 @@
 #include <tstr_builder.h>
 #include <tvec.h>
 
+#include "./_impl/utf8.h"
 #include "./_impl/utils.h"
+
+typedef struct {
+	Utf8CodepointArr value;
+} JsonPathSegmentObjectKey;
 
 GENERATE_VARIANT_ALL_JSON_PATH_SEGMENT()
 
@@ -47,25 +52,80 @@ TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* const path, const ts
 	return json_path_add_object_key_moved(path, TJSON_MOVE(tstr, key_duped));
 }
 
+static void free_json_path_segment_object_key(JsonPathSegmentObjectKey* object_key) {
+
+	TVEC_FREE(Utf8Codepoint, &(object_key->value));
+}
+
+TJSON_NODISCARD static bool
+json_path_segment_object_key_eq(const JsonPathSegmentObjectKey* const object_key1,
+                                const JsonPathSegmentObjectKey* const object_key2) {
+	return utf8_codpoints_eq(&(object_key1->value), &(object_key2->value));
+}
+
 TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
 
-	const tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
+	tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
+	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
 
-	TvecResult result =
-	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(key_normal));
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_normal); \
+	} while(false)
 
-	if(result != TvecResultOk) {
+	tstr_view str_view = tstr_as_view(&key_normal);
 
-		*TJSON_GET_MOVED_VALUE(key) = tstr_null();
-		tstr_free(TJSON_GET_MOVED_VALUE(key));
+	const Utf8DataResult result = get_utf8_string(str_view);
 
+	IF_UTF8_DATA_RESULT_IS_ERROR_IGN(result) {
+		FREE_AT_END();
 		return false;
 	}
 
-	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+	JsonPathSegmentObjectKey object_key = { .value = TVEC_EMPTY(Utf8Codepoint) };
+
+	const Utf8Data data = utf8_data_result_get_as_ok(result);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_normal); \
+		free_utf8_data(data); \
+		free_json_path_segment_object_key(&object_key); \
+	} while(false)
+
+	for(size_t i = 0; i < data.size; ++i) {
+		const Utf8Codepoint codepoint = data.data[i];
+
+		const TvecResult add_result = TVEC_PUSH(Utf8Codepoint, &(object_key.value), codepoint);
+
+		if(add_result != TvecResultOk) {
+			FREE_AT_END();
+			return false;
+		}
+	}
+
+	free_utf8_data(data);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_normal); \
+		free_json_path_segment_object_key(&object_key); \
+	} while(false)
+
+	TvecResult push_result =
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(object_key));
+
+	if(push_result != TvecResultOk) {
+		FREE_AT_END();
+		return false;
+	}
 
 	return true;
 }
+
+#undef FREE_AT_END
 
 TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index) {
 	TvecResult result =
@@ -101,7 +161,7 @@ TJSON_NODISCARD static bool path_segment_eq(const JsonPathSegment* segment1,
 		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment1, object1) {
 
 			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment2, object2) {
-				return tstr_eq(&(object1->name), &(object2->name));
+				return json_path_segment_object_key_eq(object1, object2);
 			}
 
 			return false;
@@ -169,6 +229,13 @@ TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path
 	return true;
 }
 
+static tstr
+get_tstr_from_json_path_segment_object_key_escaped(const JsonPathSegmentObjectKey* const object_key,
+                                                   const JsonSerializeEscapeOption escape) {
+
+	return get_normalized_string_from_codepoints_json_escaped(object_key->value, escape);
+}
+
 static void json_path_segment_to_string_impl(StringBuilder* const string_builder,
                                              const JsonPathSegment* segment,
                                              const JsonPathStringOptions options) {
@@ -178,18 +245,35 @@ static void json_path_segment_to_string_impl(StringBuilder* const string_builder
 
 			// TODO: figure out if we can use the compact version (e.g. no spaces etc)
 
-			// TODO: escape properly!
-
 			if(options.compact) {
-				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
-				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
-				    , TSTR_FMT, TSTR_FMT_ARGS(object_key->name))
-			} else {
-				// NOTE we can use '' or ""
+				tstr name = get_tstr_from_json_path_segment_object_key_escaped(
+				    object_key, JsonSerializeEscapeOptionMost);
+
+				if(tstr_is_null(&name)) {
+					OOM_ASSERT(false, "error in formatting path segment");
+				}
 
 				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
 				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
-				    , "['" TSTR_FMT "']", TSTR_FMT_ARGS(object_key->name))
+				    , TSTR_FMT, TSTR_FMT_ARGS(name))
+
+				tstr_free(&name);
+
+			} else {
+				// NOTE we can use '' or "", but use ", as the escaping expects that
+
+				tstr name = get_tstr_from_json_path_segment_object_key_escaped(
+				    object_key, JsonSerializeEscapeOptionMost);
+
+				if(tstr_is_null(&name)) {
+					OOM_ASSERT(false, "error in formatting path segment");
+				}
+
+				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+				    , "[\"" TSTR_FMT "\"]", TSTR_FMT_ARGS(name))
+
+				tstr_free(&name);
 			}
 
 			return;
@@ -271,7 +355,7 @@ TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
 static void free_json_path_segment(JsonPathSegment segment) {
 	SWITCH_JSON_PATH_SEGMENT(segment) {
 		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT_REF(&segment) {
-			tstr_free(&(object_key->name));
+			free_json_path_segment_object_key(object_key);
 		}
 		break;
 		VARIANT_CASE_END();

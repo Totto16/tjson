@@ -15,6 +15,8 @@ typedef struct JsonPathImpl JsonPath;
 
 TJSON_NODISCARD JsonPath* json_path_get_root(void);
 
+// NOTE: this tstr is the raw value, no escapes are possible, we only support constructing json
+// paths, not parsing them!
 TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* path, const tstr* key);
 
 TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key);

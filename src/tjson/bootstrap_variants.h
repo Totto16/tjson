@@ -5,7 +5,7 @@
  * with: c_variant_generator
  * version: 1.1.4
  * commit: a34d98e9816d
- * date: 2026-11-08T17:16:10.772Z
+ * date: 2026-11-11T17:57:42.075Z
  * repo: https://github.com/Totto16/c_variant_generator
  * lang: JS / TS
  * ABI: v1.0.1
@@ -6238,18 +6238,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 #define GENERATE_VARIANT_CORE_JSON_PATH_SEGMENT() \
 	__INTERNAL_VARIANT_DECLARATION_START_IMPL_() \
 	typedef struct { \
-		tstr name; \
-	} _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_; \
-\
-	typedef struct { \
 		size_t index; \
-	} _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_; \
+	} _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_; \
 \
 	/* raw union for variant */ \
 	typedef union { \
-		_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
-		    object_key; \
-		_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
+		JsonPathSegmentObjectKey object_key; \
+		_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ \
 		    array_index; \
 	} _AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE; \
 \
@@ -6303,19 +6298,15 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegment \
-	new_json_path_segment_object_key(tstr const name) { \
+	new_json_path_segment_object_key(JsonPathSegmentObjectKey const value) { \
 		return (JsonPathSegment){ \
 			._variant_tag_for_json_path_segment_tag_member = JsonPathSegmentTypeObjectKey, \
 			._variant_data_for_json_path_segment_data_member = \
-			    (_AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE){ \
-			        .object_key = \
-			            (_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_){ \
-			                .name = name } } \
+			    (_AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE){ .object_key = value } \
 		}; \
 	} \
 \
-	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegmentObjectKey \
 	json_path_segment_get_as_object_key(JsonPathSegment const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_path_segment_tag_member, \
@@ -6323,8 +6314,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		return variant_entry._variant_data_for_json_path_segment_data_member.object_key; \
 	} \
 \
-	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
+	JSON_VARIANTS_NODISCARD JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegmentObjectKey* \
 	json_path_segment_get_as_object_key_mut_ref(JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
@@ -6333,7 +6323,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline JsonPathSegmentObjectKey const* \
 	json_path_segment_get_as_object_key_const_ref(const JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
@@ -6348,13 +6338,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			._variant_data_for_json_path_segment_data_member = \
 			    (_AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE){ \
 			        .array_index = \
-			            (_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_){ \
+			            (_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_){ \
 			                .index = index } } \
 		}; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ \
 	json_path_segment_get_as_array_index(JsonPathSegment const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_json_path_segment_tag_member, \
@@ -6363,7 +6353,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* \
 	json_path_segment_get_as_array_index_mut_ref(JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
@@ -6372,7 +6362,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* \
 	json_path_segment_get_as_array_index_const_ref(const JsonPathSegment* const variant_entry) { \
 		VARIANT_JSON_PATH_SEGMENT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_json_path_segment_tag_member, \
@@ -6411,9 +6401,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ const \
-			        var_name = ((variant_entry) \
-			                        ._variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey const var_name = \
+			        ((variant_entry)._variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6442,9 +6431,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
-			        var_name = ((variant_entry) \
-			                        ._variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey var_name = \
+			        ((variant_entry)._variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6477,10 +6465,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* const \
-			        var_name = \
-			            &((variant_entry) \
-			                  ->_variant_data_for_json_path_segment_data_member.object_key); \
+			for(const JsonPathSegmentObjectKey* const var_name = &( \
+			        (variant_entry)->_variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6509,10 +6495,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* const \
-			        var_name = \
-			            &((variant_entry) \
-			                  ->_variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey* const var_name = &( \
+			        (variant_entry)->_variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6541,7 +6525,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ const \
 			        var_name = ((variant_entry) \
 			                        ._variant_data_for_json_path_segment_data_member.array_index); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
@@ -6572,7 +6556,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ \
 			        var_name = ((variant_entry) \
 			                        ._variant_data_for_json_path_segment_data_member.array_index); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
@@ -6607,7 +6591,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_json_path_segment_data_member.array_index); \
@@ -6639,7 +6623,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_json_path_segment_data_member.array_index); \
@@ -6682,9 +6666,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ const \
-			        var_name = ((variant_entry) \
-			                        ._variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey const var_name = \
+			        ((variant_entry)._variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6713,9 +6696,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ \
-			        var_name = ((variant_entry) \
-			                        ._variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey var_name = \
+			        ((variant_entry)._variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6746,10 +6728,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* const \
-			        var_name = \
-			            &((variant_entry) \
-			                  ->_variant_data_for_json_path_segment_data_member.object_key); \
+			for(const JsonPathSegmentObjectKey* const var_name = &( \
+			        (variant_entry)->_variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6778,10 +6758,8 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_* const \
-			        var_name = \
-			            &((variant_entry) \
-			                  ->_variant_data_for_json_path_segment_data_member.object_key); \
+			for(JsonPathSegmentObjectKey* const var_name = &( \
+			        (variant_entry)->_variant_data_for_json_path_segment_data_member.object_key); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 			        false)
@@ -6810,7 +6788,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ const \
 			        var_name = ((variant_entry) \
 			                        ._variant_data_for_json_path_segment_data_member.array_index); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
@@ -6841,7 +6819,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ \
 			        var_name = ((variant_entry) \
 			                        ._variant_data_for_json_path_segment_data_member.array_index); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
@@ -6874,7 +6852,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_json_path_segment_data_member.array_index); \
@@ -6906,7 +6884,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_json_path_segment_data_member.array_index); \
@@ -6917,7 +6895,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 // TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
 // poisoned identifier error: see
 //  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
-#pragma GCC poison _variant_tag_for_json_path_segment_tag_member _variant_data_for_json_path_segment_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_object_key_impl_ _variant_impl_unnamed_struct_for_variant_json_path_segment_id_11_name_array_index_impl_ _AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE AssertTypeImplForJsonPathSegmentImpl_1_DONT_USE_ AssertTypeImplForJsonPathSegmentImpl_2_DONT_USE_
+#pragma GCC poison _variant_tag_for_json_path_segment_tag_member _variant_data_for_json_path_segment_data_member _for_macro_trick_for_if_expr_impl_once_variant_json_path_segment_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_json_path_segment_variant_impl _variant_impl_unnamed_struct_for_variant_json_path_segment_id_10_name_array_index_impl_ _AnonymousUnionForVariantJsonPathSegmentImpl_DONT_USE AssertTypeImplForJsonPathSegmentImpl_1_DONT_USE_ AssertTypeImplForJsonPathSegmentImpl_2_DONT_USE_
 
 #define VARIANT_JSON_SCHEMA_ADD_RESULT_STATE_ASSERT(state, expected_state) \
 	VARIANT_STATE_ASSERT(state, expected_state, json_schema_add_result, "JsonSchemaAddResult")
@@ -8270,16 +8248,16 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	__INTERNAL_VARIANT_DECLARATION_START_IMPL_() \
 	typedef struct { \
 		tstr file; \
-	} _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_; \
+	} _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_; \
 \
 	typedef struct { \
 		tstr_static error; \
-	} _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_; \
+	} _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_; \
 \
 	/* raw union for variant */ \
 	typedef union { \
-		_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ ok; \
-		_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ error; \
+		_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ ok; \
+		_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ error; \
 	} _AnonymousUnionForVariantReadFileResultImpl_DONT_USE; \
 \
 	/* tagged union (variant) implementation */ \
@@ -8336,13 +8314,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			._variant_data_for_read_file_result_data_member = \
 			    (_AnonymousUnionForVariantReadFileResultImpl_DONT_USE){ \
 			        .ok = \
-			            (_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_){ \
+			            (_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_){ \
 			                .file = file } } \
 		}; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ \
 	read_file_result_get_as_ok(ReadFileResult const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
@@ -8350,7 +8328,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* \
 	read_file_result_get_as_ok_mut_ref(ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
@@ -8358,7 +8336,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* \
 	read_file_result_get_as_ok_const_ref(const ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeOk); \
@@ -8372,13 +8350,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			._variant_data_for_read_file_result_data_member = \
 			    (_AnonymousUnionForVariantReadFileResultImpl_DONT_USE){ \
 			        .error = \
-			            (_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_){ \
+			            (_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_){ \
 			                .error = error } } \
 		}; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ \
 	read_file_result_get_as_error(ReadFileResult const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry._variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
@@ -8386,7 +8364,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* \
 	read_file_result_get_as_error_mut_ref(ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
@@ -8394,7 +8372,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* \
 	read_file_result_get_as_error_const_ref(const ReadFileResult* const variant_entry) { \
 		VARIANT_READ_FILE_RESULT_STATE_ASSERT( \
 		    variant_entry->_variant_tag_for_read_file_result_tag_member, ReadFileResultTypeError); \
@@ -8427,7 +8405,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ const \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8453,7 +8431,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8482,7 +8460,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8508,7 +8486,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8534,7 +8512,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ const \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8560,7 +8538,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8593,7 +8571,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8621,7 +8599,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		        true; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl = false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8660,7 +8638,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ const \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8687,7 +8665,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8719,7 +8697,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8746,7 +8724,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.ok); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8775,7 +8753,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ const \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8802,7 +8780,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ \
 			        var_name = \
 			            ((variant_entry)._variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8835,7 +8813,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8866,7 +8844,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_* const \
 			        var_name = \
 			            &((variant_entry)->_variant_data_for_read_file_result_data_member.error); \
 			    _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl; \
@@ -8876,7 +8854,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 // TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
 // poisoned identifier error: see
 //  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
-#pragma GCC poison _variant_tag_for_read_file_result_tag_member _variant_data_for_read_file_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_ok_impl_ _variant_impl_unnamed_struct_for_variant_read_file_result_id_13_name_error_impl_ _AnonymousUnionForVariantReadFileResultImpl_DONT_USE AssertTypeImplForReadFileResultImpl_1_DONT_USE_ AssertTypeImplForReadFileResultImpl_2_DONT_USE_
+#pragma GCC poison _variant_tag_for_read_file_result_tag_member _variant_data_for_read_file_result_data_member _for_macro_trick_for_if_expr_impl_once_variant_read_file_result_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_read_file_result_variant_impl _variant_impl_unnamed_struct_for_variant_read_file_result_id_11_name_ok_impl_ _variant_impl_unnamed_struct_for_variant_read_file_result_id_12_name_error_impl_ _AnonymousUnionForVariantReadFileResultImpl_DONT_USE AssertTypeImplForReadFileResultImpl_1_DONT_USE_ AssertTypeImplForReadFileResultImpl_2_DONT_USE_
 
 #define VARIANT_SIMPLE_REGEX_RESULT_STATE_ASSERT(state, expected_state) \
 	VARIANT_STATE_ASSERT(state, expected_state, simple_regex_result, "SimpleRegexResult")
@@ -10123,11 +10101,11 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	__INTERNAL_VARIANT_DECLARATION_START_IMPL_() \
 	typedef struct { \
 		size_t count; \
-	} _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_; \
+	} _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_; \
 \
 	/* raw union for variant */ \
 	typedef union { \
-		_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
+		_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ \
 		    fail_after; \
 	} _AnonymousUnionForVariantAllocatorFunctionHandleContentImpl_DONT_USE; \
 \
@@ -10206,13 +10184,13 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 			._variant_data_for_allocator_function_handle_content_data_member = \
 			    (_AnonymousUnionForVariantAllocatorFunctionHandleContentImpl_DONT_USE){ \
 			        .fail_after = \
-			            (_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_){ \
+			            (_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_){ \
 			                .count = count } } \
 		}; \
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ \
 	allocator_function_handle_content_get_as_fail_after( \
 	    AllocatorFunctionHandleContent const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
@@ -10223,7 +10201,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* \
 	allocator_function_handle_content_get_as_fail_after_mut_ref( \
 	    AllocatorFunctionHandleContent* const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
@@ -10234,7 +10212,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 	} \
 \
 	JSON_VARIANTS_NODISCARD \
-	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* \
+	JSON_VARIANTS_MAYBE_UNUSED static inline const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* \
 	allocator_function_handle_content_get_as_fail_after_const_ref( \
 	    const AllocatorFunctionHandleContent* const variant_entry) { \
 		VARIANT_ALLOCATOR_FUNCTION_HANDLE_CONTENT_STATE_ASSERT( \
@@ -10292,7 +10270,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ const \
 			        var_name = \
 			            ((variant_entry) \
 			                 ._variant_data_for_allocator_function_handle_content_data_member \
@@ -10327,7 +10305,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ \
 			        var_name = \
 			            ((variant_entry) \
 			                 ._variant_data_for_allocator_function_handle_content_data_member \
@@ -10366,7 +10344,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_allocator_function_handle_content_data_member \
@@ -10401,7 +10379,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_allocator_function_handle_content_data_member \
@@ -10457,7 +10435,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ const \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ const \
 			        var_name = \
 			            ((variant_entry) \
 			                 ._variant_data_for_allocator_function_handle_content_data_member \
@@ -10491,7 +10469,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ \
 			        var_name = \
 			            ((variant_entry) \
 			                 ._variant_data_for_allocator_function_handle_content_data_member \
@@ -10528,7 +10506,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* const \
+			for(const _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_allocator_function_handle_content_data_member \
@@ -10562,7 +10540,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl; \
 		    _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl = \
 		        false) \
-			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_* const \
+			for(_variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_* const \
 			        var_name = \
 			            &((variant_entry) \
 			                  ->_variant_data_for_allocator_function_handle_content_data_member \
@@ -10577,7 +10555,7 @@ __INTERNAL_VARIANT_DECLARATION_START_IMPL_()
 // TODO: maybe use different identifier names for implementations, so that this doesn't trigger a
 // poisoned identifier error: see
 //  https://github.com/Totto16/trc/commit/07901470b42f00e415f15d9985b524d2a5aa3b00
-#pragma GCC poison _variant_tag_for_allocator_function_handle_content_tag_member _variant_data_for_allocator_function_handle_content_data_member _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_14_name_fail_after_impl_ _AnonymousUnionForVariantAllocatorFunctionHandleContentImpl_DONT_USE AssertTypeImplForAllocatorFunctionHandleContentImpl_1_DONT_USE_ AssertTypeImplForAllocatorFunctionHandleContentImpl_2_DONT_USE_
+#pragma GCC poison _variant_tag_for_allocator_function_handle_content_tag_member _variant_data_for_allocator_function_handle_content_data_member _for_macro_trick_for_if_expr_impl_once_variant_allocator_function_handle_content_variant_impl _for_macro_trick_for_case_expr_impl_once_variant_allocator_function_handle_content_variant_impl _variant_impl_unnamed_struct_for_variant_allocator_function_handle_content_id_13_name_fail_after_impl_ _AnonymousUnionForVariantAllocatorFunctionHandleContentImpl_DONT_USE AssertTypeImplForAllocatorFunctionHandleContentImpl_1_DONT_USE_ AssertTypeImplForAllocatorFunctionHandleContentImpl_2_DONT_USE_
 
 #define VARIANT_JSON_SCHEMA_REGEX_RESULT_STATE_ASSERT(state, expected_state) \
 	VARIANT_STATE_ASSERT(state, expected_state, json_schema_regex_result, "JsonSchemaRegexResult")
