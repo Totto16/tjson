@@ -81,9 +81,9 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 				break;
 			}
 
-			if(read_amount > remaining_size) {
+			if(read_amount > remaining_size) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 				// logic or libc error
-				UNREACHABLE();
+				UNREACHABLE(); // GCOVR_EXCL_LINE
 			}
 
 			remaining_size -= read_amount;
