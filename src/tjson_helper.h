@@ -31,6 +31,11 @@ TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path
 
 TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path);
 
+typedef struct {
+	bool compact;
+} JsonPathStringOptions;
+
+TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path, JsonPathStringOptions options);
 
 void free_json_path(JsonPath* path);
 

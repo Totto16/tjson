@@ -924,6 +924,11 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_NE(complex_path, json::path::path());
 		}();
 	}
+
+	// TODO: test those
+
+	// 	$.store.book[0].title
+	// $['store']['book'][0]['title']
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {

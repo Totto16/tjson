@@ -1,5 +1,6 @@
 #include "./tjson_helper.h"
 
+#include <tstr_builder.h>
 #include <tvec.h>
 
 #include "./_impl/utils.h"
@@ -168,11 +169,105 @@ TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path
 	return true;
 }
 
-TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
+static void json_path_segment_to_string_impl(StringBuilder* const string_builder,
+                                             const JsonPathSegment* segment,
+                                             const JsonPathStringOptions options) {
 
-	// TODO
-	UNUSED(path);
-	return tstr_null();
+	SWITCH_JSON_PATH_SEGMENT(*segment) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
+
+			// TODO: figure out if we can use the compact version (e.g. no spaces etc)
+
+			// TODO: escape properly!
+
+			if(options.compact) {
+				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+				    , TSTR_FMT, TSTR_FMT_ARGS(object_key->name))
+			} else {
+				// NOTE we can use '' or ""
+
+				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+				    , "['" TSTR_FMT "']", TSTR_FMT_ARGS(object_key->name))
+			}
+
+			return;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment) {
+
+			STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+			    , "[%zu]", array_index->index)
+
+			return;
+		}
+		VARIANT_CASE_END();
+		default: {
+			UNREACHABLE();
+		}
+	}
+}
+
+TJSON_NODISCARD static bool json_path_segment_need_separator(const JsonPathSegment* segment) {
+
+	SWITCH_JSON_PATH_SEGMENT(*segment) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_IGN() {
+			return true;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_IGN() {
+
+			return false;
+		}
+		VARIANT_CASE_END();
+		default: {
+			UNREACHABLE();
+		}
+	}
+}
+
+TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
+                                               const JsonPathStringOptions options) {
+
+	StringBuilder* string_builder = string_builder_init();
+
+	if(string_builder == NULL) {
+		return tstr_null();
+	}
+
+	// See:
+	// https://en.wikipedia.org/wiki/JSONPath
+	// https://www.rfc-editor.org/rfc/rfc9535
+
+	const tstr root = TSTR_LIT("$");
+
+	const tstr separator = TSTR_LIT(".");
+
+	string_builder_append_tstr(string_builder, &root);
+
+	const size_t length = TVEC_LENGTH(JsonPathSegment, path->segments);
+
+	for(size_t i = 0; i < length; ++i) {
+		JsonPathSegment value = TVEC_AT(JsonPathSegment, path->segments, i);
+		json_path_segment_to_string_impl(string_builder, &value, options);
+
+		if(i + 1 < length) {
+			if(!options.compact) {
+				JsonPathSegment next = TVEC_AT(JsonPathSegment, path->segments, i + 1);
+				if(json_path_segment_need_separator(&next)) {
+					string_builder_append_tstr(string_builder, &separator);
+				}
+			}
+		}
+	}
+
+	return string_builder_release_into_tstr(&string_builder);
+}
+
+TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
+	return json_path_to_str_advanced(path, (JsonPathStringOptions){ .compact = true });
 }
 
 static void free_json_path_segment(JsonPathSegment segment) {
