@@ -236,6 +236,97 @@ get_tstr_from_json_path_segment_object_key_escaped(const JsonPathSegmentObjectKe
 	return get_normalized_string_from_codepoints_json_escaped(object_key->value, escape);
 }
 
+static bool json_path_segment_object_key_is_name_first(const Utf8Codepoint codepoint) {
+
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// name-first          = ALPHA /
+	//                       "_"   /
+	//                       %x80-D7FF /
+	//                          ; skip surrogate code points
+	//                       %xE000-10FFFF
+
+	// ALPHA               = %x41-5A / %x61-7A    ; A-Z / a-z
+
+	if(codepoint >= 'A' && codepoint <= 'Z') {
+		return true;
+	}
+
+	if(codepoint >= 'a' && codepoint <= 'z') {
+		return true;
+	}
+
+	if(codepoint == '_') {
+		return true;
+	}
+
+	if(codepoint >= 0x80 && codepoint <= 0xD7FF) {
+		return true;
+	}
+
+	if(codepoint >= 0xE000 && codepoint <= 0x10FFFF) {
+		return true;
+	}
+
+	return false;
+}
+
+static bool json_path_segment_object_key_is_name_char(const Utf8Codepoint codepoint) {
+
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// name-char           = name-first / DIGIT
+
+	// DIGIT               = %x30-39              ; 0-9
+
+	if(json_path_segment_object_key_is_name_first(codepoint)) {
+		return true;
+	}
+
+	if(codepoint >= '0' && codepoint <= '9') {
+		return true;
+	}
+
+	return false;
+}
+
+static bool
+json_path_segment_object_key_can_be_compact(const JsonPathSegmentObjectKey* object_key) {
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// child-segment       = bracketed-selection /
+	//                       ("."
+	//                        (wildcard-selector /
+	//                         member-name-shorthand))
+
+	// bracketed-selection = "[" S selector *(S "," S selector) S "]"
+
+	// member-name-shorthand = name-first *name-char
+
+	const size_t length = TVEC_LENGTH(Utf8Codepoint, object_key->value);
+
+	if(length == 0) {
+		return false;
+	}
+
+	for(size_t i = 0; i < length; ++i) {
+
+		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, object_key->value, i);
+
+		if(i == 0) {
+			if(!json_path_segment_object_key_is_name_first(codepoint)) {
+				return false;
+			}
+		} else {
+			if(!json_path_segment_object_key_is_name_char(codepoint)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 static void json_path_segment_to_string_impl(StringBuilder* const string_builder,
                                              const JsonPathSegment* segment,
                                              const JsonPathStringOptions options) {
@@ -243,9 +334,15 @@ static void json_path_segment_to_string_impl(StringBuilder* const string_builder
 	SWITCH_JSON_PATH_SEGMENT(*segment) {
 		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
 
-			// TODO: figure out if we can use the compact version (e.g. no spaces etc)
+			const bool can_use_compact =
+			    options.compact ? json_path_segment_object_key_can_be_compact(object_key) : false;
 
-			if(options.compact) {
+			// see: https://www.rfc-editor.org/info/rfc9535/#section-2.3.1.1
+			// we use the normal json escape function, as it does what we expect
+
+			// Double-quoted strings follow the JSON string syntax (Section 7 of [RFC8259]); [...]
+
+			if(can_use_compact) {
 				tstr name = get_tstr_from_json_path_segment_object_key_escaped(
 				    object_key, JsonSerializeEscapeOptionMost);
 
@@ -297,8 +394,8 @@ static void json_path_segment_to_string_impl(StringBuilder* const string_builder
 TJSON_NODISCARD static bool json_path_segment_need_separator(const JsonPathSegment* segment) {
 
 	SWITCH_JSON_PATH_SEGMENT(*segment) {
-		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_IGN() {
-			return true;
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
+			return json_path_segment_object_key_can_be_compact(object_key);
 		}
 		VARIANT_CASE_END();
 		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_IGN() {
