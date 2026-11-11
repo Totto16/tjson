@@ -27,6 +27,11 @@ TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
 
 TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent);
 
+TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path2);
+
+TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path);
+
+
 void free_json_path(JsonPath* path);
 
 typedef struct {

@@ -5,6 +5,7 @@
 #include "./helpers/compat.hpp"
 #include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
+#include "./helpers/json_helper.hpp"
 #include "./helpers/mock_file.hpp"
 
 #include <tjson.h>
@@ -912,6 +913,15 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 				REQUIRE_FALSE(res);
 			}
+		}();
+	}
+
+	SUBCASE("json path constructing") {
+		[]() -> void {
+			auto complex_path =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_NE(complex_path, json::path::path());
 		}();
 	}
 }

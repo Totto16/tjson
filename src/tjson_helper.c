@@ -2,6 +2,8 @@
 
 #include <tvec.h>
 
+#include "./_impl/utils.h"
+
 GENERATE_VARIANT_ALL_JSON_PATH_SEGMENT()
 
 /* NOLINTBEGIN(misc-use-internal-linkage,totto-function-passing-type,totto-use-fixed-width-types-var)
@@ -91,22 +93,23 @@ TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
 	return len == 0;
 }
 
-TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSegment segment2) {
+TJSON_NODISCARD static bool path_segment_eq(const JsonPathSegment* segment1,
+                                            const JsonPathSegment* segment2) {
 
-	SWITCH_JSON_PATH_SEGMENT(segment1) {
-		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment1, object1) {
+	SWITCH_JSON_PATH_SEGMENT(*segment1) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment1, object1) {
 
-			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment2, object2) {
-				return tstr_eq(&object1.name, &object2.name);
+			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment2, object2) {
+				return tstr_eq(&(object1->name), &(object2->name));
 			}
 
 			return false;
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment1, array1) {
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment1, array1) {
 
-			IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment2, array2) {
-				return array1.index == array2.index;
+			IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment2, array2) {
+				return array1->index == array2->index;
 			}
 
 			return false;
@@ -128,15 +131,48 @@ TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath
 	}
 
 	for(size_t i = 0; i < parent_len; ++i) {
-		JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
-		JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
+		const JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
+		const JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
 
-		if(!path_segment_eq(path_value, parent_value)) {
+		if(!path_segment_eq(&path_value, &parent_value)) {
 			return false;
 		}
 	}
 
 	return true;
+}
+
+TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path2) {
+
+	if(path1 == NULL || path2 == NULL) {
+		return path1 == path2;
+	}
+
+	const size_t len1 = TVEC_LENGTH(JsonPathSegment, path1->segments);
+
+	const size_t len2 = TVEC_LENGTH(JsonPathSegment, path2->segments);
+
+	if(len1 != len2) {
+		return false;
+	}
+
+	for(size_t i = 0; i < len1; ++i) {
+		const JsonPathSegment value1 = TVEC_AT(JsonPathSegment, path1->segments, i);
+		const JsonPathSegment value2 = TVEC_AT(JsonPathSegment, path2->segments, i);
+
+		if(!path_segment_eq(&value1, &value2)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
+
+	// TODO
+	UNUSED(path);
+	return tstr_null();
 }
 
 static void free_json_path_segment(JsonPathSegment segment) {
