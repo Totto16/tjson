@@ -925,10 +925,69 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 		}();
 	}
 
-	// TODO: test those
+	SUBCASE("json path eq") {
+		[]() -> void {
+			auto complex_path1 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
 
-	// 	$.store.book[0].title
-	// $['store']['book'][0]['title']
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_EQ(complex_path1, complex_path2);
+
+			auto complex_path3 =
+			    json::path::path() / json::path::array(0) / json::path::object("hello");
+
+			REQUIRE_NE(complex_path1, complex_path3);
+		}();
+	}
+
+	SUBCASE("json path is parent of") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello");
+
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_TRUE(complex_path1.is_parent_of(complex_path2));
+
+			auto complex_path3 =
+			    json::path::path() / json::path::array(0) / json::path::object("hello");
+
+			REQUIRE_FALSE(complex_path1.is_parent_of(complex_path3));
+		}();
+	}
+
+	SUBCASE("json path to string") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello");
+
+			auto complex_path2 = json::path::path() / json::path::object("hello") /
+			                     json::path::array(0) / json::path::object("second");
+
+			auto complex_path3 =
+			    json::path::path() / json::path::object("hello") / json::path::object("second");
+
+			REQUIRE_EQ(complex_path1.string(), "$.hello");
+
+			REQUIRE_EQ(complex_path2.string(), "$.hello[0].second");
+
+			REQUIRE_EQ(complex_path3.string(), "$.hello.second");
+		}();
+	}
+
+	SUBCASE("json path to string: rfc") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("store") /
+			                     json::path::object("book") / json::path::array(0) /
+			                     json::path::object("title");
+
+			REQUIRE_EQ(complex_path1.string(), "$.store.book[0].title");
+
+			REQUIRE_EQ(complex_path1.string(JsonPathStringOptions{ .compact = false }),
+			           "$['store']['book'][0]['title']");
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {

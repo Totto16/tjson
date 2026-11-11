@@ -74,11 +74,19 @@ struct path {
   public:
 	path();
 
-	path operator/(array&& arr);
+	[[nodiscard]] path operator/(array&& arr);
 
-	path operator/(object&& obj);
+	[[nodiscard]] path operator/(object&& obj);
 
-	path operator/(dotdot);
+	[[nodiscard]] path operator/(dotdot);
+
+	[[nodiscard]] bool is_parent_of(const path& other) const;
+
+	[[nodiscard]] operator std::string() const;
+
+	[[nodiscard]] std::string string() const;
+
+	[[nodiscard]] std::string string(JsonPathStringOptions options) const;
 
 	[[nodiscard]] bool operator==(const path& other) const;
 

@@ -108,6 +108,42 @@ json::path::path json::path::path::operator/(dotdot) {
 	return std::move(*this);
 }
 
+[[nodiscard]] bool json::path::path::is_parent_of(const path& other) const {
+	return json_path_is_parent_of(this->m_holder, other.m_holder);
+}
+
+[[nodiscard]] json::path::path::operator std::string() const {
+	return this->string();
+}
+
+[[nodiscard]] std::string json::path::path::string() const {
+	tstr path_str = json_path_to_str(this->m_holder);
+
+	if(tstr_is_null(&path_str)) {
+		throw std::runtime_error("error in formating path");
+	}
+
+	std::string str = string_from_tstr(path_str);
+
+	tstr_free(&path_str);
+
+	return str;
+}
+
+[[nodiscard]] std::string json::path::path::string(JsonPathStringOptions options) const {
+	tstr path_str = json_path_to_str_advanced(this->m_holder, options);
+
+	if(tstr_is_null(&path_str)) {
+		throw std::runtime_error("error in formating path");
+	}
+
+	std::string str = string_from_tstr(path_str);
+
+	tstr_free(&path_str);
+
+	return str;
+}
+
 [[nodiscard]] bool json::path::path::operator==(const path& other) const {
 	return json_path_is_eq(this->m_holder, other.m_holder);
 }
@@ -141,6 +177,8 @@ std::ostream& json::path::path::operator<<(std::ostream& os) const {
 	}
 
 	os << path_str;
+
+	tstr_free(&path_str);
 
 	return os;
 }

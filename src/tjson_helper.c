@@ -122,20 +122,20 @@ TJSON_NODISCARD static bool path_segment_eq(const JsonPathSegment* segment1,
 	}
 }
 
-TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent) {
+TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* parent, const JsonPath* path) {
 
-	const size_t path_len = TVEC_LENGTH(JsonPathSegment, path->segments);
 	const size_t parent_len = TVEC_LENGTH(JsonPathSegment, parent->segments);
+	const size_t path_len = TVEC_LENGTH(JsonPathSegment, path->segments);
 
 	if(path_len != (parent_len + 1)) {
 		return false;
 	}
 
 	for(size_t i = 0; i < parent_len; ++i) {
-		const JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
 		const JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
+		const JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
 
-		if(!path_segment_eq(&path_value, &parent_value)) {
+		if(!path_segment_eq(&parent_value, &path_value)) {
 			return false;
 		}
 	}
@@ -251,16 +251,14 @@ TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
 
 	for(size_t i = 0; i < length; ++i) {
 		JsonPathSegment value = TVEC_AT(JsonPathSegment, path->segments, i);
-		json_path_segment_to_string_impl(string_builder, &value, options);
 
-		if(i + 1 < length) {
-			if(!options.compact) {
-				JsonPathSegment next = TVEC_AT(JsonPathSegment, path->segments, i + 1);
-				if(json_path_segment_need_separator(&next)) {
-					string_builder_append_tstr(string_builder, &separator);
-				}
+		if(options.compact) {
+			if(json_path_segment_need_separator(&value)) {
+				string_builder_append_tstr(string_builder, &separator);
 			}
 		}
+
+		json_path_segment_to_string_impl(string_builder, &value, options);
 	}
 
 	return string_builder_release_into_tstr(&string_builder);

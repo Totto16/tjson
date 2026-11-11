@@ -25,7 +25,7 @@ TJSON_NODISCARD bool json_path_remove_last_segment(JsonPath* path);
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
 
-TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent);
+TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* parent, const JsonPath* path);
 
 TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path2);
 
