@@ -497,6 +497,151 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 		}();
 	}
 
+	SUBCASE("testing path reading: read returns to much data") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			const auto open_wrapper = [](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(flags);
+				UNUSED(mode);
+
+				if(strcmp(path, "test.json") == 0) {
+					return open("/dev/null", flags, mode);
+				}
+
+				errno = ENOENT;
+				return -1;
+			};
+
+			std::string file_data = R"({"hello": null})";
+
+			auto& open_handle = mock_general.open();
+
+			auto used_open_handle = open_handle.use(open_wrapper);
+
+			auto& open64_handle = mock_general.open64();
+
+			auto used_open64_handle = open64_handle.use(open_wrapper);
+
+			auto& fstat_handle = mock_general.fstat();
+
+			const auto stat_fun_impl = [&file_data](int fd, struct stat64* statbuf) -> int {
+				int result = fstat64(fd, statbuf);
+
+				if(result != 0) {
+					return result;
+				}
+
+				statbuf->st_size = static_cast<off64_t>(file_data.size());
+
+				return result;
+			};
+
+			auto used_fstat_handle =
+			    fstat_handle.use([&stat_fun_impl](int fd, struct stat* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    struct stat64 statbuf64 = {};
+
+				    int result = stat_fun_impl(fd, &statbuf64);
+				    if(result != 0) {
+					    return result;
+				    }
+
+				    copy_statbuf64_to_statbuf(&statbuf64, statbuf);
+
+				    return result;
+			    });
+
+			auto& fstat64_handle = mock_general.fstat64();
+
+			auto used_fstat64_handle =
+			    fstat64_handle.use([&stat_fun_impl](int fd, struct stat64* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    return stat_fun_impl(fd, statbuf);
+			    });
+
+			auto& read_handle = mock_general.read();
+
+			size_t data_to_read = file_data.size();
+
+			auto used_read_handle = read_handle.use(
+			    [&file_data, &data_to_read](int fd, void* buf, size_t count) -> ssize_t {
+				    UNUSED(fd);
+
+				    if(buf == NULL) {
+					    errno = EINVAL;
+					    return -1;
+				    }
+
+				    size_t copy_count = count;
+
+				    if(copy_count > data_to_read) {
+					    copy_count = data_to_read;
+				    }
+
+				    if(copy_count == 0) {
+					    // we are EOF, but we have more data, LOL
+
+					    memcpy(buf, "oh", 2);
+
+					    return (ssize_t)2;
+				    }
+
+				    const size_t offset = file_data.size() - data_to_read;
+
+				    memcpy(buf, file_data.data() + offset, copy_count);
+				    data_to_read -= copy_count;
+
+				    return (ssize_t)copy_count;
+			    });
+
+			{ // actual test
+
+				tstr file_path = TSTR_LIT("test.json");
+
+				JsonErrorCpp expected_error = JsonErrorCpp::with_file_loc(
+				    "File size was wrong, we expected EOF not more data", &file_path,
+				    JsonSourcePosition{ .line = 0, .col = 0 });
+
+				CAutoFreePtr<tstr> defer_path = { &file_path, tstr_free };
+
+				const auto parse_result = json_value_parse_from_file(&file_path);
+
+				REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+				JsonError result = json_parse_result_get_as_error(parse_result);
+
+				const auto actual_error = JsonErrorCpp{ result };
+
+				REQUIRE_EQ(actual_error, expected_error);
+			}
+
+			const size_t open_count = used_open_handle.count();
+			const size_t open64_count = used_open64_handle.count();
+
+			REQUIRE_EQ(open_count + open64_count, 1);
+
+			const size_t fstat_count = used_fstat_handle.count();
+			const size_t fstat64_count = used_fstat64_handle.count();
+
+			REQUIRE_EQ(fstat_count + fstat64_count, 1);
+
+			const size_t read_count = used_read_handle.count();
+
+			REQUIRE_EQ(read_count, 2);
+
+			REQUIRE_EQ(data_to_read, 0);
+		}();
+	}
+
 	SUBCASE("testing path reading: read fails (EINTR)") {
 		[]() -> void {
 			auto mock_general = mock::CMockGeneral::get_instance();
