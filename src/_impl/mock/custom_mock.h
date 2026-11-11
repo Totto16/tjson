@@ -32,7 +32,17 @@ typedef int (*close_function_type)(int fd);
 
 typedef int (*open_function_type)(const char* path, int flags, mode_t mode);
 
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+
 typedef int (*open64_function_type)(const char* path, int flags, mode_t mode);
+
+typedef struct stat64 struct_stat64_impl;
+
+	#define CUSTOM_MOCK_STATE64_STRUCT struct_stat64_impl
+
+typedef int (*fstat64_function_type)(int fd, CUSTOM_MOCK_STATE64_STRUCT* statbuf);
+
+#endif
 
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(fstat, int, (int fd, struct stat* statbuf),
                                         fstat_function_type)
@@ -40,13 +50,24 @@ CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(read, ssize_t, (int fd, void* buf, size_
                                         read_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(close, int, (int fd), close_function_type)
 
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+
+CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(fstat64, int, (int fd, CUSTOM_MOCK_STATE64_STRUCT* statbuf),
+                                        fstat64_function_type)
+
+#endif
+
 // note open and open64 is special, as it is variadic
 
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(open, int, (const char* path, int flags, ...),
                                         open_function_type)
 
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_HEADER(open64, int, (const char* path, int flags, ...),
                                         open64_function_type)
+
+#endif
 
 #ifdef __cplusplus
 }

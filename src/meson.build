@@ -16,6 +16,37 @@ src_files += files(
 )
 
 if mock_impl.has_key('mock')
+
+
+    has_file_related_64_functions = false
+
+    cc = meson.get_compiler('c')
+
+    file_offset_bits = cc.get_define('_FILE_OFFSET_BITS ')
+    file_offset_bits_int = file_offset_bits.to_int()
+    if file_offset_bits_int == 64
+        has_file_related_64_functions = true
+    elif file_offset_bits_int == 32
+        has_file_related_64_functions = false
+    else
+        error('_FILE_OFFSET_BITS: invalid value: ' + file_offset_bits)
+    endif
+
+    wrap_link_options = [
+        '-Wl,--wrap=fstat',
+        '-Wl,--wrap=read',
+        '-Wl,--wrap=close',
+        '-Wl,--wrap=open',
+    ]
+
+    if has_file_related_64_functions
+        wrap_link_options += [
+            '-Wl,--wrap=open64',
+            '-Wl,--wrap=fstat64',
+        ]
+        internal_c_args += '-DTJSON_HAVE_FILE_RELATED_64_FUNCTIONS'
+    endif
+
     mock_impl += {
         'general': {
             'files': [
@@ -27,14 +58,7 @@ if mock_impl.has_key('mock')
                     '_impl/path.h',
                 ),
             ],
-            'link_options': [
-                mock_impl.get('general').get('link_options'),
-                '-Wl,--wrap=fstat',
-                '-Wl,--wrap=read',
-                '-Wl,--wrap=close',
-                '-Wl,--wrap=open',
-                '-Wl,--wrap=open64',
-            ],
+            'link_options': [mock_impl.get('general').get('link_options'), wrap_link_options],
             'inc': [mock_impl.get('general').get('inc'), include_directories('_impl/mock')],
         },
         'allocators': {

@@ -71,6 +71,13 @@ CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(read, ssize_t, (int fd, void* bu
                                                 (fd, buf, count), read_function_type)
 CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(close, int, (int fd), (fd), close_function_type)
 
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+
+CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(fstat64, int,
+                                                (int fd, CUSTOM_MOCK_STATE64_STRUCT* statbuf),
+                                                (fd, statbuf), fstat64_function_type)
+#endif
+
 // note open and open64 is special, as it is variadic
 
 // open helper functions
@@ -178,6 +185,7 @@ size_t CUSTOM_MOCK_WRAP_COUNT_NAME(open)(void) {
 	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).call_count;
 }
 
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
 
 typedef struct {
 	open64_function_type wrapped_fn_ptr;
@@ -251,3 +259,5 @@ void CUSTOM_MOCK_WRAP_NAME_UNWRAP(open64)(void) {
 size_t CUSTOM_MOCK_WRAP_COUNT_NAME(open64)(void) {
 	return CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).call_count;
 }
+
+#endif

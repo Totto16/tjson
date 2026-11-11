@@ -10,6 +10,10 @@
 #include "helpers/mock.hpp"
 #include "helpers/string_maker.hpp"
 
+#ifndef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+	#error "TODO: remove the ue of file related 64 functions when this is not defined"
+#endif
+
 TEST_SUITE_BEGIN("json_mock" * doctest::description("json mock tests") * doctest::timeout(2.0));
 
 TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
@@ -81,6 +85,21 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 				return -1;
 			});
 
+			auto& fstat64_handle = mock_general.fstat64();
+
+			auto used_fstat64_handle =
+			    fstat64_handle.use([](int fd, struct stat64* statbuf) -> int {
+				    UNUSED(fd);
+
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    errno = EBADF;
+				    return -1;
+			    });
+
 			{ // actual test
 
 				tstr file_path = TSTR_LIT("test.json");
@@ -108,8 +127,9 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 			REQUIRE_EQ(open_count + open64_count, 1);
 
 			const size_t fstat_count = used_fstat_handle.count();
+			const size_t fstat64_count = used_fstat64_handle.count();
 
-			REQUIRE_EQ(fstat_count, 1);
+			REQUIRE_EQ(fstat_count + fstat64_count, 1);
 		}();
 	}
 }
@@ -259,6 +279,34 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 		}();
 	}
 
+	SUBCASE("testing duplicate setting of wrap fn: fstat64") {
+		[]() -> void {
+			fstat64_function_type wrap_fn_fstat64 = [](int fd, struct stat64* statbuf) -> int {
+				UNUSED(fd);
+				UNUSED(statbuf);
+				throw std::runtime_error(
+				    std::string{ "expecting this to never be called: fstat64 -> " } +
+				    std::to_string(fd));
+			};
+
+			CAutoFreePtr<void> defer_unwrap = auto_free_ign([]() -> void { unwrap_fstat64(); });
+
+			bool res0 = wrap_fstat64(nullptr);
+
+			REQUIRE_EQ(res0, false);
+			REQUIRE_EQ(fstat64_is_wrapped(), false);
+
+			bool res1 = wrap_fstat64(wrap_fn_fstat64);
+
+			REQUIRE_EQ(res1, true);
+			REQUIRE_EQ(fstat64_is_wrapped(), true);
+
+			bool res2 = wrap_fstat64(wrap_fn_fstat64);
+
+			REQUIRE_EQ(res2, false);
+		}();
+	}
+
 	SUBCASE("testing if wrapping works: fstat") {
 		[]() -> void {
 			auto mock_general = mock::CMockGeneral::get_instance();
@@ -379,6 +427,31 @@ TEST_CASE("testing general mock implementation <general_mock_impl>") {
 			int res2 = wrapped_fn_open64("\x12 test", 0, 0);
 
 			REQUIRE_EQ(res2, -(0x12));
+
+			const size_t count = used_handle.count();
+
+			REQUIRE_EQ(count, 2);
+		}();
+	}
+
+	SUBCASE("testing if wrapping works: fstat64") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			auto& handle = mock_general.fstat64();
+
+			auto used_handle = handle.use([](int fd, struct stat64* statbuf) -> int {
+				UNUSED(statbuf);
+				return -(fd + 1);
+			});
+
+			int res = wrapped_fn_fstat64(1, nullptr);
+
+			REQUIRE_EQ(res, -2);
+
+			int res2 = wrapped_fn_fstat64(11, nullptr);
+
+			REQUIRE_EQ(res2, -12);
 
 			const size_t count = used_handle.count();
 

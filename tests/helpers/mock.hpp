@@ -8,7 +8,27 @@
 
 #include "./cpp_types.hpp"
 
-#define CUSTOM_MOCK_HANDLER_AMOUNT 5
+#ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
+
+	#define CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(open, open_function_type, 0) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(fstat, fstat_function_type, 1) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(read, read_function_type, 2) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(open64, open64_function_type, 4) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(fstat64, fstat64_function_type, 5)
+
+	#define CUSTOM_MOCK_HANDLER_AMOUNT 6
+#else
+
+	#define CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(open, open_function_type, 0) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(fstat, fstat_function_type, 1) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(read, read_function_type, 2) \
+		CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3)
+
+	#define CUSTOM_MOCK_HANDLER_AMOUNT 4
+#endif
 
 #define CUSTOM_MOCK_MEMBER_NAME(name) m_##name
 
@@ -259,13 +279,6 @@ template <typename fn_type, size_t ID> class Handle {
 };
 
 } // namespace general
-
-#define CUSTOM_MOCK_DEFINE_FUNCTIONS_LIST \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(open, open_function_type, 0) \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(fstat, fstat_function_type, 1) \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(read, read_function_type, 2) \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(close, close_function_type, 3) \
-	CUSTOM_MOCK_FUNCTION_X_MACRO(open64, open64_function_type, 4)
 
 class CMockGeneral {
 	// members
