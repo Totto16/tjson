@@ -28,8 +28,6 @@ json::path::object::object(std::string value)
 
 json::path::object::object(const char* value) : m_value{ tstr_from(value) } {}
 
-json::path::object::object(tstr value) : m_value{ value } {}
-
 [[nodiscard]] const tstr* json::path::object::value() const {
 	return &(this->m_value);
 }

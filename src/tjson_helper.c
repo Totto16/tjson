@@ -86,10 +86,11 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 
 	const Utf8Data data = utf8_data_result_get_as_ok(result);
 
+	tstr_free(&key_normal);
+
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		tstr_free(&key_normal); \
 		free_utf8_data(data); \
 		free_json_path_segment_object_key(&object_key); \
 	} while(false)
@@ -110,7 +111,6 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
-		tstr_free(&key_normal); \
 		free_json_path_segment_object_key(&object_key); \
 	} while(false)
 

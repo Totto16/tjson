@@ -962,6 +962,15 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 		}();
 	}
 
+	SUBCASE("json path long string") {
+		[]() -> void {
+			auto complex_path1 =
+			    json::path::path() / json::path::object("large_string_that_is_allocated");
+
+			REQUIRE_EQ(complex_path1.string(), "$.large_string_that_is_allocated");
+		}();
+	}
+
 	SUBCASE("json path to string") {
 		[]() -> void {
 			auto complex_path1 = json::path::path() / json::path::object("hello");

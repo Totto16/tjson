@@ -38,7 +38,6 @@ struct object {
   public:
 	object(std::string value);
 	object(const char* value);
-	object(tstr value);
 
 	[[nodiscard]] const tstr* value() const;
 
