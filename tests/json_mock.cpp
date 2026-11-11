@@ -7,12 +7,30 @@
 
 #include <tjson.h>
 
+#include "helpers/allocators.hpp"
 #include "helpers/mock.hpp"
 #include "helpers/string_maker.hpp"
 
 #ifndef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
 	#error "TODO: remove the ue of file related 64 functions when this is not defined"
 #endif
+
+static void copy_statbuf64_to_statbuf(struct stat64* statbuf64, struct stat* statbuf) {
+
+	statbuf->st_dev = statbuf64->st_dev;
+	statbuf->st_ino = statbuf64->st_ino;
+	statbuf->st_mode = statbuf64->st_mode;
+	statbuf->st_nlink = statbuf64->st_nlink;
+	statbuf->st_uid = statbuf64->st_uid;
+	statbuf->st_gid = statbuf64->st_gid;
+	statbuf->st_rdev = statbuf64->st_rdev;
+	statbuf->st_size = statbuf64->st_size;
+	statbuf->st_blksize = statbuf64->st_blksize;
+	statbuf->st_blocks = statbuf64->st_blocks;
+	statbuf->st_atime = statbuf64->st_atime;
+	statbuf->st_mtime = statbuf64->st_mtime;
+	statbuf->st_ctime = statbuf64->st_ctime;
+}
 
 TEST_SUITE_BEGIN("json_mock" * doctest::description("json mock tests") * doctest::timeout(2.0));
 
@@ -73,31 +91,33 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 			auto& fstat_handle = mock_general.fstat();
 
-			auto used_fstat_handle = fstat_handle.use([](int fd, struct stat* statbuf) -> int {
+			const auto stat_fun_impl = [](int fd) -> int {
 				UNUSED(fd);
-
-				if(statbuf == NULL) {
-					errno = EFAULT;
-					return -1;
-				}
 
 				errno = EBADF;
 				return -1;
-			});
+			};
 
-			auto& fstat64_handle = mock_general.fstat64();
-
-			auto used_fstat64_handle =
-			    fstat64_handle.use([](int fd, struct stat64* statbuf) -> int {
-				    UNUSED(fd);
-
+			auto used_fstat_handle =
+			    fstat_handle.use([&stat_fun_impl](int fd, struct stat* statbuf) -> int {
 				    if(statbuf == NULL) {
 					    errno = EFAULT;
 					    return -1;
 				    }
 
-				    errno = EBADF;
-				    return -1;
+				    return stat_fun_impl(fd);
+			    });
+
+			auto& fstat64_handle = mock_general.fstat64();
+
+			auto used_fstat64_handle =
+			    fstat64_handle.use([&stat_fun_impl](int fd, struct stat64* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    return stat_fun_impl(fd);
 			    });
 
 			{ // actual test
@@ -106,6 +126,214 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 
 				JsonErrorCpp expected_error =
 				    JsonErrorCpp::with_file_loc("Couldn't get stats of the file", &file_path,
+				                                JsonSourcePosition{ .line = 0, .col = 0 });
+
+				CAutoFreePtr<tstr> defer_path = { &file_path, tstr_free };
+
+				const auto parse_result = json_value_parse_from_file(&file_path);
+
+				REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+				JsonError result = json_parse_result_get_as_error(parse_result);
+
+				const auto actual_error = JsonErrorCpp{ result };
+
+				REQUIRE_EQ(actual_error, expected_error);
+			}
+
+			const size_t open_count = used_open_handle.count();
+			const size_t open64_count = used_open64_handle.count();
+
+			REQUIRE_EQ(open_count + open64_count, 1);
+
+			const size_t fstat_count = used_fstat_handle.count();
+			const size_t fstat64_count = used_fstat64_handle.count();
+
+			REQUIRE_EQ(fstat_count + fstat64_count, 1);
+		}();
+	}
+
+	SUBCASE("testing path reading: fstat returns wrong size") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			const auto open_wrapper = [](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(flags);
+				UNUSED(mode);
+
+				if(strcmp(path, "test.json") == 0) {
+					return open("/dev/null", flags, mode);
+				}
+
+				errno = ENOENT;
+				return -1;
+			};
+
+			auto& open_handle = mock_general.open();
+
+			auto used_open_handle = open_handle.use(open_wrapper);
+
+			auto& open64_handle = mock_general.open64();
+
+			auto used_open64_handle = open64_handle.use(open_wrapper);
+
+			auto& fstat_handle = mock_general.fstat();
+
+			const auto stat_fun_impl = [](int fd, struct stat64* statbuf) -> int {
+				int result = fstat64(fd, statbuf);
+
+				if(result != 0) {
+					return result;
+				}
+
+				statbuf->st_size = -1;
+
+				return result;
+			};
+
+			auto used_fstat_handle =
+			    fstat_handle.use([&stat_fun_impl](int fd, struct stat* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    struct stat64 statbuf64 = {};
+
+				    int result = stat_fun_impl(fd, &statbuf64);
+				    if(result != 0) {
+					    return result;
+				    }
+
+				    copy_statbuf64_to_statbuf(&statbuf64, statbuf);
+
+				    return result;
+			    });
+
+			auto& fstat64_handle = mock_general.fstat64();
+
+			auto used_fstat64_handle =
+			    fstat64_handle.use([&stat_fun_impl](int fd, struct stat64* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    return stat_fun_impl(fd, statbuf);
+			    });
+
+			{ // actual test
+
+				tstr file_path = TSTR_LIT("test.json");
+
+				JsonErrorCpp expected_error =
+				    JsonErrorCpp::with_file_loc("Couldn't get the file size", &file_path,
+				                                JsonSourcePosition{ .line = 0, .col = 0 });
+
+				CAutoFreePtr<tstr> defer_path = { &file_path, tstr_free };
+
+				const auto parse_result = json_value_parse_from_file(&file_path);
+
+				REQUIRE_EQ(parse_result, JsonParseResultTypeError);
+
+				JsonError result = json_parse_result_get_as_error(parse_result);
+
+				const auto actual_error = JsonErrorCpp{ result };
+
+				REQUIRE_EQ(actual_error, expected_error);
+			}
+
+			const size_t open_count = used_open_handle.count();
+			const size_t open64_count = used_open64_handle.count();
+
+			REQUIRE_EQ(open_count + open64_count, 1);
+
+			const size_t fstat_count = used_fstat_handle.count();
+			const size_t fstat64_count = used_fstat64_handle.count();
+
+			REQUIRE_EQ(fstat_count + fstat64_count, 1);
+		}();
+	}
+
+	SUBCASE("testing path reading: alloc fails") {
+		[]() -> void {
+			auto mock_general = mock::CMockGeneral::get_instance();
+
+			const auto mock_allocator = mock::CMockAllocator::get_instance();
+
+			const auto open_wrapper = [](const char* path, int flags, mode_t mode) -> int {
+				UNUSED(flags);
+				UNUSED(mode);
+
+				if(strcmp(path, "test.json") == 0) {
+					return open("/dev/null", flags, mode);
+				}
+
+				errno = ENOENT;
+				return -1;
+			};
+
+			auto& open_handle = mock_general.open();
+
+			auto used_open_handle = open_handle.use(open_wrapper);
+
+			auto& open64_handle = mock_general.open64();
+
+			auto used_open64_handle = open64_handle.use(open_wrapper);
+
+			auto& fstat_handle = mock_general.fstat();
+
+			const auto stat_fun_impl = [&mock_allocator](int fd, struct stat64* statbuf) -> int {
+				int result = fstat64(fd, statbuf);
+
+				if(result != 0) {
+					return result;
+				}
+
+				statbuf->st_size = 42;
+				const bool mock_res = mock_allocator.malloc().always_fail();
+				REQUIRE_TRUE(mock_res);
+
+				return result;
+			};
+
+			auto used_fstat_handle =
+			    fstat_handle.use([&stat_fun_impl](int fd, struct stat* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    struct stat64 statbuf64 = {};
+
+				    int result = stat_fun_impl(fd, &statbuf64);
+				    if(result != 0) {
+					    return result;
+				    }
+
+				    copy_statbuf64_to_statbuf(&statbuf64, statbuf);
+
+				    return result;
+			    });
+
+			auto& fstat64_handle = mock_general.fstat64();
+
+			auto used_fstat64_handle =
+			    fstat64_handle.use([&stat_fun_impl](int fd, struct stat64* statbuf) -> int {
+				    if(statbuf == NULL) {
+					    errno = EFAULT;
+					    return -1;
+				    }
+
+				    return stat_fun_impl(fd, statbuf);
+			    });
+
+			{ // actual test
+
+				tstr file_path = TSTR_LIT("test.json");
+
+				JsonErrorCpp expected_error =
+				    JsonErrorCpp::with_file_loc("Couldn't allocate file data", &file_path,
 				                                JsonSourcePosition{ .line = 0, .col = 0 });
 
 				CAutoFreePtr<tstr> defer_path = { &file_path, tstr_free };
