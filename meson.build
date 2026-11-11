@@ -87,6 +87,7 @@ tstr_dep = dependency(
     default_options: {
         'static_string_modification_behavior': 'error',
         'b_coverage': false,
+        'use_short_strings': not mock_impl.has_key('mock'),
     },
     version: ['>=1.0.0', '<2'],
 )

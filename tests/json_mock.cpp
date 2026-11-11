@@ -15,6 +15,11 @@
 	#error "TODO: remove the ue of file related 64 functions when this is not defined"
 #endif
 
+#ifndef TSTR_DONT_USE_SHORT_STRINGS
+	#error \
+	    "TODO: don't use short strings, when running valgrind (what we do when we have oom tests), as we want to test if we free all strings correctly, and non freed SSO (short) strings don't get noticed"
+#endif
+
 static void copy_statbuf64_to_statbuf(struct stat64* statbuf64, struct stat* statbuf) {
 
 	statbuf->st_dev = statbuf64->st_dev;
