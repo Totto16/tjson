@@ -78,7 +78,9 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 			size_t read_amount = (size_t)read_result;
 
 			if(read_amount == remaining_size) {
-				break;
+				remaining_size = 0;
+				buf = buf + read_amount;
+				continue;
 			}
 
 			if(read_amount > remaining_size) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
