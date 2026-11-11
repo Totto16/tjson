@@ -1016,4 +1016,47 @@ TEST_CASE("testing json schema special cases stringification "
 	REQUIRE_NE(TstrIsNull{}, literal_str_duped);
 }
 
+TEST_CASE("testing helper functions of the json schema helpers <json_schema_helper_fn>") {
+
+	SUBCASE("json schema object add entry (moved)") {
+		[]() -> void {
+			JsonSchemaObject* const json_schema_object = json_schema_object_get(false);
+
+			REQUIRE_NE(json_schema_object, nullptr);
+
+			CAutoFreePtr<JsonSchemaObject> defer_obj = { json_schema_object,
+				                                         free_json_schema_object };
+
+			auto key = "key"_tstr;
+
+			CAutoFreePtr<tstr> defer_key = { &key, tstr_free };
+
+			const auto add_result = json_schema_object_add_entry_moved(
+			    json_schema_object, TJSON_MOVE(tstr, key), json_schema::null().get(), true);
+
+			REQUIRE_EQ(TstrStaticIsNull{}, add_result);
+		}();
+	}
+
+	SUBCASE("json schema object add entry (duped)") {
+		[]() -> void {
+			JsonSchemaObject* const json_schema_object = json_schema_object_get(false);
+
+			REQUIRE_NE(json_schema_object, nullptr);
+
+			CAutoFreePtr<JsonSchemaObject> defer_obj = { json_schema_object,
+				                                         free_json_schema_object };
+
+			auto key = "key"_tstr;
+
+			CAutoFreePtr<tstr> defer_key = { &key, tstr_free };
+
+			const auto add_result = json_schema_object_add_entry_dup(
+			    json_schema_object, &key, json_schema::null().get(), true);
+
+			REQUIRE_EQ(TstrStaticIsNull{}, add_result);
+		}();
+	}
+}
+
 TEST_SUITE_END();

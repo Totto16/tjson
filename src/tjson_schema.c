@@ -874,11 +874,20 @@ TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(
 TJSON_NODISCARD tstr_static
 json_schema_object_add_entry_dup(JsonSchemaObject* const json_schema_object, const tstr* const key,
                                  const JsonSchema value, const bool required) {
-	const tstr key_dup = tstr_dup(key);
+	tstr key_dup = tstr_dup(key);
 
 	const JsonObjectEntrySchema entry = { .schema = value, .required = required };
 
-	return json_schema_object_add_entry_impl(json_schema_object, key_dup, entry);
+	tstr_static result = json_schema_object_add_entry_impl(json_schema_object, key_dup, entry);
+
+	if(!tstr_static_is_null(result)) {
+
+		tstr_free(&key_dup);
+
+		return result;
+	}
+
+	return tstr_static_null();
 }
 
 void free_json_schema_object(JsonSchemaObject* const json_schema_object) {
