@@ -350,7 +350,7 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 tstr get_normalized_string_from_codepoints_json_escaped(const Utf8CodepointArr codepoints,
                                                         const JsonSerializeEscapeOption escape) {
 	if(codepoints.data == NULL) {
-		return tstr_null();
+		return tstr_from("");
 	}
 
 	size_t buffer_size = NORMALIZED_STR_JSON_ESCAPED_UTF8_CHUNK_SIZE_NORMALIZE;

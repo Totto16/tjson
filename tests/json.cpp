@@ -147,6 +147,10 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		        json::string("unicode surrogate: 🌍 should resolve to 🌍 and 🙃 as 🙃 and 𝄞 as 𝄞"),
 		},
 		JsonParseTestCaseSuccess{
+		    .input = R"("")",
+		    .expected = json::string(""),
+		},
+		JsonParseTestCaseSuccess{
 		    .input = R"("unicode related things: 퀀 ힰ  is the same as \uD000 \uD7B0 \uE000")",
 		    .expected =
 		        json::string("unicode related things: 퀀 ힰ  is the same as 퀀 ힰ "),
@@ -985,7 +989,32 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_EQ(complex_path1.string(), "$.store.book[0].title");
 
 			REQUIRE_EQ(complex_path1.string(JsonPathStringOptions{ .compact = false }),
-			           "$['store']['book'][0]['title']");
+			           R"($["store"]["book"][0]["title"])");
+		}();
+	}
+
+	SUBCASE("json path to string with valid escapes") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello with a whitespace");
+
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello with a whitespace") /
+			    json::path::array(0) / json::path::object("second with a \x10 and \x07 char");
+
+			auto complex_path3 =
+			    json::path::path() / json::path::object("hello with a whitespace") /
+			    json::path::object("third with a smiley: 🙃") / json::path::object("") /
+			    json::path::object("test") / json::path::object("1");
+
+			REQUIRE_EQ(complex_path1.string(), R"($["hello with a whitespace"])");
+
+			REQUIRE_EQ(
+			    complex_path2.string(),
+			    R"($["hello with a whitespace"][0]["second with a \u0010 and \u0007 char"])");
+
+			REQUIRE_EQ(
+			    complex_path3.string(),
+			    R"($["hello with a whitespace"]["third with a smiley: \uD83D\uDE43"][""].test["1"])");
 		}();
 	}
 }
@@ -1055,6 +1084,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		        "日 雨 川 のる きく 君 友") },
 		JsonStringifyTest{ .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
 		                   .input = json::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonStringifyTest{ .expected = R"("")", .input = json::string("") },
 		JsonStringifyTest{
 		    .expected = R"("unicode surrogate, none of these is escaped: 🌍, 🙃 and 𝄞")",
 		    .input = json::string("unicode surrogate, none of these is escaped: 🌍, 🙃 and 𝄞") },
