@@ -9,6 +9,7 @@
 
 #include "./helpers.hpp"
 #include "./json.hpp"
+#include "./json_helper.hpp"
 #include "./json_schema.hpp"
 #include "./rtti.hpp"
 
@@ -125,6 +126,18 @@ template <> struct StringMaker<JsonParseResultType> {
 	}
 };
 
+template <> struct StringMaker<Utf8DataResult> {
+	static String convert(const Utf8DataResult& result) {
+		return ::os_stream_formattable_to_doctest(result);
+	}
+};
+
+template <> struct StringMaker<Utf8DataResultType> {
+	static String convert(const Utf8DataResultType& result_type) {
+		return ::os_stream_formattable_to_doctest(result_type);
+	}
+};
+
 template <> struct StringMaker<RTTIAnnotatedValue> {
 	static String convert(const RTTIAnnotatedValue& rtti_value) {
 		return ::os_stream_formattable_to_doctest(rtti_value);
@@ -134,6 +147,18 @@ template <> struct StringMaker<RTTIAnnotatedValue> {
 template <> struct StringMaker<JsonIterateResult> {
 	static String convert(const JsonIterateResult& iterate_result) {
 		return ::os_stream_formattable_to_doctest(iterate_result);
+	}
+};
+
+template <> struct StringMaker<JsonIterateError> {
+	static String convert(const JsonIterateError& err) {
+		return ::os_stream_formattable_to_doctest(err);
+	}
+};
+
+template <> struct StringMaker<JsonIterateErrorCpp> {
+	static String convert(const JsonIterateErrorCpp& err) {
+		return ::os_stream_formattable_to_doctest(err);
 	}
 };
 

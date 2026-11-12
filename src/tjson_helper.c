@@ -1,6 +1,15 @@
 #include "./tjson_helper.h"
 
+#include <stdbool.h>
+#include <tstr_builder.h>
 #include <tvec.h>
+
+#include "./_impl/utf8.h"
+#include "./_impl/utils.h"
+
+typedef struct {
+	Utf8CodepointArr value;
+} JsonPathSegmentObjectKey;
 
 GENERATE_VARIANT_ALL_JSON_PATH_SEGMENT()
 
@@ -33,7 +42,7 @@ TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	return path;
 }
 
-TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* key) {
+TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* const path, const tstr* key) {
 
 	tstr key_duped = tstr_dup(key);
 
@@ -41,26 +50,83 @@ TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* 
 		return false;
 	}
 
-	return json_path_add_object_key_moved(path, &key_duped);
+	return json_path_add_object_key_moved(path, TJSON_MOVE(tstr, key_duped));
 }
 
-TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, tstr* key_moved) {
+static void free_json_path_segment_object_key(JsonPathSegmentObjectKey* object_key) {
 
-	TvecResult result =
-	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(*key_moved));
+	TVEC_FREE(Utf8Codepoint, &(object_key->value));
+}
 
-	if(result != TvecResultOk) {
+TJSON_NODISCARD static bool
+json_path_segment_object_key_eq(const JsonPathSegmentObjectKey* const object_key1,
+                                const JsonPathSegmentObjectKey* const object_key2) {
+	return utf8_codpoints_eq(&(object_key1->value), &(object_key2->value));
+}
 
-		tstr_free(key_moved);
-		*key_moved = tstr_null();
+TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
 
+	tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
+	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+
+#define FREE_AT_END() \
+	do { \
+		tstr_free(&key_normal); \
+	} while(false)
+
+	tstr_view str_view = tstr_as_view(&key_normal);
+
+	const Utf8DataResult result = get_utf8_string(str_view);
+
+	IF_UTF8_DATA_RESULT_IS_ERROR_IGN(result) {
+		FREE_AT_END();
 		return false;
 	}
 
-	*key_moved = tstr_null();
+	JsonPathSegmentObjectKey object_key = { .value = TVEC_EMPTY(Utf8Codepoint) };
+
+	const Utf8Data data = utf8_data_result_get_as_ok(result);
+
+	tstr_free(&key_normal);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_utf8_data(data); \
+		free_json_path_segment_object_key(&object_key); \
+	} while(false)
+
+	for(size_t i = 0; i < data.size; ++i) {
+		const Utf8Codepoint codepoint = data.data[i];
+
+		const TvecResult add_result = TVEC_PUSH(Utf8Codepoint, &(object_key.value), codepoint);
+
+		if(add_result != TvecResultOk) {
+			FREE_AT_END();
+			return false;
+		}
+	}
+
+	free_utf8_data(data);
+
+#undef FREE_AT_END
+#define FREE_AT_END() \
+	do { \
+		free_json_path_segment_object_key(&object_key); \
+	} while(false)
+
+	TvecResult push_result =
+	    TVEC_PUSH(JsonPathSegment, &(path->segments), new_json_path_segment_object_key(object_key));
+
+	if(push_result != TvecResultOk) {
+		FREE_AT_END();
+		return false;
+	}
 
 	return true;
 }
+
+#undef FREE_AT_END
 
 TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index) {
 	TvecResult result =
@@ -89,22 +155,23 @@ TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
 	return len == 0;
 }
 
-TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSegment segment2) {
+TJSON_NODISCARD static bool path_segment_eq(const JsonPathSegment* segment1,
+                                            const JsonPathSegment* segment2) {
 
-	SWITCH_JSON_PATH_SEGMENT(segment1) {
-		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment1, object1) {
+	SWITCH_JSON_PATH_SEGMENT(*segment1) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment1, object1) {
 
-			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST(segment2, object2) {
-				return tstr_eq(&object1.name, &object2.name);
+			IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment2, object2) {
+				return json_path_segment_object_key_eq(object1, object2);
 			}
 
 			return false;
 		}
 		VARIANT_CASE_END();
-		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment1, array1) {
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment1, array1) {
 
-			IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST(segment2, array2) {
-				return array1.index == array2.index;
+			IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment2, array2) {
+				return array1->index == array2->index;
 			}
 
 			return false;
@@ -116,20 +183,20 @@ TJSON_NODISCARD static bool path_segment_eq(JsonPathSegment segment1, JsonPathSe
 	}
 }
 
-TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath* parent) {
+TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* parent, const JsonPath* path) {
 
-	const size_t path_len = TVEC_LENGTH(JsonPathSegment, path->segments);
 	const size_t parent_len = TVEC_LENGTH(JsonPathSegment, parent->segments);
+	const size_t path_len = TVEC_LENGTH(JsonPathSegment, path->segments);
 
 	if(path_len != (parent_len + 1)) {
 		return false;
 	}
 
 	for(size_t i = 0; i < parent_len; ++i) {
-		JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
-		JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
+		const JsonPathSegment parent_value = TVEC_AT(JsonPathSegment, parent->segments, i);
+		const JsonPathSegment path_value = TVEC_AT(JsonPathSegment, path->segments, i);
 
-		if(!path_segment_eq(path_value, parent_value)) {
+		if(!path_segment_eq(&parent_value, &path_value)) {
 			return false;
 		}
 	}
@@ -137,10 +204,281 @@ TJSON_NODISCARD bool json_path_is_parent_of(const JsonPath* path, const JsonPath
 	return true;
 }
 
+TJSON_NODISCARD bool json_path_is_eq(const JsonPath* path1, const JsonPath* path2) {
+
+	if(path1 == NULL || path2 == NULL) {
+		return path1 == path2;
+	}
+
+	const size_t len1 = TVEC_LENGTH(JsonPathSegment, path1->segments);
+
+	const size_t len2 = TVEC_LENGTH(JsonPathSegment, path2->segments);
+
+	if(len1 != len2) {
+		return false;
+	}
+
+	for(size_t i = 0; i < len1; ++i) {
+		const JsonPathSegment value1 = TVEC_AT(JsonPathSegment, path1->segments, i);
+		const JsonPathSegment value2 = TVEC_AT(JsonPathSegment, path2->segments, i);
+
+		if(!path_segment_eq(&value1, &value2)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static tstr
+get_tstr_from_json_path_segment_object_key_escaped(const JsonPathSegmentObjectKey* const object_key,
+                                                   const JsonSerializeEscapeOption escape) {
+
+	return get_normalized_string_from_codepoints_json_escaped(object_key->value, escape);
+}
+
+static bool json_path_segment_object_key_is_name_first(const Utf8Codepoint codepoint) {
+
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// name-first          = ALPHA /
+	//                       "_"   /
+	//                       %x80-D7FF /
+	//                          ; skip surrogate code points
+	//                       %xE000-10FFFF
+
+	// ALPHA               = %x41-5A / %x61-7A    ; A-Z / a-z
+
+	if(codepoint >= 'A' && codepoint <= 'Z') {
+		return true;
+	}
+
+	if(codepoint >= 'a' && codepoint <= 'z') {
+		return true;
+	}
+
+	if(codepoint == '_') {
+		return true;
+	}
+
+	if(codepoint >= 0x80 && codepoint <= 0xD7FF) { // NOLINT(readability-magic-numbers)
+		return true;
+	}
+
+	if(codepoint >= 0xE000 && codepoint <= 0x10FFFF) { // NOLINT(readability-magic-numbers)
+		return true;
+	}
+
+	return false;
+}
+
+static bool json_path_segment_object_key_is_name_char(const Utf8Codepoint codepoint) {
+
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// name-char           = name-first / DIGIT
+
+	// DIGIT               = %x30-39              ; 0-9
+
+	if(json_path_segment_object_key_is_name_first(codepoint)) {
+		return true;
+	}
+
+	if(codepoint >= '0' && codepoint <= '9') {
+		return true;
+	}
+
+	return false;
+}
+
+static bool
+json_path_segment_object_key_can_be_compact(const JsonPathSegmentObjectKey* object_key) {
+	// see: https://www.rfc-editor.org/info/rfc9535/#section-2.5.1.1
+
+	// child-segment       = bracketed-selection /
+	//                       ("."
+	//                        (wildcard-selector /
+	//                         member-name-shorthand))
+
+	// bracketed-selection = "[" S selector *(S "," S selector) S "]"
+
+	// member-name-shorthand = name-first *name-char
+
+	const size_t length = TVEC_LENGTH(Utf8Codepoint, object_key->value);
+
+	if(length == 0) {
+		return false;
+	}
+
+	for(size_t i = 0; i < length; ++i) {
+
+		const Utf8Codepoint codepoint = TVEC_AT(Utf8Codepoint, object_key->value, i);
+
+		if(i == 0) {
+			if(!json_path_segment_object_key_is_name_first(codepoint)) {
+				return false;
+			}
+		} else {
+			if(!json_path_segment_object_key_is_name_char(codepoint)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+static void json_path_segment_to_string_impl(StringBuilder* const string_builder,
+                                             const JsonPathSegment* segment,
+                                             const JsonPathStringOptions options) {
+
+	SWITCH_JSON_PATH_SEGMENT(*segment) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
+
+			const bool can_use_compact =
+			    options.compact // NOLINT(readability-implicit-bool-conversion)
+			        ? json_path_segment_object_key_can_be_compact( // NOLINT(readability-implicit-bool-conversion)
+			              object_key)
+			        : false; // NOLINT(readability-implicit-bool-conversion)
+
+			// see: https://www.rfc-editor.org/info/rfc9535/#section-2.3.1.1
+			// we use the normal json escape function, as it does what we expect
+
+			// Double-quoted strings follow the JSON string syntax (Section 7 of [RFC8259]); [...]
+
+			if(can_use_compact) {
+				tstr name = get_tstr_from_json_path_segment_object_key_escaped(
+				    object_key, JsonSerializeEscapeOptionMost);
+
+				if(tstr_is_null(&name)) {
+					OOM_ASSERT(false, "error in formatting path segment");
+				}
+
+				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+				    , TSTR_FMT, TSTR_FMT_ARGS(name))
+
+				tstr_free(&name);
+
+			} else {
+				// NOTE we can use '' or "", but use ", as the escaping expects that
+
+				tstr name = get_tstr_from_json_path_segment_object_key_escaped(
+				    object_key, JsonSerializeEscapeOptionMost);
+
+				if(tstr_is_null(&name)) {
+					OOM_ASSERT(false, "error in formatting path segment");
+				}
+
+				STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+				    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+				    , "[\"" TSTR_FMT "\"]", TSTR_FMT_ARGS(name))
+
+				tstr_free(&name);
+			}
+
+			return;
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment) {
+
+			STRING_BUILDER_APPENDF( // GCOVR_EXCL_BR_WITHOUT_HIT: 6/12
+			    string_builder, OOM_ASSERT(false, "error in formatting path segment");
+			    , "[%zu]", array_index->index)
+
+			return;
+		}
+		VARIANT_CASE_END();
+		default: {
+			UNREACHABLE();
+		}
+	}
+}
+
+TJSON_NODISCARD static bool json_path_segment_need_separator(const JsonPathSegment* segment) {
+
+	SWITCH_JSON_PATH_SEGMENT(*segment) {
+		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
+			return json_path_segment_object_key_can_be_compact(object_key);
+		}
+		VARIANT_CASE_END();
+		CASE_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_IGN() {
+
+			return false;
+		}
+		VARIANT_CASE_END();
+		default: {
+			UNREACHABLE();
+		}
+	}
+}
+
+TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
+                                               const JsonPathStringOptions options) {
+
+	StringBuilder* string_builder = string_builder_init();
+
+	if(string_builder == NULL) {
+		return tstr_null();
+	}
+
+	// See:
+	// https://en.wikipedia.org/wiki/JSONPath
+	// https://www.rfc-editor.org/rfc/rfc9535
+
+	string_builder_append_single(string_builder, "$");
+
+	const size_t length = TVEC_LENGTH(JsonPathSegment, path->segments);
+
+	for(size_t i = 0; i < length; ++i) {
+		JsonPathSegment value = TVEC_AT(JsonPathSegment, path->segments, i);
+
+		if(options.compact) {
+			if(json_path_segment_need_separator(&value)) {
+				string_builder_append_single(string_builder, ".");
+			}
+		}
+
+		json_path_segment_to_string_impl(string_builder, &value, options);
+	}
+
+	return string_builder_release_into_tstr(&string_builder);
+}
+
+TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
+	return json_path_to_str_advanced(path, (JsonPathStringOptions){ .compact = true });
+}
+
+TJSON_NODISCARD tstr json_iterate_error_to_str_advanced(const JsonIterateError* error,
+                                                        JsonPathStringOptions options) {
+
+	StringBuilder* string_builder = string_builder_init();
+
+	if(string_builder == NULL) {
+		return tstr_null();
+	}
+
+	string_builder_append_tstr(string_builder, &(error->err));
+
+	string_builder_append_single(string_builder, " at ");
+
+	tstr path_str = json_path_to_str_advanced(error->path, options);
+
+	string_builder_append_tstr(string_builder, &path_str);
+
+	tstr_free(&path_str);
+
+	return string_builder_release_into_tstr(&string_builder);
+}
+
+TJSON_NODISCARD tstr json_iterate_error_to_str(const JsonIterateError* error) {
+	return json_iterate_error_to_str_advanced(error, (JsonPathStringOptions){ .compact = true });
+}
+
 static void free_json_path_segment(JsonPathSegment segment) {
 	SWITCH_JSON_PATH_SEGMENT(segment) {
 		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_MUT_REF(&segment) {
-			tstr_free(&(object_key->name));
+			free_json_path_segment_object_key(object_key);
 		}
 		break;
 		VARIANT_CASE_END();
@@ -166,7 +504,18 @@ void free_json_path(JsonPath* path) {
 	TJSON_FREE(path);
 }
 
-//
+void free_json_iterate_error(JsonIterateError* path) {
+	tstr_free(&(path->err));
+	free_json_path(path->path);
+}
+
+NODISCARD static JsonIterateResult make_json_iterate_result_error(JsonIterateError error,
+                                                                  JsonPath* json_path) {
+	if(error.path == NULL) {
+		error.path = json_path;
+	}
+	return new_json_iterate_result_error(error);
+}
 
 TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc-no-recursion)
     const JsonValue* json_value, JsonValueIterateCallback iterate_callback,
@@ -188,7 +537,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
@@ -206,7 +555,9 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(iter == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("json object iterator couldn't be allocated") });
+					    .err = TSTR_LIT("json object iterator couldn't be allocated"),
+					    .path = json_path,
+					});
 				}
 
 #undef FREE_AT_END
@@ -229,16 +580,20 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					if(key == NULL) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json key string convert error"),
+						    .path = json_path,
+						});
 					}
 
 					tstr key_tstr = json_string_get_as_str(key);
 
 					if(tstr_is_null(&key_tstr)) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json key string convert error"),
+						    .path = json_path,
+						});
 					}
 
 #undef FREE_AT_END
@@ -252,12 +607,14 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					bool add_result = json_path_add_object_key(json_path, &key_tstr);
+					bool add_result = json_path_add_object_key_dup(json_path, &key_tstr);
 
 					if(!add_result) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json path add failed"),
+						    .path = json_path,
+						});
 					}
 
 					JsonIterateResult recursive_result = json_value_iterate_impl(
@@ -274,7 +631,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 	} while(false)
 
 						FREE_AT_END();
-						return new_json_iterate_result_error(error.error);
+						return make_json_iterate_result_error(error.error, json_path);
 					}
 
 #undef FREE_AT_END
@@ -301,7 +658,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 
 						FREE_AT_END();
-						return new_json_iterate_result_error(error.error);
+						return make_json_iterate_result_error(error.error, json_path);
 					}
 
 					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
@@ -322,15 +679,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					if(entry_handle.ptr != NULL) {
 						FREE_AT_END();
 						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
+						    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
+						    .path = json_path,
+						});
 					}
 
 					bool remove_result = json_path_remove_last_segment(json_path);
 
 					if(!remove_result) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json path remove failed"),
+						    .path = json_path,
+						});
 					}
 
 #undef FREE_AT_END
@@ -353,7 +714,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
@@ -378,7 +739,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue arr_handle = json_iterate_result_get_as_ok(start_result);
@@ -397,15 +758,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(value == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("implementation error: empty json value") });
+					    .err = TSTR_LIT("implementation error: empty json value"),
+					    .path = json_path,
+					});
 				}
 
 				bool add_result = json_path_add_array_index(json_path, i);
 
 				if(!add_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("json path add failed"),
+					    .path = json_path,
+					});
 				}
 
 				JsonIterateResult recursive_result = json_value_iterate_impl(
@@ -420,7 +785,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 	} while(false)
 
 					FREE_AT_END();
-					return new_json_iterate_result_error(error.error);
+					return make_json_iterate_result_error(error.error, json_path);
 				}
 
 #undef FREE_AT_END
@@ -442,7 +807,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(error.error);
+					return make_json_iterate_result_error(error.error, json_path);
 				}
 
 				RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
@@ -461,15 +826,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(entry_handle.ptr != NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
+					    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
+					    .path = json_path,
+					});
 				}
 
 				bool remove_result = json_path_remove_last_segment(json_path);
 
 				if(!remove_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("json path remove failed"),
+					    .path = json_path,
+					});
 				}
 			}
 
@@ -480,7 +849,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
@@ -504,7 +873,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -521,7 +890,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -537,7 +906,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -553,7 +922,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -562,8 +931,10 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 		}
 		VARIANT_CASE_END();
 		default: {
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_LIT("json value has invalid state") });
+			return new_json_iterate_result_error((JsonIterateError){
+			    .err = TSTR_LIT("json value has invalid state"),
+			    .path = json_path,
+			});
 		}
 	}
 }
@@ -579,14 +950,18 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json
 	JsonPath* json_path = json_path_get_root();
 
 	if(json_path == NULL) {
-		return new_json_iterate_result_error(
-		    (JsonIterateError){ .err = TSTR_LIT("json path allocation error") });
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err = TSTR_LIT("json path allocation error"),
+		    .path = json_path,
+		});
 	}
 
 	JsonIterateResult result = json_value_iterate_impl(json_value, iterate_callback, free_callback,
 	                                                   start, userdata, json_path);
 
-	free_json_path(json_path);
+	IF_JSON_ITERATE_RESULT_IS_OK_IGN(result) {
+		free_json_path(json_path);
+	}
 
 	return result;
 }

@@ -19,9 +19,12 @@ NODISCARD SimpleRegexResult simple_regex_compile(const tstr* const str) {
 
 		const size_t bytes_written = regerror(compile_result, NULL, errbuf, ERR_BUF_SIZE);
 
-		if(bytes_written > ERR_BUF_SIZE) {
-			TJSON_FREE(errbuf);
-			return new_simple_regex_result_error(TSTR_LIT("error in error allocation"));
+		if(bytes_written > ERR_BUF_SIZE) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
+			// NOTE: I checked all possible errors, and there are no big ones, so this can't bet
+			// tested
+			TJSON_FREE(errbuf);                         // GCOVR_EXCL_LINE
+			return new_simple_regex_result_error(       // GCOVR_EXCL_LINE
+			    TSTR_LIT("error in error allocation")); // GCOVR_EXCL_LINE
 		}
 
 		errbuf[bytes_written] = (LibCChar)'\0';
@@ -35,7 +38,7 @@ NODISCARD SimpleRegexResult simple_regex_compile(const tstr* const str) {
 
 NODISCARD bool simple_regex_match(const SimpleRegex* const regex, const tstr* const str) {
 
-	if(regex == NULL) {
+	if(regex == NULL || str == NULL) {
 		return false;
 	}
 
@@ -58,13 +61,14 @@ NODISCARD bool simple_regex_match(const SimpleRegex* const regex, const tstr* co
 		return false;
 	}
 
-	if(match_result == 0) {
+	if(match_result == 0) { // GCOVR_EXCL_BR_WITHOUT_HIT: 1/2
 		return true;
 	}
 
-	// TODO(Totto): maybe log that error
-	// an error occurred
-	return false;
+	// NOTE: this is never reached, as glibc regexec returns a boolean (0 or 1 (REG_NOMATCH == 1))
+	// and only returns an error (REG_BADPAT) when passed invalid flags, but the user can never
+	// specify bad flags, except REG_STARTEND is defined and not supported? (so never I hope)
+	return false; // GCOVR_EXCL_LINE
 }
 
 void free_simple_regex(SimpleRegex* const regex) {

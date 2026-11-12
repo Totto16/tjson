@@ -28,6 +28,11 @@ struct JsonSchemaErrorThrows {
 	std::string throw_msg;
 };
 
+struct JsonSchemaStringifyTestCase {
+	JsonSchemaCpp schema;
+	JsonValue result;
+};
+
 } // namespace
 
 TEST_SUITE_BEGIN("json_schema" * doctest::description("json schema tests") * doctest::timeout(2.0));
@@ -81,8 +86,10 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		    .schema = json_schema::string().nonempty().get(),
 		    .tests =
 		        std::vector<JsonSchemaValidateTestCaseSingle>{
-		            JsonSchemaValidateTestCaseSingle{ .value = json::string("hello"),
-		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::string(
+		                    "hello this is a long string that is longer then SSO strings"),
+		                .result = std::nullopt },
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::string(""),
 		                .result = "string size (0) is smaller than the min size (1)" },
@@ -151,6 +158,19 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::string("HelloW"),
 		                .result = "string 'HelloW' doesn't match regex '^[A-Z][a-z]*$'" },
+
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().regex("^[A-Z][abcdefghijklmnopqrstuvwxyz]*$").get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = json::string("Hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::string("HelloW"),
+		                .result = "string 'HelloW' doesn't match regex "
+		                          "'^[A-Z][abcdefghijklmnopqrstuvwxyz]*$'" },
 
 		        },
 		},
@@ -317,7 +337,9 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .result = std::nullopt,
 		            },
 		            JsonSchemaValidateTestCaseSingle{
-		                .value = json::object({ { "obj_key", json::null() } }),
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
 		                .result = std::nullopt,
 		            },
 		            JsonSchemaValidateTestCaseSingle{
@@ -341,6 +363,55 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::object({ { "obj_key", json::null() } }),
 		                .result = "object can't have additional properties: but got key 'obj_key'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
+		                .result = "object can't have additional properties: but got key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected'",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::object(
+		        false, { json_schema::JsonSchemaObjectEntryCpp{
+		                   .key = "obj_key_thats_is_really_long_longer_than_expected",
+		                   .value = json_schema::null(),
+		                   .required = true,
+		               } }),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::boolean(true),
+		                .result = "JsonValue is not an object",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::object({}),
+		                .result = "object is missing required key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::number(1.0) } }),
+		                .result = "Value in object at key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected' is "
+		                          "incorrect: JsonValue is not null",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() },
+		                                   { "additional_key", json::boolean(true) } }),
+		                .result =
+		                    "object can't have additional properties: but got key 'additional_key'",
 		            },
 		        },
 		},
@@ -566,7 +637,7 @@ TEST_CASE("testing invalid json schema construction <json_schema_errors>") {
 	std::vector<JsonSchemaErrorThrows> json_schema_error_tests = {
 		JsonSchemaErrorThrows{
 		    .schema_fn = []() -> JsonSchemaCpp { return json_schema::string().regex("\\").get(); },
-		    .throw_msg = "Regex was invalid!" },
+		    .throw_msg = "Regex was invalid: Trailing backslash" },
 		//
 		JsonSchemaErrorThrows{ .schema_fn = []() -> JsonSchemaCpp {
 		                          return json_schema::string().min(2).max(1).get();
@@ -671,6 +742,387 @@ TEST_CASE("testing json schema serialization <json_schema_serialization>") {
 	CAutoFreePtr<JsonValue> defer2 = { &json_result, free_json_value };
 
 	REQUIRE_EQ(json_result, expected_json_result);
+}
+
+[[nodiscard]] static JsonValue
+get_schema_value(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+
+	std::vector<std::pair<std::string, JsonValue>> final_values = { std::move(values) };
+
+	final_values.emplace_back("$schema",
+	                          json::string("https://json-schema.org/draft/2020-12/schema"));
+	final_values.emplace_back("$defs", json::object({}));
+
+	return json::object(std::move(final_values));
+}
+
+[[nodiscard]] static std::string get_schema_name_impl(std::size_t number) {
+	// NOTE: this is an implementation details, o it is just defined once
+
+	return std::string{ "__schema" } + std::to_string(number);
+}
+
+[[nodiscard]] static JsonValue schema_def(std::size_t number) {
+	return json::string("#/$defs/" + get_schema_name_impl(number));
+}
+
+[[nodiscard]] static JsonValue
+get_schema_value_with_defs(std::initializer_list<std::pair<std::string, JsonValue>>&& values,
+                           std::initializer_list<std::pair<std::size_t, JsonValue>>&& defs) {
+
+	std::vector<std::pair<std::string, JsonValue>> final_values = { std::move(values) };
+
+	final_values.emplace_back("$schema",
+	                          json::string("https://json-schema.org/draft/2020-12/schema"));
+
+	std::vector<std::pair<std::string, JsonValue>> defs_array = {};
+
+	for(auto&& [def_num, def_o] : defs) {
+		defs_array.emplace_back(get_schema_name_impl(def_num), std::move(def_o));
+	}
+
+	auto defs_obj = json::object(std::move(defs_array));
+
+	final_values.emplace_back("$defs", std::move(defs_obj));
+
+	return json::object(std::move(final_values));
+}
+
+TEST_CASE("testing json schema stringification <json_schema_stringification>") {
+
+	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
+		JsonSchemaStringifyTestCase{ .schema = json_schema::null(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("null") } }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::boolean(),
+		    .result = get_schema_value({ { "type", json::string("boolean") } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::number(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("number") } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().get(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("string") } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().nonempty().get(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("string") },
+		                                                    { "minLength", json::number(1.0) } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().min(2).get(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("string") },
+		                                                    { "minLength", json::number(2.0) } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().max(2).get(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("string") },
+		                                                    { "maxLength", json::number(2.0) } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().min(2).max(4).get(),
+		                             .result =
+		                                 get_schema_value({ { "type", json::string("string") },
+		                                                    { "minLength", json::number(2.0) },
+		                                                    { "maxLength", json::number(4.0) } }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::string().regex("^a$").get(),
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "pattern", json::string("^a$") },
+		                             }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::literal("hello"),
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello") },
+		                             }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::one_of({
+		        json_schema::null(),
+		        json_schema::number(),
+		        json_schema::string().nonempty().get(),
+		    }),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "oneOf", json::array({ json::object({ { "$ref", schema_def(0) } }),
+		                                     json::object({ { "$ref", schema_def(1) } }),
+		                                     json::object({ { "$ref", schema_def(2) } }) }) },
+
+		        },
+		        { { 0, json::object({ { "type", json::string("null") } }) },
+		          { 1, json::object({ { "type", json::string("number") } }) },
+		          { 2, json::object({ { "type", json::string("string") },
+		                              { "minLength", json::number(1.0) } }) } }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).get(),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("array") },
+		            { "uniqueItems", json::boolean(true) },
+		            {
+		                "items",
+		                json::object({ { "$ref", schema_def(0) } }),
+		            },
+
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::array(json_schema::null(), false).get(),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("array") },
+		            {
+		                "items",
+		                json::object({ { "$ref", schema_def(0) } }),
+		            },
+
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).min(1).get(),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("array") },
+		            { "uniqueItems", json::boolean(true) },
+		            { "minItems", json::number(1.0) },
+		            {
+		                "items",
+		                json::object({ { "$ref", schema_def(0) } }),
+		            },
+
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).max(2).get(),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("array") },
+		            { "uniqueItems", json::boolean(true) },
+		            { "maxItems", json::number(2.0) },
+		            {
+		                "items",
+		                json::object({ { "$ref", schema_def(0) } }),
+		            },
+
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::array(json_schema::null(), true).min(1).max(2).get(),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("array") },
+		            { "uniqueItems", json::boolean(true) },
+		            { "minItems", json::number(1.0) },
+		            { "maxItems", json::number(2.0) },
+		            {
+		                "items",
+		                json::object({ { "$ref", schema_def(0) } }),
+		            },
+
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::object(true, {}),
+		                             .result = get_schema_value({
+		                                 { "type", json::string("object") },
+		                                 { "properties", json::object({}) },
+		                             }) },
+		JsonSchemaStringifyTestCase{ .schema = json_schema::object(false, {}),
+		                             .result = get_schema_value({
+		                                 { "type", json::string("object") },
+		                                 { "properties", json::object({}) },
+		                                 { "additionalProperties", json::boolean(false) },
+		                             }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::object(false, { json_schema::JsonSchemaObjectEntryCpp{
+		                                             .key = "obj_key",
+		                                             .value = json_schema::null(),
+		                                             .required = true,
+		                                         } }),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("object") },
+
+		            { "required", json::array({ json::string("obj_key") }) },
+		            { "properties",
+		              json::object(
+		                  { { "obj_key", json::object({ { "$ref", schema_def(0) } }) } }) },
+		            { "additionalProperties", json::boolean(false) },
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("null") } }) },
+		        }) },
+		JsonSchemaStringifyTestCase{
+		    .schema = json_schema::object(false,
+		                                  {
+		                                      json_schema::JsonSchemaObjectEntryCpp{
+		                                          .key = "obj_key",
+		                                          .value = json_schema::null(),
+		                                          .required = true,
+		                                      },
+		                                      json_schema::JsonSchemaObjectEntryCpp{
+		                                          .key = "key2",
+		                                          .value = json_schema::boolean(),
+		                                          .required = false,
+		                                      },
+		                                  }),
+		    .result = get_schema_value_with_defs(
+		        {
+		            { "type", json::string("object") },
+
+		            { "required", json::array({ json::string("obj_key") }) },
+		            { "properties",
+		              json::object({
+
+		                  { "obj_key", json::object({ { "$ref", schema_def(1) } }) },
+		                  { "key2", json::object({ { "$ref", schema_def(0) } }) } }) },
+		            { "additionalProperties", json::boolean(false) },
+		        },
+		        {
+		            { 0, json::object({ { "type", json::string("boolean") } }) },
+		            { 1, json::object({ { "type", json::string("null") } }) },
+
+		        }) },
+	};
+
+	CAutoFreePtr<std::vector<JsonSchemaStringifyTestCase>> defer_tests = {
+		&json_schema_stringify_tests,
+		[](std::vector<JsonSchemaStringifyTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    free_json_value(&(value->result));
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_schema_stringify_tests) {
+		INFO("Test case: ", test_case.schema);
+
+		tstr schema_result = json_schema_to_string(test_case.schema.ptr());
+
+		CAutoFreePtr<tstr> defer_schema = { &schema_result, tstr_free };
+
+		REQUIRE_NE(TstrIsNull{}, schema_result);
+
+		const tstr_view result_str_view = tstr_as_view(&schema_result);
+
+		const auto parse_result = json_value_parse_from_str(result_str_view);
+
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+		JsonValue json_result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer2 = { &json_result, free_json_value };
+
+		REQUIRE_EQ(json_result, test_case.result);
+	}
+}
+
+TEST_CASE("testing json schema special cases stringification "
+          "<json_schema_special_case_stringification>") {
+
+	tstr literal_str_moved = TSTR_LIT("hello_tstr moved");
+	tstr literal_str_duped = TSTR_LIT("hello_tstr duped");
+	CAutoFreePtr<tstr> defer_literal_str_duped = { &literal_str_duped, tstr_free };
+
+	std::vector<JsonSchemaStringifyTestCase> json_schema_stringify_tests = {
+
+		JsonSchemaStringifyTestCase{
+		    .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		        json_schema_literal_get_moved(TJSON_MOVE(tstr, literal_str_moved))) },
+		    .result = get_schema_value({
+		        { "type", json::string("string") },
+		        { "const", json::string("hello_tstr moved") },
+		    }) },
+		JsonSchemaStringifyTestCase{ .schema = JsonSchemaCpp{ new_json_schema_literal_rc(
+		                                 json_schema_literal_get_dup(&literal_str_duped)) },
+		                             .result = get_schema_value({
+		                                 { "type", json::string("string") },
+		                                 { "const", json::string("hello_tstr duped") },
+		                             }) },
+
+	};
+
+	CAutoFreePtr<std::vector<JsonSchemaStringifyTestCase>> defer_tests = {
+		&json_schema_stringify_tests,
+		[](std::vector<JsonSchemaStringifyTestCase>* const values) -> void {
+		    for(size_t i = 0; i < values->size(); ++i) {
+			    auto* const value = &(values->at(i));
+
+			    free_json_value(&(value->result));
+		    }
+		}
+	};
+
+	for(const auto& test_case : json_schema_stringify_tests) {
+		INFO("Test case: ", test_case.schema);
+
+		tstr schema_result = json_schema_to_string(test_case.schema.ptr());
+
+		CAutoFreePtr<tstr> defer_schema = { &schema_result, tstr_free };
+
+		REQUIRE_NE(TstrIsNull{}, schema_result);
+
+		const tstr_view result_str_view = tstr_as_view(&schema_result);
+
+		const auto parse_result = json_value_parse_from_str(result_str_view);
+
+		REQUIRE_EQ(parse_result, JsonParseResultTypeOk);
+
+		JsonValue json_result = json_parse_result_get_as_ok(parse_result);
+		CAutoFreePtr<JsonValue> defer2 = { &json_result, free_json_value };
+
+		REQUIRE_EQ(json_result, test_case.result);
+	}
+
+	REQUIRE_EQ(TstrIsNull{}, literal_str_moved);
+	REQUIRE_NE(TstrIsNull{}, literal_str_duped);
+}
+
+TEST_CASE("testing helper functions of the json schema helpers <json_schema_helper_fn>") {
+
+	SUBCASE("json schema object add entry (moved)") {
+		[]() -> void {
+			JsonSchemaObject* const json_schema_object = json_schema_object_get(false);
+
+			REQUIRE_NE(json_schema_object, nullptr);
+
+			CAutoFreePtr<JsonSchemaObject> defer_obj = { json_schema_object,
+				                                         free_json_schema_object };
+
+			auto key = "key"_tstr;
+
+			CAutoFreePtr<tstr> defer_key = { &key, tstr_free };
+
+			const auto add_result = json_schema_object_add_entry_moved(
+			    json_schema_object, TJSON_MOVE(tstr, key), json_schema::null().get(), true);
+
+			REQUIRE_EQ(TstrStaticIsNull{}, add_result);
+		}();
+	}
+
+	SUBCASE("json schema object add entry (duped)") {
+		[]() -> void {
+			JsonSchemaObject* const json_schema_object = json_schema_object_get(false);
+
+			REQUIRE_NE(json_schema_object, nullptr);
+
+			CAutoFreePtr<JsonSchemaObject> defer_obj = { json_schema_object,
+				                                         free_json_schema_object };
+
+			auto key = "key"_tstr;
+
+			CAutoFreePtr<tstr> defer_key = { &key, tstr_free };
+
+			const auto add_result = json_schema_object_add_entry_dup(
+			    json_schema_object, &key, json_schema::null().get(), true);
+
+			REQUIRE_EQ(TstrStaticIsNull{}, add_result);
+		}();
+	}
 }
 
 TEST_SUITE_END();

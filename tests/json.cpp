@@ -5,6 +5,7 @@
 #include "./helpers/compat.hpp"
 #include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
+#include "./helpers/json_helper.hpp"
 #include "./helpers/mock_file.hpp"
 
 #include <tjson.h>
@@ -14,6 +15,8 @@
 #include <expected>
 
 #include <nlohmann/json.hpp>
+
+#include <_impl/simple_regex.h>
 
 namespace {
 
@@ -142,6 +145,10 @@ TEST_CASE("testing parsing of json values <json_parser>") {
 		        R"("unicode surrogate: \uD83C\uDF0D should resolve to 🌍 and \ud83d\ude43 as 🙃 and \uD834\uDD1E as 𝄞")",
 		    .expected =
 		        json::string("unicode surrogate: 🌍 should resolve to 🌍 and 🙃 as 🙃 and 𝄞 as 𝄞"),
+		},
+		JsonParseTestCaseSuccess{
+		    .input = R"("")",
+		    .expected = json::string(""),
 		},
 		JsonParseTestCaseSuccess{
 		    .input = R"("unicode related things: 퀀 ힰ  is the same as \uD000 \uD7B0 \uE000")",
@@ -865,6 +872,214 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			}
 		}();
 	}
+
+	SUBCASE("get_utf8_string: invalid utf8") {
+		[]() -> void {
+			std::array<char, 1> json_invalid_utf8 = { '\xFF' };
+
+			const tstr_view str_view =
+			    tstr_view{ .data = json_invalid_utf8.data(), .len = json_invalid_utf8.size() };
+
+			const Utf8DataResult parse_result = get_utf8_string(str_view);
+
+			REQUIRE_EQ(parse_result, Utf8DataResultTypeError);
+
+			tstr_static actual_error = utf8_data_result_get_as_error(parse_result);
+
+			REQUIRE_EQ(actual_error, "Invalid UTF-8 string"_tstr_static);
+		}();
+	}
+
+	SUBCASE("null source handling") {
+		[]() -> void {
+			{
+				bool res = simple_regex_match(nullptr, nullptr);
+
+				REQUIRE_FALSE(res);
+			}
+
+			{
+
+				tstr regex_str = TSTR_LIT("^hello$");
+
+				CAutoFreePtr<tstr> defer = { &regex_str, tstr_free };
+
+				SimpleRegexResult regex_result = simple_regex_compile(&regex_str);
+
+				REQUIRE_EQ(get_current_tag_type_for_simple_regex_result(regex_result),
+				           SimpleRegexResultTypeOk);
+
+				SimpleRegex regex = simple_regex_result_get_as_ok(regex_result);
+
+				CAutoFreePtr<SimpleRegex> defer2 = { &regex, free_simple_regex };
+
+				bool res = simple_regex_match(&regex, nullptr);
+
+				REQUIRE_FALSE(res);
+			}
+		}();
+	}
+
+	SUBCASE("json path constructing") {
+		[]() -> void {
+			auto complex_path =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_NE(complex_path, json::path::path());
+		}();
+	}
+
+	SUBCASE("json path eq") {
+		[]() -> void {
+			auto complex_path1 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_EQ(complex_path1, complex_path2);
+
+			auto complex_path3 =
+			    json::path::path() / json::path::array(0) / json::path::object("hello");
+
+			REQUIRE_NE(complex_path1, complex_path3);
+		}();
+	}
+
+	SUBCASE("json path is parent of") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello");
+
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello") / json::path::array(0);
+
+			REQUIRE_TRUE(complex_path1.is_parent_of(complex_path2));
+
+			auto complex_path3 =
+			    json::path::path() / json::path::array(0) / json::path::object("hello");
+
+			REQUIRE_FALSE(complex_path1.is_parent_of(complex_path3));
+		}();
+	}
+
+	SUBCASE("json path long string") {
+		[]() -> void {
+			auto complex_path1 =
+			    json::path::path() / json::path::object("large_string_that_is_allocated");
+
+			REQUIRE_EQ(complex_path1.string(), "$.large_string_that_is_allocated");
+		}();
+	}
+
+	SUBCASE("json path to string") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello");
+
+			auto complex_path2 = json::path::path() / json::path::object("hello") /
+			                     json::path::array(0) / json::path::object("second");
+
+			auto complex_path3 =
+			    json::path::path() / json::path::object("hello") / json::path::object("second");
+
+			REQUIRE_EQ(complex_path1.string(), "$.hello");
+
+			REQUIRE_EQ(complex_path2.string(), "$.hello[0].second");
+
+			REQUIRE_EQ(complex_path3.string(), "$.hello.second");
+		}();
+	}
+
+	SUBCASE("json path to string: rfc") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("store") /
+			                     json::path::object("book") / json::path::array(0) /
+			                     json::path::object("title");
+
+			REQUIRE_EQ(complex_path1.string(), "$.store.book[0].title");
+
+			REQUIRE_EQ(complex_path1.string(JsonPathStringOptions{ .compact = false }),
+			           R"($["store"]["book"][0]["title"])");
+		}();
+	}
+
+	SUBCASE("json path to string with valid escapes") {
+		[]() -> void {
+			auto complex_path1 = json::path::path() / json::path::object("hello with a whitespace");
+
+			auto complex_path2 =
+			    json::path::path() / json::path::object("hello with a whitespace") /
+			    json::path::array(0) / json::path::object("second with a \x10 and \x07 char");
+
+			auto complex_path3 =
+			    json::path::path() / json::path::object("hello with a whitespace") /
+			    json::path::object("third with a smiley: 🙃") / json::path::object("") /
+			    json::path::object("test") / json::path::object("1");
+
+			REQUIRE_EQ(complex_path1.string(), R"($["hello with a whitespace"])");
+
+			REQUIRE_EQ(
+			    complex_path2.string(),
+			    R"($["hello with a whitespace"][0]["second with a \u0010 and \u0007 char"])");
+
+			REQUIRE_EQ(
+			    complex_path3.string(),
+			    R"($["hello with a whitespace"]["third with a smiley: \uD83D\uDE43"][""].test["1"])");
+		}();
+	}
+
+	SUBCASE("json error to string") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
+			tstr obj_key = "large_string_that_is_allocated"_tstr;
+
+			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
+
+			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str(&error);
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, "test error 123 at $.large_string_that_is_allocated[1]");
+		}();
+	}
+
+	SUBCASE("json error to string (advanced)") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
+			tstr obj_key = "large_string_that_is_allocated"_tstr;
+
+			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
+
+			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str_advanced(&error, { .compact = false });
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, R"(test error 123 at $["large_string_that_is_allocated"][1])");
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {
@@ -932,6 +1147,7 @@ TEST_CASE("testing stringification of json values <json_parser_stringify>") {
 		        "日 雨 川 のる きく 君 友") },
 		JsonStringifyTest{ .expected = R"("smiley: 🙃 is not escapable as it is U+1F643")",
 		                   .input = json::string("smiley: 🙃 is not escapable as it is U+1F643") },
+		JsonStringifyTest{ .expected = R"("")", .input = json::string("") },
 		JsonStringifyTest{
 		    .expected = R"("unicode surrogate, none of these is escaped: 🌍, 🙃 and 𝄞")",
 		    .input = json::string("unicode surrogate, none of these is escaped: 🌍, 🙃 and 𝄞") },
@@ -1163,6 +1379,37 @@ TEST_CASE("testing forced escaped stringification of json values <json_parser_es
 				CAutoFreePtr<JsonValue> defer2 = { &result, free_json_value };
 
 				REQUIRE_EQ(result, test_case.input);
+
+				{ // extra check, check if parsing of the same thing with another indentation
+				  // results in the same value too
+
+					std::array<size_t, 4> indentations = { 2, 4, 8, 16 };
+
+					for(size_t j = 0; j < indentations.size(); ++j) {
+
+						const auto indentation = indentations.at(j);
+
+						auto stringify_result2 = json_value_to_string_advanced(
+						    &test_case.input, {
+						                          .indent_size = indentation,
+						                          .escape = escape,
+						                      });
+						CAutoFreePtr<tstr> defer_str2 = { &stringify_result2, tstr_free };
+
+						REQUIRE_NE(TstrIsNull{}, stringify_result2);
+
+						const tstr_view str_view2 = tstr_as_view(&stringify_result2);
+
+						const auto parse_result2 = json_value_parse_from_str(str_view2);
+
+						REQUIRE_EQ(parse_result2, JsonParseResultTypeOk);
+
+						JsonValue result2 = json_parse_result_get_as_ok(parse_result2);
+						CAutoFreePtr<JsonValue> defer_str_str2 = { &result2, free_json_value };
+
+						REQUIRE_EQ(result2, test_case.input);
+					}
+				}
 			}
 		}
 	}

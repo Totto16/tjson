@@ -268,15 +268,18 @@ JsonValueCpp::JsonValueCpp(const JsonValue* value) : m_value{ value } {}
 	return new_json_value_array_rc(array);
 }
 
-[[nodiscard]] JsonValue
-json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+template <typename A>
+[[nodiscard]] static JsonValue object_impl(std::move_iterator<A> begin, std::move_iterator<A> end) {
 	JsonObject* const object = json_object_get_empty();
 
 	if(object == nullptr) {
 		throw std::runtime_error("JSON object initialization failed");
 	}
 
-	for(auto&& value : values) {
+	for(; begin != end; ++begin) {
+
+		auto value = std::move(*begin);
+
 		JsonString* key_moved =
 		    json_get_string_from_tstr_view(helpers::tstr_view_from_str(value.first));
 		if(key_moved == nullptr) {
@@ -285,7 +288,8 @@ json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) 
 		}
 
 		const JsonValue final_value = value.second;
-		const auto add_result = json_object_add_entry(object, &key_moved, final_value);
+		const auto add_result = json_object_add_entry_moved(
+		    object, TJSON_MOVE_EXTENDED(JsonString*, JsonStringPtr, key_moved), final_value);
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(std::string{ "JSON object entry addition failed for key: " } +
 			                         string_from_tstr_static(add_result));
@@ -293,6 +297,17 @@ json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) 
 	}
 
 	return new_json_value_object_rc(object);
+}
+
+[[nodiscard]] JsonValue
+json::object(std::initializer_list<std::pair<std::string, JsonValue>>&& values) {
+	return object_impl(std::make_move_iterator(values.begin()),
+	                   std::make_move_iterator(values.end()));
+}
+
+[[nodiscard]] JsonValue json::object(std::vector<std::pair<std::string, JsonValue>>&& values) {
+	return object_impl(std::make_move_iterator(values.begin()),
+	                   std::make_move_iterator(values.end()));
 }
 
 JsonErrorCpp::JsonErrorCpp(std::string&& message, JsonSourceLocation loc)
@@ -464,6 +479,55 @@ std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type) {
 		}
 		case JsonParseResultTypeOk: {
 			os << "JsonParseResult::Ok";
+
+			return os;
+		}
+		default: {
+			return os;
+		}
+	}
+}
+
+[[nodiscard]] bool operator==(const Utf8DataResult& result, Utf8DataResultType result_type) {
+	return get_current_tag_type_for_utf8_data_result(result) == result_type;
+}
+
+std::ostream& operator<<(std::ostream& os, const Utf8DataResult& utf8_data_result) {
+	SWITCH_UTF8_DATA_RESULT(utf8_data_result) {
+		CASE_UTF8_DATA_RESULT_IS_ERROR_CONST(utf8_data_result) {
+			os << "Utf8DataResult::Error -> ";
+
+			os << error;
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		CASE_UTF8_DATA_RESULT_IS_OK_CONST(utf8_data_result) {
+			os << "Utf8DataResult::Ok -> ";
+
+			// TODO
+			UNUSED(ok);
+			os << "<TODO>";
+
+			return os;
+		}
+		VARIANT_CASE_END();
+		default: {
+			return os;
+		}
+	}
+}
+
+std::ostream& operator<<(std::ostream& os, Utf8DataResultType result_type) {
+
+	switch(result_type) {
+		case Utf8DataResultTypeError: {
+			os << "Utf8DataResult::Error";
+
+			return os;
+		}
+		case Utf8DataResultTypeOk: {
+			os << "Utf8DataResult::Ok";
 
 			return os;
 		}

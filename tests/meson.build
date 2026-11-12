@@ -75,9 +75,9 @@ test_files_manual = [
     'json_helper.cpp',
 ]
 
+test_env = environment()
+
 if get_option('b_coverage')
-
-
     if allocators_used != 'tjson_coverage_allocators'
         error('need custom allocators for the json oom test')
     endif
@@ -88,6 +88,15 @@ if get_option('b_coverage')
         'helpers/allocators.hpp',
     )
 
+    test_files_manual += 'json_mock.cpp'
+    test_src += files(
+        'helpers/mock.cpp',
+        'helpers/mock.hpp',
+    )
+
+    test_deps += mock_deps
+
+    test_env.set('GCOV_EXIT_AT_ERROR', '1')
 endif
 
 workdir = meson.project_source_root() / 'tests' / 'files'
@@ -120,6 +129,7 @@ foreach test_file : test_files_manual
         workdir: workdir,
         is_parallel: true,
         timeout: 30,
+        env: test_env,
     )
 
 endforeach

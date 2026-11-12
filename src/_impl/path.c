@@ -78,12 +78,15 @@ NODISCARD ReadFileResult read_entire_file(const tstr* const file_path) {
 			size_t read_amount = (size_t)read_result;
 
 			if(read_amount == remaining_size) {
-				break;
+				remaining_size = 0;
+				buf = buf + read_amount;
+				continue;
 			}
 
 			if(read_amount > remaining_size) {
-				// logic or libc error
-				UNREACHABLE();
+				FREE_AT_END();
+				return new_read_file_result_error(
+				    TSTR_STATIC_LIT("File size was wrong, we expected EOF not more data"));
 			}
 
 			remaining_size -= read_amount;

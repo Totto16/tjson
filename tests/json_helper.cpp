@@ -6,6 +6,7 @@
 #include "./helpers/generic.hpp"
 #include "./helpers/json.hpp"
 #include "./helpers/json_helper.h"
+#include "./helpers/json_helper.hpp"
 
 #include <tjson_helper.h>
 #include <tvec.h>
@@ -24,6 +25,8 @@ void free_json_test_struct(TestJsonStruct test_struct) {
 
 		free(test_struct.optional_array);
 	}
+
+	tstr_free(&test_struct.name);
 }
 
 struct JsonIteratorProcessingTest {
@@ -33,7 +36,7 @@ struct JsonIteratorProcessingTest {
 
 struct JsonIteratorErrorTest {
 	JsonValue input;
-	std::string error;
+	JsonIterateErrorCpp error;
 };
 
 } // namespace
@@ -233,21 +236,29 @@ TEST_CASE("testing json iterator processing <json_iterator_processing>") {
 
 TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
-	std::vector<JsonIteratorErrorTest> json_iterator_cases = {
-		JsonIteratorErrorTest{ .input = json::array({}),
-		                       .error =
-		                           "Error: unhandled iterate value in root path: array_start" },
-		JsonIteratorErrorTest{ .input = json::object({ { "number", json::null() } }),
-		                       .error =
-		                           "Error: invalid json value for type that expected: 'uint32_t'" },
-		JsonIteratorErrorTest{
-		    .input = json::object(
+	std::vector<JsonIteratorErrorTest> json_iterator_cases = {};
+
+	{
+		json_iterator_cases.emplace_back(
+		    json::array({}),
+
+		    JsonIterateErrorCpp{ "Error: unhandled iterate value in root path: array_start",
+		                         json::path::path() });
+		json_iterator_cases.emplace_back(
+		    json::object({ { "number", json::null() } }),
+		    JsonIterateErrorCpp{ "Error: invalid json value for type that expected: 'uint32_t'",
+		                         json::path::path() / json::path::object("number") });
+
+		json_iterator_cases.emplace_back(
+		    json::object(
 		        { { "number", json::number((int64_t)2) },
 		          { "optional_array", json::array({ json::boolean(true), json::boolean(true),
 		                                            json::boolean(false), json::null() }) },
 		          { "name", json::string("string2") } }),
-		    .error = "Error: unhandled iterate value in TestJsonStructOptionalArray: null" }
-	};
+		    JsonIterateErrorCpp{
+		        "Error: unhandled iterate value in TestJsonStructOptionalArray: null",
+		        json::path::path() / json::path::object("optional_array") / json::path::array(3) });
+	}
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
 		&json_iterator_cases,
@@ -270,9 +281,9 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
 		REQUIRE_IS_ERROR(actual_result);
 
-		JsonIterateError error = json_iterate_result_get_as_error(actual_result).error;
+		JsonIterateError actual_error = json_iterate_result_get_as_error(actual_result).error;
 
-		std::string actual_error = string_from_tstr_moved(std::move(error.err));
+		CAutoFreePtr<JsonIterateError> defer_error = { &actual_error, free_json_iterate_error };
 
 		REQUIRE_EQ(actual_error, test_case.error);
 	}

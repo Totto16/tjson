@@ -48,9 +48,9 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* schema);
 
 TJSON_NODISCARD JsonSchemaObject* json_schema_object_get(bool allow_additional_properties);
 
-TJSON_NODISCARD tstr_static json_schema_object_add_entry(JsonSchemaObject* json_schema_object,
-                                                         tstr* moved_key, JsonSchema value,
-                                                         bool required);
+TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(JsonSchemaObject* json_schema_object,
+                                                               TJSON_MOVED(tstr) key,
+                                                               JsonSchema value, bool required);
 
 TJSON_NODISCARD tstr_static json_schema_object_add_entry_dup(JsonSchemaObject* json_schema_object,
                                                              const tstr* key, JsonSchema value,
@@ -78,9 +78,19 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* json_sc
 
 typedef struct JsonSchemaRegexImpl JsonSchemaRegex;
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get(const char* str);
+typedef struct {
+	tstr err;
+} JsonSchemaRegexError;
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* str);
+GENERATE_VARIANT_ALL_JSON_SCHEMA_REGEX_RESULT()
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* str);
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_moved(TJSON_MOVED(tstr) str);
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_dup(const tstr* str);
+
+void free_json_schema_regex_error(JsonSchemaRegexError* error);
 
 void free_json_schema_regex(JsonSchemaRegex* json_schema_regex);
 
@@ -96,11 +106,11 @@ TJSON_NODISCARD tstr_static json_schema_one_of_add_entry(JsonSchemaOneOf* json_s
 
 void free_json_schema_one_of(JsonSchemaOneOf* json_schema_one_of);
 
-TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get(tstr* value_moved);
+TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_cstr(const char* value);
+
+TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_moved(TJSON_MOVED(tstr) value);
 
 TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_dup(const tstr* value);
-
-TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_cstr(const char* value);
 
 void free_json_schema_literal(JsonSchemaLiteral* json_schema_lit);
 

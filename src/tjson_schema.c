@@ -126,7 +126,7 @@ typedef struct {
 	JsonDefEntryMap defs;
 } JsonSchemaState;
 
-GENERATE_VARIANT_ALL_JSON_SCHEMA_ADD_RESULT()
+GENERATE_VARIANT_ALL_JSON_SCHEMA_ADD_RESULT() // GCOVR_EXCL_LINE
 
 struct JsonSchemaRegexImpl {
 	SimpleRegex regex;
@@ -247,11 +247,13 @@ json_schema_to_string_object_impl(const JsonSchemaObject* const object, // NOLIN
 
 			{
 
-				const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+				tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 				tstr_static insert_result = json_object_add_entry_cstr(
 				    entry_obj, "$ref",
 				    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+				tstr_free(&schema_def_name);
 
 				if(!tstr_static_is_null(insert_result)) {
 					return new_json_schema_add_result_error(insert_result);
@@ -345,11 +347,13 @@ json_schema_to_string_array_impl(const JsonSchemaArray* const array, // NOLINT(m
 
 		{
 
-			const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+			tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 			tstr_static insert_result = json_object_add_entry_cstr(
 			    entry_obj, "$ref",
 			    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+			tstr_free(&schema_def_name);
 
 			if(!tstr_static_is_null(insert_result)) {
 				return new_json_schema_add_result_error(insert_result);
@@ -552,11 +556,13 @@ json_schema_to_string_one_of_impl(const JsonSchemaOneOf* const one_of, // NOLINT
 
 			{
 
-				const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+				tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 				tstr_static insert_result = json_object_add_entry_cstr(
 				    entry_obj, "$ref",
 				    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+				tstr_free(&schema_def_name);
 
 				if(!tstr_static_is_null(insert_result)) {
 					return new_json_schema_add_result_error(insert_result);
@@ -760,10 +766,12 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 
 				const JsonDefId def_id = value.key;
 
-				const tstr schema_name = json_schema_impl_get_schema_name(def_id);
+				tstr schema_name = json_schema_impl_get_schema_name(def_id);
 
 				insert_result = json_object_add_entry_tstr(
 				    defs, &schema_name, new_json_value_object_rc(value.value.object));
+
+				tstr_free(&schema_name);
 
 				ASSERT(tstr_static_is_null(insert_result));
 			}
@@ -849,25 +857,45 @@ json_schema_object_add_entry_impl(JsonSchemaObject* const json_schema_object, ts
 	}
 }
 
-TJSON_NODISCARD tstr_static json_schema_object_add_entry(JsonSchemaObject* const json_schema_object,
-                                                         tstr* const moved_key,
-                                                         const JsonSchema value,
-                                                         const bool required) {
-	const tstr key = *moved_key;
+TJSON_NODISCARD tstr_static json_schema_object_add_entry_moved(
+    JsonSchemaObject* const json_schema_object, TJSON_MOVED(tstr) key, const JsonSchema value,
+    const bool required) {
+	const tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
 
 	const JsonObjectEntrySchema entry = { .schema = value, .required = required };
 
-	return json_schema_object_add_entry_impl(json_schema_object, key, entry);
+	tstr_static result = json_schema_object_add_entry_impl(json_schema_object, key_normal, entry);
+
+	if(!tstr_static_is_null(result)) {
+
+		tstr_free(TJSON_GET_MOVED_VALUE(key));
+		*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+
+		return result;
+	}
+
+	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+
+	return tstr_static_null();
 }
 
 TJSON_NODISCARD tstr_static
 json_schema_object_add_entry_dup(JsonSchemaObject* const json_schema_object, const tstr* const key,
                                  const JsonSchema value, const bool required) {
-	const tstr key_dup = tstr_dup(key);
+	tstr key_dup = tstr_dup(key);
 
 	const JsonObjectEntrySchema entry = { .schema = value, .required = required };
 
-	return json_schema_object_add_entry_impl(json_schema_object, key_dup, entry);
+	tstr_static result = json_schema_object_add_entry_impl(json_schema_object, key_dup, entry);
+
+	if(!tstr_static_is_null(result)) {
+
+		tstr_free(&key_dup);
+
+		return result;
+	}
+
+	return tstr_static_null();
 }
 
 void free_json_schema_object(JsonSchemaObject* const json_schema_object) {
@@ -1020,10 +1048,9 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* const j
 	return tstr_static_null();
 }
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get(const char* const str) {
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* const str) {
 	tstr temp = tstr_from(str);
-	JsonSchemaRegex* const result = json_schema_regex_get_tstr(&temp);
-	tstr_free(&temp);
+	JsonSchemaRegexResult const result = json_schema_regex_get_tstr_moved(TJSON_MOVE(tstr, temp));
 	return result;
 }
 
@@ -1034,13 +1061,22 @@ static void json_schema_regex_destroy_impl(JsonSchemaRegex* const json_schema_re
 	tstr_free(&(json_schema_regex->original));
 }
 
-TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const str) {
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_dup(const tstr* const str) {
 
-	SimpleRegexResult result = simple_regex_compile(str);
+	tstr temp = tstr_dup(str);
+	JsonSchemaRegexResult const result = json_schema_regex_get_tstr_moved(TJSON_MOVE(tstr, temp));
+	return result;
+}
 
-	IF_SIMPLE_REGEX_RESULT_IS_ERROR_MUT_REF(&result) {
-		tstr_free(error);
-		return NULL;
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_moved(TJSON_MOVED(tstr) str) {
+	tstr str_normal = *TJSON_GET_MOVED_VALUE(str);
+	*TJSON_GET_MOVED_VALUE(str) = tstr_null();
+
+	SimpleRegexResult result = simple_regex_compile(&str_normal);
+
+	IF_SIMPLE_REGEX_RESULT_IS_ERROR_CONST(result) {
+		tstr_free(&str_normal);
+		return new_json_schema_regex_result_error((JsonSchemaRegexError){ .err = error });
 	}
 
 	const SimpleRegex regex = simple_regex_result_get_as_ok(result);
@@ -1049,13 +1085,19 @@ TJSON_NODISCARD JsonSchemaRegex* json_schema_regex_get_tstr(const tstr* const st
 	    RC_ALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);
 
 	if(json_schema_regex == NULL) {
-		return NULL;
+		tstr_free(&str_normal);
+		return new_json_schema_regex_result_error(
+		    (JsonSchemaRegexError){ .err = TSTR_LIT("allocation error") });
 	}
 
 	json_schema_regex->regex = regex;
-	json_schema_regex->original = tstr_dup(str);
+	json_schema_regex->original = str_normal;
 
-	return json_schema_regex;
+	return new_json_schema_regex_result_ok(json_schema_regex);
+}
+
+void free_json_schema_regex_error(JsonSchemaRegexError* error) {
+	tstr_free(&(error->err));
 }
 
 void free_json_schema_regex(JsonSchemaRegex* const json_schema_regex) {
@@ -1139,10 +1181,22 @@ TJSON_NODISCARD static JsonSchemaLiteral* json_schema_literal_get_impl(tstr valu
 	return literal;
 }
 
-TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get(tstr* value_moved) {
-	const tstr value = *value_moved;
+TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_moved(TJSON_MOVED(tstr) value) {
+	const tstr value_normal = *TJSON_GET_MOVED_VALUE(value);
 
-	return json_schema_literal_get_impl(value);
+	JsonSchemaLiteral* result = json_schema_literal_get_impl(value_normal);
+
+	if(result == NULL) {
+
+		tstr_free(TJSON_GET_MOVED_VALUE(value));
+		*TJSON_GET_MOVED_VALUE(value) = tstr_null();
+
+		return NULL;
+	}
+
+	*TJSON_GET_MOVED_VALUE(value) = tstr_null();
+
+	return result;
 }
 
 TJSON_NODISCARD JsonSchemaLiteral* json_schema_literal_get_dup(const tstr* value) {
@@ -1240,7 +1294,7 @@ TMAP_HASH_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequire
 }
 
 TMAP_EQ_FUNC_SIG(JsonObjectSchemaCheckRequiredId, JsonObjectSchemaCheckRequiredIdName) {
-	// compare ptres
+	// compare ptrs
 	return key1.schema_ptr == key2.schema_ptr;
 }
 
@@ -1313,6 +1367,8 @@ NODISCARD static tstr json_schema_validate_object_schema_data_impl( // NOLINT(mi
 				FREE_AT_END();
 				return error;
 			}
+
+			tstr_free(&key_str_1);
 
 			const JsonValue sub_value = json_object_entry_get_value(entry);
 

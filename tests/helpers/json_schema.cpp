@@ -49,11 +49,15 @@ JsonSchemaStringBuilder::JsonSchemaStringBuilder()
 
 [[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(const std::string& str) {
 
-	auto* regex = json_schema_regex_get(str.c_str());
+	auto regex_result = json_schema_regex_get(str.c_str());
 
-	if(regex == nullptr) {
-		throw std::runtime_error("Regex was invalid!");
+	IF_JSON_SCHEMA_REGEX_RESULT_IS_ERROR_MUT_REF(&regex_result) {
+		std::string err = string_from_tstr(error->err);
+		free_json_schema_regex_error(error);
+		throw std::runtime_error("Regex was invalid: " + err);
 	}
+
+	auto regex = json_schema_regex_result_get_as_ok(regex_result);
 
 	const auto result = json_schema_string_set_regex(this->value(), regex);
 
@@ -151,13 +155,14 @@ json_schema::object(const bool allow_additional_properties,
 	for(auto&& value : values) {
 		tstr key_moved = tstr_from_view(helpers::tstr_view_from_str(value.key));
 
-		const auto add_result =
-		    json_schema_object_add_entry(object, &key_moved, value.value.get(), value.required);
+		const auto add_result = json_schema_object_add_entry_moved(
+		    object, TJSON_MOVE(tstr, key_moved), value.value.get(), value.required);
 		if(!tstr_static_is_null(add_result)) {
 			throw std::runtime_error(
 			    std::string{ "JSON Schema object entry addition failed for key: " } +
 			    string_from_tstr_static(add_result));
 		}
+		assert(tstr_is_null(&key_moved));
 	}
 
 	return JsonSchemaCpp{ new_json_schema_object_rc(object) };

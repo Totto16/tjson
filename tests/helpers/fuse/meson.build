@@ -18,6 +18,9 @@ test_src += shared_files
 c_variant_generator = find_program(
     'c_variant_generator',
     version: ['>=1.0.0', '<2'],
+    default_options: {
+        'b_coverage': false,
+    },
 )
 
 fuse_variants_generated_tgt = custom_target(

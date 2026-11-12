@@ -17,29 +17,3 @@ std::ostream& operator<<(std::ostream& os, const RTTIAnnotatedValue& rtti_value)
 
 	return os;
 }
-
-[[nodiscard]] bool operator==(const IsNotError& /* error */, const JsonIterateResult& result) {
-	IF_JSON_ITERATE_RESULT_IS_ERROR_IGN(result) {
-		return false;
-	}
-
-	return true;
-}
-
-std::ostream& operator<<(std::ostream& os, const JsonIterateResult& result) {
-
-	IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(result) {
-
-		os << "JsonIterateResult::error -> " << error.error.err;
-
-		return os;
-	}
-
-	IF_JSON_ITERATE_RESULT_IS_OK_CONST(result) {
-		os << "JsonIterateResult::ok -> " << ok;
-
-		return os;
-	}
-
-	return os;
-}

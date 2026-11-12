@@ -4,10 +4,12 @@
 
 #include <tjson.h>
 
+#include <_impl/utf8.h>
 #include <_impl/utils.h>
 
 #include <ostream>
 #include <ranges>
+#include <vector>
 
 [[nodiscard]] bool operator==(const JsonBoolean& json_boolean1, const JsonBoolean& json_boolean2);
 
@@ -132,6 +134,12 @@ std::ostream& operator<<(std::ostream& os, const JsonParseResult& parse_result);
 
 std::ostream& operator<<(std::ostream& os, JsonParseResultType result_type);
 
+[[nodiscard]] bool operator==(const Utf8DataResult& result, Utf8DataResultType result_type);
+
+std::ostream& operator<<(std::ostream& os, const Utf8DataResult& utf8_data_result);
+
+std::ostream& operator<<(std::ostream& os, Utf8DataResultType result_type);
+
 namespace json {
 
 [[nodiscard]] JsonValue null();
@@ -147,5 +155,7 @@ namespace json {
 [[nodiscard]] JsonValue array(std::initializer_list<JsonValue>&& values);
 
 [[nodiscard]] JsonValue object(std::initializer_list<std::pair<std::string, JsonValue>>&& values);
+
+[[nodiscard]] JsonValue object(std::vector<std::pair<std::string, JsonValue>>&& values);
 
 }; // namespace json
