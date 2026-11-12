@@ -24,6 +24,8 @@ void free_json_test_struct(TestJsonStruct test_struct) {
 
 		free(test_struct.optional_array);
 	}
+
+	tstr_free(&test_struct.name);
 }
 
 struct JsonIteratorProcessingTest {

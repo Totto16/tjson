@@ -91,6 +91,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			tstr* str_wrapper = TJSON_NEW(tstr);
 
 			if(str_wrapper == NULL) {
+				tstr_free(&str_value);
 				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
 			}
 
@@ -255,11 +256,18 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				if(TRTTI_ANNOTATED_VALUE_IS(tstr, object_entry.entry.value)) {
 
 					tstr* string = TRTTI_ANNOTATED_VALUE_CAST(tstr, object_entry.entry.value);
-
 					if(string == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
 						        "implementation error, returned NULL pointer but with content") });
+					}
+
+					if(!tstr_is_null(&(object->name))) {
+
+						tstr_free(string);
+						TJSON_FREE(string);
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("implementation error, set name twice") });
 					}
 
 					object->name = *string;
