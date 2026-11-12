@@ -247,7 +247,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		json_iterator_cases.emplace_back(
 		    json::object({ { "number", json::null() } }),
 		    JsonIterateErrorCpp{ "Error: invalid json value for type that expected: 'uint32_t'",
-		                         json::path::path() });
+		                         json::path::path() / json::path::object("number") });
 
 		json_iterator_cases.emplace_back(
 		    json::object(
@@ -257,7 +257,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		          { "name", json::string("string2") } }),
 		    JsonIterateErrorCpp{
 		        "Error: unhandled iterate value in TestJsonStructOptionalArray: null",
-		        json::path::path() });
+		        json::path::path() / json::path::object("optional_array") / json::path::array(3) });
 	}
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
@@ -285,7 +285,7 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 
 		CAutoFreePtr<JsonIterateError> defer_error = { &actual_error, free_json_iterate_error };
 
-		// REQUIRE_EQ(actual_error, test_case.error);
+		REQUIRE_EQ(actual_error, test_case.error);
 	}
 }
 
