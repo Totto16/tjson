@@ -95,7 +95,7 @@ static int mock_wrap_open_helper_impl(open_function_type fun, const char* pathna
 	mode_t mode = 0;
 
 	if(flags & O_CREAT) {
-		mode = va_arg(args, mode_t);
+		mode = va_arg(args, mode_t); // NOLINT(clang-analyzer-security.VAList)
 
 		return fun(pathname, flags, mode);
 	}
@@ -111,7 +111,7 @@ static int mock_wrap_open_helper_orig_impl(open_function_type_orig fun, const ch
 	mode_t mode = 0;
 
 	if(flags & O_CREAT) {
-		mode = va_arg(args, mode_t);
+		mode = va_arg(args, mode_t); // NOLINT(clang-analyzer-security.VAList)
 
 		return fun(pathname, flags, mode);
 	}
@@ -158,14 +158,14 @@ int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 		const int result = mock_wrap_open_helper_impl(
 		    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr, path, flags, args);
 
-		va_end(args);
+		va_end(args); // NOLINT(clang-analyzer-security.VAList)
 		return result;
 	}
 
 	const int result =
 	    mock_wrap_open_helper_orig_impl(CUSTOM_MOCK_REAL_NAME(open), path, flags, args);
 
-	va_end(args);
+	va_end(args); // NOLINT(clang-analyzer-security.VAList)
 	return result;
 }
 
