@@ -30,13 +30,18 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(parent.ptr != NULL) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, first RTTI value vas not NULL") });
+				    .err = TSTR_LIT("implementation error, first RTTI value vas not NULL"),
+				    .path = path,
+				});
 			}
 
 			TestJsonStruct* allocated_struct = TJSON_NEW(TestJsonStruct);
 
 			if(allocated_struct == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			*allocated_struct = (TestJsonStruct){
@@ -55,7 +60,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
 				    .err = TSTR_LIT("implementation error, root object end RTTI value vas "
-				                    "not of type 'TestJsonStruct'") });
+				                    "not of type 'TestJsonStruct'"),
+				    .path = path,
+				});
 			}
 
 			// NOTE: here we could check some properties of the final result, alias if the type has
@@ -70,7 +77,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    "Error: unhandled iterate value in root path: <no more info>",
+		    path, "Error: unhandled iterate value in root path: <no more info>",
 		    "Error: unhandled iterate value in root path: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
@@ -85,14 +92,19 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(tstr_is_null(&str_value)) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("error in getting tstr from json string") });
+				    .err = TSTR_LIT("error in getting tstr from json string"),
+				    .path = path,
+				});
 			}
 
 			tstr* str_wrapper = TJSON_NEW(tstr);
 
 			if(str_wrapper == NULL) {
 				tstr_free(&str_value);
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			*str_wrapper = str_value;
@@ -109,7 +121,10 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			uint32_t* number_wrapper = TJSON_NEW(uint32_t);
 
 			if(number_wrapper == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			*number_wrapper = num_value;
@@ -124,7 +139,10 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			TestJsonNull* null = TJSON_NEW(TestJsonNull);
 
 			if(null == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(TestJsonNull, null);
@@ -137,7 +155,10 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			TestJsonStructOptionalArray* allocated_array = TJSON_NEW(TestJsonStructOptionalArray);
 
 			if(allocated_array == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			*allocated_array =
@@ -154,7 +175,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
 				    .err = TSTR_LIT("implementation error, root object end RTTI value vas "
-				                    "not of type 'TestJsonStruct'") });
+				                    "not of type 'TestJsonStruct'"),
+				    .path = path,
+				});
 			}
 
 			// NOTE: here we could check some properties of the final result, alias if the type has
@@ -171,7 +194,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
 				    .err = TSTR_LIT("implementation error, root object key RTTI value vas "
-				                    "not of type 'TestJsonStruct'") });
+				                    "not of type 'TestJsonStruct'"),
+				    .path = path,
+				});
 			}
 
 			TestJsonStruct* object = TRTTI_ANNOTATED_VALUE_CAST(TestJsonStruct, parent);
@@ -186,7 +211,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 					if(number == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
-						        "implementation error, returned NULL pointer but with content") });
+						        "implementation error, returned NULL pointer but with content"),
+						    .path = path,
+						});
 					}
 
 					object->number = *number;
@@ -198,8 +225,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err =
-				        TSTR_LIT("Error: invalid json value for type that expected: 'uint32_t'") });
+				    .err = TSTR_LIT("Error: invalid json value for type that expected: 'uint32_t'"),
+				    .path = path,
+				});
 			}
 
 			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("optional_array"))) {
@@ -212,7 +240,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 					if(null_wrapper == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
-						        "implementation error, returned NULL pointer but with content") });
+						        "implementation error, returned NULL pointer but with content"),
+						    .path = path,
+						});
 					}
 
 					object->optional_array = NULL;
@@ -232,7 +262,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 					if(optional_array == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
-						        "implementation error, returned NULL pointer but with content") });
+						        "implementation error, returned NULL pointer but with content"),
+						    .path = path,
+						});
 					}
 
 					// we don't free optional_array, as we moved it
@@ -244,6 +276,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+				    path,
 				    "Error: invalid json value for type that "
 				    "expected: 'TestJsonStructOptionalArray': <no more info>",
 				    "Error: invalid json value for type that "
@@ -259,7 +292,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 					if(string == NULL) {
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT(
-						        "implementation error, returned NULL pointer but with content") });
+						        "implementation error, returned NULL pointer but with content"),
+						    .path = path,
+						});
 					}
 
 					if(!tstr_is_null(&(object->name))) {
@@ -267,7 +302,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 						tstr_free(string);
 						TJSON_FREE(string);
 						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_LIT("implementation error, set name twice") });
+						    .err = TSTR_LIT("implementation error, set name twice"),
+						    .path = path,
+						});
 					}
 
 					object->name = *string;
@@ -279,22 +316,28 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("Error: invalid json value for type that expected: 'tstr'") });
+				    .err = TSTR_LIT("Error: invalid json value for type that expected: 'tstr'"),
+				    .path = path,
+				});
 			}
 
 			if(tstr_is_null(object_entry.entry.key)) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, the object entry key is <NULL>") });
+				    .err = TSTR_LIT("implementation error, the object entry key is <NULL>"),
+				    .path = path,
+				});
 			}
 
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-			    "Error: unhandled object key in root object: <no more info>",
+			    path, "Error: unhandled object key in root object: <no more info>",
 			    "Error: unhandled object key in root object: " TSTR_FMT,
 			    TSTR_FMT_ARGS(*object_entry.entry.key));
 		}
 
 		return new_json_iterate_result_error((JsonIterateError){
-		    .err = TSTR_LIT("Error: unhandled iterate value in TestJsonStruct") });
+		    .err = TSTR_LIT("Error: unhandled iterate value in TestJsonStruct"),
+		    .path = path,
+		});
 	}
 
 	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray, parent)) {
@@ -308,7 +351,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 				if(dest == NULL) {
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("Error: tried to push on empty optional array") });
+					    .err = TSTR_LIT("Error: tried to push on empty optional array"),
+					    .path = path,
+					});
 				}
 
 				TestJsonStructArrayElement* element =
@@ -321,7 +366,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 				if(push_result != TvecResultOk) {
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("Error: error on allocating space for the array push") });
+					    .err = TSTR_LIT("Error: error on allocating space for the array push"),
+					    .path = path,
+					});
 				}
 
 				RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
@@ -333,7 +380,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 				if(dest == NULL) {
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("Error: tried to push on empty optional array") });
+					    .err = TSTR_LIT("Error: tried to push on empty optional array"),
+					    .path = path,
+					});
 				}
 
 				bool* element = TRTTI_ANNOTATED_VALUE_CAST(bool, array_push.entry.value);
@@ -346,7 +395,9 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 				if(push_result != TvecResultOk) {
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("Error: error on allocating space for the array push") });
+					    .err = TSTR_LIT("Error: error on allocating space for the array push"),
+					    .path = path,
+					});
 				}
 
 				RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
@@ -355,6 +406,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			}
 
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+			    path,
 			    "Error: invalid value for type that expected: "
 			    "'TestJsonStructArrayElement': <no more info>",
 			    "Error: invalid value for type that expected: "
@@ -367,7 +419,10 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			bool* bool_wrapper = TJSON_NEW(bool);
 
 			if(bool_wrapper == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){ .err = TSTR_LIT("OOM") });
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = path,
+				});
 			}
 
 			*bool_wrapper = boolean.value;
@@ -391,13 +446,15 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
+		    path, "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
 		    "Error: unhandled iterate value in TestJsonStructOptionalArray: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
 
-	return new_json_iterate_result_error(
-	    (JsonIterateError){ .err = TSTR_LIT("unhandled convertor for type below root path") });
+	return new_json_iterate_result_error((JsonIterateError){
+	    .err = TSTR_LIT("unhandled convertor for type below root path"),
+	    .path = path,
+	});
 }
 
 void test_iterate_free(RTTIAnnotatedValue data) {

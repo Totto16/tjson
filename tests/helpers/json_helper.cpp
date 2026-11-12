@@ -3,6 +3,7 @@
 
 #include "./cpp_types.hpp"
 #include "./generic.hpp"
+#include "./rtti.hpp"
 
 json::path::array::array(size_t index) : m_index{ index } {}
 
@@ -146,6 +147,10 @@ json::path::path json::path::path::operator/(dotdot) {
 	return json_path_is_eq(this->m_holder, other.m_holder);
 }
 
+[[nodiscard]] bool json::path::path::operator==(const JsonPath* other) const {
+	return json_path_is_eq(this->m_holder, other);
+}
+
 json::path::path::path(path&& other) noexcept {
 	this->m_holder = other.m_holder;
 	other.m_holder = nullptr;
@@ -184,4 +189,95 @@ std::ostream& json::path::path::operator<<(std::ostream& os) const {
 std::ostream& json::path::operator<<(std::ostream& os, const json::path::path& path) {
 
 	return path.operator<<(os);
+}
+
+[[nodiscard]] bool operator==(const IsNotError& /* error */, const JsonIterateResult& result) {
+	IF_JSON_ITERATE_RESULT_IS_ERROR_IGN(result) {
+		return false;
+	}
+
+	return true;
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateResult& result) {
+
+	IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(result) {
+
+		os << "JsonIterateResult::error -> " << error.error;
+
+		return os;
+	}
+
+	IF_JSON_ITERATE_RESULT_IS_OK_CONST(result) {
+		os << "JsonIterateResult::ok -> " << ok;
+
+		return os;
+	}
+
+	return os;
+}
+
+JsonIterateErrorCpp::JsonIterateErrorCpp(const char* err, json::path::path&& path)
+    : m_err{ err }, m_path(std::move(path)) {}
+
+JsonIterateErrorCpp::JsonIterateErrorCpp(std::string err, json::path::path&& path)
+    : m_err{ std::move(err) }, m_path(std::move(path)) {}
+
+JsonIterateErrorCpp::JsonIterateErrorCpp(JsonIterateErrorCpp&& other) noexcept {
+	this->m_err = std::move(other.m_err);
+	this->m_path = std::move(other.m_path);
+}
+
+JsonIterateErrorCpp& JsonIterateErrorCpp::operator=(JsonIterateErrorCpp&& other) noexcept {
+	this->m_err = std::move(other.m_err);
+	this->m_path = std::move(other.m_path);
+	return *this;
+}
+
+JsonIterateErrorCpp::~JsonIterateErrorCpp() {
+	this->m_err.~basic_string();
+	this->m_path.~path();
+}
+
+[[nodiscard]] const std::string& JsonIterateErrorCpp::err() const {
+	return this->m_err;
+}
+
+[[nodiscard]] const json::path::path& JsonIterateErrorCpp::path() const {
+	return this->m_path;
+}
+
+std::ostream& JsonIterateErrorCpp::operator<<(std::ostream& os) const {
+	os << this->m_err << " at " << this->m_path;
+
+	return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateErrorCpp& error) {
+
+	return error.operator<<(os);
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateError& error) {
+
+	tstr path_str = json_path_to_str(error.path);
+
+	if(tstr_is_null(&path_str)) {
+		throw std::runtime_error("error in formating path");
+	}
+
+	os << error.err << " at " << path_str;
+
+	tstr_free(&path_str);
+
+	return os;
+}
+
+[[nodiscard]] bool operator==(const JsonIterateError& err1, const JsonIterateErrorCpp& err2) {
+
+	if(err1.err != err2.err()) {
+		return false;
+	}
+
+	return (err1.path == err2.path());
 }

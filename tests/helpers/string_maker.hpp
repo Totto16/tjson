@@ -9,6 +9,7 @@
 
 #include "./helpers.hpp"
 #include "./json.hpp"
+#include "./json_helper.hpp"
 #include "./json_schema.hpp"
 #include "./rtti.hpp"
 
@@ -146,6 +147,18 @@ template <> struct StringMaker<RTTIAnnotatedValue> {
 template <> struct StringMaker<JsonIterateResult> {
 	static String convert(const JsonIterateResult& iterate_result) {
 		return ::os_stream_formattable_to_doctest(iterate_result);
+	}
+};
+
+template <> struct StringMaker<JsonIterateError> {
+	static String convert(const JsonIterateError& err) {
+		return ::os_stream_formattable_to_doctest(err);
+	}
+};
+
+template <> struct StringMaker<JsonIterateErrorCpp> {
+	static String convert(const JsonIterateErrorCpp& err) {
+		return ::os_stream_formattable_to_doctest(err);
 	}
 };
 

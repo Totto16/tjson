@@ -12,7 +12,3 @@
                               const RTTIAnnotatedValue& rtti_value2);
 
 std::ostream& operator<<(std::ostream& os, const RTTIAnnotatedValue& rtti_value);
-
-[[nodiscard]] bool operator==(const IsNotError& error, const JsonIterateResult& result);
-
-std::ostream& operator<<(std::ostream& os, const JsonIterateResult& result);

@@ -518,7 +518,9 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(iter == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("json object iterator couldn't be allocated") });
+					    .err = TSTR_LIT("json object iterator couldn't be allocated"),
+					    .path = json_path,
+					});
 				}
 
 #undef FREE_AT_END
@@ -541,16 +543,20 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					if(key == NULL) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json key string convert error"),
+						    .path = json_path,
+						});
 					}
 
 					tstr key_tstr = json_string_get_as_str(key);
 
 					if(tstr_is_null(&key_tstr)) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json key string convert error") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json key string convert error"),
+						    .path = json_path,
+						});
 					}
 
 #undef FREE_AT_END
@@ -568,8 +574,10 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					if(!add_result) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json path add failed"),
+						    .path = json_path,
+						});
 					}
 
 					JsonIterateResult recursive_result = json_value_iterate_impl(
@@ -634,15 +642,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					if(entry_handle.ptr != NULL) {
 						FREE_AT_END();
 						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
+						    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
+						    .path = json_path,
+						});
 					}
 
 					bool remove_result = json_path_remove_last_segment(json_path);
 
 					if(!remove_result) {
 						FREE_AT_END();
-						return new_json_iterate_result_error(
-						    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json path remove failed"),
+						    .path = json_path,
+						});
 					}
 
 #undef FREE_AT_END
@@ -709,15 +721,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(value == NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("implementation error: empty json value") });
+					    .err = TSTR_LIT("implementation error: empty json value"),
+					    .path = json_path,
+					});
 				}
 
 				bool add_result = json_path_add_array_index(json_path, i);
 
 				if(!add_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_LIT("json path add failed") });
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("json path add failed"),
+					    .path = json_path,
+					});
 				}
 
 				JsonIterateResult recursive_result = json_value_iterate_impl(
@@ -773,15 +789,19 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 				if(entry_handle.ptr != NULL) {
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("sub iterator returned non NULL rtti type") });
+					    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
+					    .path = json_path,
+					});
 				}
 
 				bool remove_result = json_path_remove_last_segment(json_path);
 
 				if(!remove_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(
-					    (JsonIterateError){ .err = TSTR_LIT("json path remove failed") });
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("json path remove failed"),
+					    .path = json_path,
+					});
 				}
 			}
 
@@ -874,8 +894,10 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 		}
 		VARIANT_CASE_END();
 		default: {
-			return new_json_iterate_result_error(
-			    (JsonIterateError){ .err = TSTR_LIT("json value has invalid state") });
+			return new_json_iterate_result_error((JsonIterateError){
+			    .err = TSTR_LIT("json value has invalid state"),
+			    .path = json_path,
+			});
 		}
 	}
 }
@@ -891,14 +913,18 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* const json
 	JsonPath* json_path = json_path_get_root();
 
 	if(json_path == NULL) {
-		return new_json_iterate_result_error(
-		    (JsonIterateError){ .err = TSTR_LIT("json path allocation error") });
+		return new_json_iterate_result_error((JsonIterateError){
+		    .err = TSTR_LIT("json path allocation error"),
+		    .path = json_path,
+		});
 	}
 
 	JsonIterateResult result = json_value_iterate_impl(json_value, iterate_callback, free_callback,
 	                                                   start, userdata, json_path);
 
-	free_json_path(json_path);
+	IF_JSON_ITERATE_RESULT_IS_OK_IGN(result) {
+		free_json_path(json_path);
+	}
 
 	return result;
 }

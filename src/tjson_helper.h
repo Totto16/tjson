@@ -43,6 +43,7 @@ void free_json_path(JsonPath* path);
 
 typedef struct {
 	tstr err;
+	const JsonPath* path;
 } JsonIterateError;
 
 GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT() // GCOVR_EXCL_LINE
@@ -75,19 +76,26 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* json_value
                                                      RTTIAnnotatedValue start,
                                                      RTTIAnnotatedValue userdata);
 
-#define RETURN_JSON_ITERATE_ERROR_DYNAMIC(raw_err_msg, err_msg_fmt, ...) \
+#define RETURN_JSON_ITERATE_ERROR_DYNAMIC(path_arg, raw_err_msg, err_msg_fmt, ...) \
 	do { \
 		tstr fmt_str = tstr_from(""); \
 		if(tstr_is_null(&fmt_str)) { \
-			return new_json_iterate_result_error( \
-			    (JsonIterateError){ .err = TSTR_LIT(raw_err_msg) }); \
+			return new_json_iterate_result_error((JsonIterateError){ \
+			    .err = TSTR_LIT(raw_err_msg), \
+			    .path = (path_arg), \
+			}); \
 		} \
 		TStrResult res = tstr_fmt(&fmt_str, err_msg_fmt, __VA_ARGS__); \
 		if(res != TStrResultOk) { \
-			return new_json_iterate_result_error( \
-			    (JsonIterateError){ .err = TSTR_LIT(raw_err_msg) }); \
+			return new_json_iterate_result_error((JsonIterateError){ \
+			    .err = TSTR_LIT(raw_err_msg), \
+			    .path = (path_arg), \
+			}); \
 		} \
-		return new_json_iterate_result_error((JsonIterateError){ .err = fmt_str }); \
+		return new_json_iterate_result_error((JsonIterateError){ \
+		    .err = fmt_str, \
+		    .path = (path_arg), \
+		}); \
 	} while(false)
 
 #ifdef __cplusplus

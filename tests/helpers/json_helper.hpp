@@ -11,6 +11,8 @@
 #include <functional>
 #include <ostream>
 
+#include "./cpp_types.hpp"
+
 namespace json::path {
 
 struct array {
@@ -89,6 +91,8 @@ struct path {
 
 	[[nodiscard]] bool operator==(const path& other) const;
 
+	[[nodiscard]] bool operator==(const JsonPath* other) const;
+
 	std::ostream& operator<<(std::ostream& os) const;
 
 	friend std::ostream& operator<<(std::ostream& os, const path& path);
@@ -105,3 +109,38 @@ struct path {
 std::ostream& operator<<(std::ostream& os, const path& path);
 
 } // namespace json::path
+
+struct JsonIterateErrorCpp {
+  private:
+	std::string m_err;
+	json::path::path m_path;
+
+  public:
+	JsonIterateErrorCpp(const char* err, json::path::path&& path);
+	JsonIterateErrorCpp(std::string err, json::path::path&& path);
+
+	JsonIterateErrorCpp(JsonIterateErrorCpp const&) = delete;
+	JsonIterateErrorCpp& operator=(JsonIterateErrorCpp const&) = delete;
+
+	JsonIterateErrorCpp(JsonIterateErrorCpp&&) noexcept;
+	JsonIterateErrorCpp& operator=(JsonIterateErrorCpp&&) noexcept;
+
+	~JsonIterateErrorCpp();
+
+	[[nodiscard]] const std::string& err() const;
+	[[nodiscard]] const json::path::path& path() const;
+
+	std::ostream& operator<<(std::ostream& os) const;
+
+	friend std::ostream& operator<<(std::ostream& os, const JsonIterateErrorCpp& error);
+};
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateErrorCpp& error);
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateError& error);
+
+[[nodiscard]] bool operator==(const JsonIterateError& err1, const JsonIterateErrorCpp& err2);
+
+[[nodiscard]] bool operator==(const IsNotError& error, const JsonIterateResult& result);
+
+std::ostream& operator<<(std::ostream& os, const JsonIterateResult& result);
