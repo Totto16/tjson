@@ -42,10 +42,10 @@ void free_utf8_data(Utf8Data data);
 
 NODISCARD bool utf8_codpoints_eq(const Utf8CodepointArr* arr1, const Utf8CodepointArr* arr2);
 
-NODISCARD tstr get_normalized_string_from_codepoints(const Utf8CodepointArr codepoints);
+NODISCARD tstr get_normalized_string_from_codepoints(Utf8CodepointArr codepoints);
 
-tstr get_normalized_string_from_codepoints_json_escaped(const Utf8CodepointArr codepoints,
-                                                        const JsonSerializeEscapeOption escape);
+tstr get_normalized_string_from_codepoints_json_escaped(Utf8CodepointArr codepoints,
+                                                        JsonSerializeEscapeOption escape);
 
 #define UNICODE_MAX_VALUE_OVERALL 0x10FFFF
 

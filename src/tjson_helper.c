@@ -1,5 +1,6 @@
 #include "./tjson_helper.h"
 
+#include <stdbool.h>
 #include <tstr_builder.h>
 #include <tvec.h>
 
@@ -260,11 +261,11 @@ static bool json_path_segment_object_key_is_name_first(const Utf8Codepoint codep
 		return true;
 	}
 
-	if(codepoint >= 0x80 && codepoint <= 0xD7FF) {
+	if(codepoint >= 0x80 && codepoint <= 0xD7FF) { // NOLINT(readability-magic-numbers)
 		return true;
 	}
 
-	if(codepoint >= 0xE000 && codepoint <= 0x10FFFF) {
+	if(codepoint >= 0xE000 && codepoint <= 0x10FFFF) { // NOLINT(readability-magic-numbers)
 		return true;
 	}
 
@@ -335,7 +336,10 @@ static void json_path_segment_to_string_impl(StringBuilder* const string_builder
 		CASE_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment) {
 
 			const bool can_use_compact =
-			    options.compact ? json_path_segment_object_key_can_be_compact(object_key) : false;
+			    options.compact // NOLINT(readability-implicit-bool-conversion)
+			        ? json_path_segment_object_key_can_be_compact( // NOLINT(readability-implicit-bool-conversion)
+			              object_key)
+			        : false; // NOLINT(readability-implicit-bool-conversion)
 
 			// see: https://www.rfc-editor.org/info/rfc9535/#section-2.3.1.1
 			// we use the normal json escape function, as it does what we expect

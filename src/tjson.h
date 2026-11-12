@@ -22,7 +22,7 @@
 
 	#define TJSON_DECLARE_AS_MOVEABLE_EXTENDED(Type, Typename) \
 		struct TJSON_MOVE_TYPE_NAME_FOR(Typename) { \
-			Type* __moved_impl; \
+			Type* /*NOLINT(bugprone-macro-parentheses)*/ __moved_impl; \
 		};
 
 	#define TJSON_DECLARE_AS_MOVEABLE(T) TJSON_DECLARE_AS_MOVEABLE_EXTENDED(T, T)

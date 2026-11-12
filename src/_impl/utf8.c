@@ -282,7 +282,8 @@ NODISCARD static int8_t json_impl_escape_char_into(const Utf8Codepoint codepoint
 					// NOTE: utf8proc never returns such a code, as it is invalid utf8 and is caught
 					// earlier!
 
-					ASSERT(false && "IMPLEMENTATION ERROR"); // GCOVR_EXCL_LINE
+					ASSERT(/* NOLINT(cert-dcl03-c,misc-static-assert) */ /*GCOVR_EXCL_LINE*/
+					       false && "IMPLEMENTATION ERROR");
 				}
 
 				// see: https://datatracker.ietf.org/doc/html/rfc2781#section-2.1

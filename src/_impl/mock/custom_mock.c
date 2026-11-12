@@ -15,7 +15,8 @@
 		size_t call_count; \
 	} CUSTOM_MOCK_STRUCT_STATE_IMPL_NAME(name); \
 \
-	return_type CUSTOM_MOCK_WRAP_NAME(name) params; /*NOLINT(bugprone-macro-parentheses)*/ \
+	return_type CUSTOM_MOCK_WRAP_NAME(/*NOLINT(misc-use-internal-linkage)*/ name) \
+	    params; /*NOLINT(bugprone-macro-parentheses)*/ \
 \
 	return_type CUSTOM_MOCK_WRAP_WRAPPED_NAME(name) \
 	    params /*NOLINT(bugprone-macro-parentheses)*/ { \
@@ -89,8 +90,8 @@ CUSTOM_MOCK_DEFINE_MOCK_FUNCTION_IMPLEMENTATION(fstat64, int,
 
 // open helper functions
 
-static int _wrap_open_helper_impl__(open_function_type fun, const char* pathname, int flags,
-                                    va_list args) {
+static int mock_wrap_open_helper_impl(open_function_type fun, const char* pathname, int flags,
+                                      va_list args) {
 	mode_t mode = 0;
 
 	if(flags & O_CREAT) {
@@ -102,10 +103,11 @@ static int _wrap_open_helper_impl__(open_function_type fun, const char* pathname
 	return fun(pathname, flags, 0);
 }
 
-typedef int (*open_function_type_orig)(const char* path, int flags, ...);
+typedef int (*open_function_type_orig)(const char* path, /* NOLINT(readability-identifier-naming) */
+                                       int flags, ...);
 
-static int _wrap_open_helper_orig_impl__(open_function_type_orig fun, const char* pathname,
-                                         int flags, va_list args) {
+static int mock_wrap_open_helper_orig_impl(open_function_type_orig fun, const char* pathname,
+                                           int flags, va_list args) {
 	mode_t mode = 0;
 
 	if(flags & O_CREAT) {
@@ -141,7 +143,7 @@ int CUSTOM_MOCK_WRAP_WRAPPED_NAME(open)(const char* path, int flags, ...) {
 	va_start(args, flags);
 
 	const int result =
-	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_WRAP_NAME(open), path, flags, args);
+	    mock_wrap_open_helper_orig_impl(CUSTOM_MOCK_WRAP_NAME(open), path, flags, args);
 
 	va_end(args);
 	return result;
@@ -153,7 +155,7 @@ int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 
 	if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr != NULL) {
 		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).call_count++;
-		const int result = _wrap_open_helper_impl__(
+		const int result = mock_wrap_open_helper_impl(
 		    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open).wrapped_fn_ptr, path, flags, args);
 
 		va_end(args);
@@ -161,7 +163,7 @@ int CUSTOM_MOCK_WRAP_NAME(open)(const char* path, int flags, ...) {
 	}
 
 	const int result =
-	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_REAL_NAME(open), path, flags, args);
+	    mock_wrap_open_helper_orig_impl(CUSTOM_MOCK_REAL_NAME(open), path, flags, args);
 
 	va_end(args);
 	return result;
@@ -218,7 +220,7 @@ int CUSTOM_MOCK_WRAP_WRAPPED_NAME(open64)(const char* path, int flags, ...) {
 	va_start(args, flags);
 
 	const int result =
-	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_WRAP_NAME(open64), path, flags, args);
+	    mock_wrap_open_helper_orig_impl(CUSTOM_MOCK_WRAP_NAME(open64), path, flags, args);
 
 	va_end(args);
 	return result;
@@ -230,7 +232,7 @@ int CUSTOM_MOCK_WRAP_NAME(open64)(const char* path, int flags, ...) {
 
 	if(CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr != NULL) {
 		CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).call_count++;
-		const int result = _wrap_open_helper_impl__(
+		const int result = mock_wrap_open_helper_impl(
 		    CUSTOM_MOCK_STRUCT_STATE_GLOBAL_NAME(open64).wrapped_fn_ptr, path, flags, args);
 
 		va_end(args);
@@ -238,7 +240,7 @@ int CUSTOM_MOCK_WRAP_NAME(open64)(const char* path, int flags, ...) {
 	}
 
 	const int result =
-	    _wrap_open_helper_orig_impl__(CUSTOM_MOCK_REAL_NAME(open64), path, flags, args);
+	    mock_wrap_open_helper_orig_impl(CUSTOM_MOCK_REAL_NAME(open64), path, flags, args);
 
 	va_end(args);
 	return result;

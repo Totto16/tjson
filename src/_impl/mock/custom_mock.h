@@ -24,23 +24,28 @@ extern "C" {
 	void CUSTOM_MOCK_WRAP_NAME_UNWRAP(name)(void); \
 	size_t CUSTOM_MOCK_WRAP_COUNT_NAME(name)(void);
 
-typedef int (*fstat_function_type)(int file_desc, struct stat* statbuf);
+typedef int (*fstat_function_type)(/* NOLINT(readability-identifier-naming) */
+                                   int file_desc, struct stat* statbuf);
 
-typedef ssize_t (*read_function_type)(int file_desc, void* buf, size_t count);
+typedef ssize_t (*read_function_type)(/* NOLINT(readability-identifier-naming) */ int file_desc,
+                                      void* buf, size_t count);
 
-typedef int (*close_function_type)(int file_d);
+typedef int (*close_function_type)(/* NOLINT(readability-identifier-naming) */ int file_d);
 
-typedef int (*open_function_type)(const char* path, int flags, mode_t mode);
+typedef int (*open_function_type)(/* NOLINT(readability-identifier-naming) */ const char* path,
+                                  int flags, mode_t mode);
 
 #ifdef TJSON_HAVE_FILE_RELATED_64_FUNCTIONS
 
-typedef int (*open64_function_type)(const char* path, int flags, mode_t mode);
+typedef int (*open64_function_type)(/* NOLINT(readability-identifier-naming) */ const char* path,
+                                    int flags, mode_t mode);
 
 typedef struct stat64 struct_stat64_impl;
 
 	#define CUSTOM_MOCK_STATE64_STRUCT struct_stat64_impl
 
-typedef int (*fstat64_function_type)(int file_desc, CUSTOM_MOCK_STATE64_STRUCT* statbuf);
+typedef int (*fstat64_function_type)(/* NOLINT(readability-identifier-naming) */ int file_desc,
+                                     CUSTOM_MOCK_STATE64_STRUCT* statbuf);
 
 #endif
 
