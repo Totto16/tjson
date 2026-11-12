@@ -595,7 +595,10 @@ TEST_CASE("testing mock behaviour of json functions <json_mock_tester>") {
 				    if(copy_count == 0) {
 					    // we are EOF, but we have more data, LOL
 
-					    memcpy(buf, "oh", 2);
+					    if(count >= 2) {
+						    memcpy(buf, "oh", 2);
+						    return (ssize_t)2;
+					    }
 
 					    return (ssize_t)2;
 				    }
