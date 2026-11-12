@@ -223,21 +223,11 @@ JsonIterateErrorCpp::JsonIterateErrorCpp(const char* err, json::path::path&& pat
 JsonIterateErrorCpp::JsonIterateErrorCpp(std::string err, json::path::path&& path)
     : m_err{ std::move(err) }, m_path(std::move(path)) {}
 
-JsonIterateErrorCpp::JsonIterateErrorCpp(JsonIterateErrorCpp&& other) noexcept {
-	this->m_err = std::move(other.m_err);
-	this->m_path = std::move(other.m_path);
-}
+JsonIterateErrorCpp::JsonIterateErrorCpp(JsonIterateErrorCpp&& other) noexcept = default;
 
-JsonIterateErrorCpp& JsonIterateErrorCpp::operator=(JsonIterateErrorCpp&& other) noexcept {
-	this->m_err = std::move(other.m_err);
-	this->m_path = std::move(other.m_path);
-	return *this;
-}
+JsonIterateErrorCpp& JsonIterateErrorCpp::operator=(JsonIterateErrorCpp&& other) noexcept = default;
 
-JsonIterateErrorCpp::~JsonIterateErrorCpp() {
-	this->m_err.~basic_string();
-	this->m_path.~path();
-}
+JsonIterateErrorCpp::~JsonIterateErrorCpp() = default;
 
 [[nodiscard]] const std::string& JsonIterateErrorCpp::err() const {
 	return this->m_err;

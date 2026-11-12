@@ -43,8 +43,10 @@ void free_json_path(JsonPath* path);
 
 typedef struct {
 	tstr err;
-	const JsonPath* path;
+	JsonPath* path;
 } JsonIterateError;
+
+void free_json_iterate_error(JsonIterateError* path);
 
 GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT() // GCOVR_EXCL_LINE
 

@@ -478,7 +478,18 @@ void free_json_path(JsonPath* path) {
 	TJSON_FREE(path);
 }
 
-//
+void free_json_iterate_error(JsonIterateError* path) {
+	tstr_free(&(path->err));
+	free_json_path(path->path);
+}
+
+NODISCARD static JsonIterateResult make_json_iterate_result_error(JsonIterateError error,
+                                                                  JsonPath* json_path) {
+	if(error.path == NULL) {
+		error.path = json_path;
+	}
+	return new_json_iterate_result_error(error);
+}
 
 TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc-no-recursion)
     const JsonValue* json_value, JsonValueIterateCallback iterate_callback,
@@ -500,7 +511,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue obj_handle = json_iterate_result_get_as_ok(start_result);
@@ -594,7 +605,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 	} while(false)
 
 						FREE_AT_END();
-						return new_json_iterate_result_error(error.error);
+						return make_json_iterate_result_error(error.error, json_path);
 					}
 
 #undef FREE_AT_END
@@ -621,7 +632,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 
 						FREE_AT_END();
-						return new_json_iterate_result_error(error.error);
+						return make_json_iterate_result_error(error.error, json_path);
 					}
 
 					RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
@@ -677,7 +688,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
@@ -702,7 +713,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(start_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue arr_handle = json_iterate_result_get_as_ok(start_result);
@@ -748,7 +759,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 	} while(false)
 
 					FREE_AT_END();
-					return new_json_iterate_result_error(error.error);
+					return make_json_iterate_result_error(error.error, json_path);
 				}
 
 #undef FREE_AT_END
@@ -770,7 +781,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 				IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(entry_result) {
 					FREE_AT_END();
-					return new_json_iterate_result_error(error.error);
+					return make_json_iterate_result_error(error.error, json_path);
 				}
 
 				RTTIAnnotatedValue entry_handle = json_iterate_result_get_as_ok(entry_result);
@@ -812,7 +823,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(end_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			const RTTIAnnotatedValue end_handle = json_iterate_result_get_as_ok(end_result);
@@ -836,7 +847,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -853,7 +864,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -869,7 +880,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
@@ -885,7 +896,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 			IF_JSON_ITERATE_RESULT_IS_ERROR_CONST(iterate_result) {
 				FREE_AT_END();
-				return new_json_iterate_result_error(error.error);
+				return make_json_iterate_result_error(error.error, json_path);
 			}
 
 			RTTIAnnotatedValue iterate_handle = json_iterate_result_get_as_ok(iterate_result);
