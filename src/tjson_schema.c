@@ -247,11 +247,13 @@ json_schema_to_string_object_impl(const JsonSchemaObject* const object, // NOLIN
 
 			{
 
-				const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+				tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 				tstr_static insert_result = json_object_add_entry_cstr(
 				    entry_obj, "$ref",
 				    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+				tstr_free(&schema_def_name);
 
 				if(!tstr_static_is_null(insert_result)) {
 					return new_json_schema_add_result_error(insert_result);
@@ -345,11 +347,13 @@ json_schema_to_string_array_impl(const JsonSchemaArray* const array, // NOLINT(m
 
 		{
 
-			const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+			tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 			tstr_static insert_result = json_object_add_entry_cstr(
 			    entry_obj, "$ref",
 			    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+			tstr_free(&schema_def_name);
 
 			if(!tstr_static_is_null(insert_result)) {
 				return new_json_schema_add_result_error(insert_result);
@@ -552,11 +556,13 @@ json_schema_to_string_one_of_impl(const JsonSchemaOneOf* const one_of, // NOLINT
 
 			{
 
-				const tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
+				tstr schema_def_name = json_schema_impl_get_def_schema_name(result_id);
 
 				tstr_static insert_result = json_object_add_entry_cstr(
 				    entry_obj, "$ref",
 				    new_json_value_string_rc(json_get_string_from_tstr(&schema_def_name)));
+
+				tstr_free(&schema_def_name);
 
 				if(!tstr_static_is_null(insert_result)) {
 					return new_json_schema_add_result_error(insert_result);
@@ -760,10 +766,12 @@ TJSON_NODISCARD tstr json_schema_to_string(const JsonSchema* const schema) {
 
 				const JsonDefId def_id = value.key;
 
-				const tstr schema_name = json_schema_impl_get_schema_name(def_id);
+				tstr schema_name = json_schema_impl_get_schema_name(def_id);
 
 				insert_result = json_object_add_entry_tstr(
 				    defs, &schema_name, new_json_value_object_rc(value.value.object));
+
+				tstr_free(&schema_name);
 
 				ASSERT(tstr_static_is_null(insert_result));
 			}
