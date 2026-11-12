@@ -422,11 +422,7 @@ TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
 	// https://en.wikipedia.org/wiki/JSONPath
 	// https://www.rfc-editor.org/rfc/rfc9535
 
-	const tstr root = TSTR_LIT("$");
-
-	const tstr separator = TSTR_LIT(".");
-
-	string_builder_append_tstr(string_builder, &root);
+	string_builder_append_single(string_builder, "$");
 
 	const size_t length = TVEC_LENGTH(JsonPathSegment, path->segments);
 
@@ -435,7 +431,7 @@ TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
 
 		if(options.compact) {
 			if(json_path_segment_need_separator(&value)) {
-				string_builder_append_tstr(string_builder, &separator);
+				string_builder_append_single(string_builder, ".");
 			}
 		}
 
@@ -447,6 +443,32 @@ TJSON_NODISCARD tstr json_path_to_str_advanced(const JsonPath* path,
 
 TJSON_NODISCARD tstr json_path_to_str(const JsonPath* path) {
 	return json_path_to_str_advanced(path, (JsonPathStringOptions){ .compact = true });
+}
+
+TJSON_NODISCARD tstr json_iterate_error_to_str_advanced(const JsonIterateError* error,
+                                                        JsonPathStringOptions options) {
+
+	StringBuilder* string_builder = string_builder_init();
+
+	if(string_builder == NULL) {
+		return tstr_null();
+	}
+
+	string_builder_append_tstr(string_builder, &(error->err));
+
+	string_builder_append_single(string_builder, " at ");
+
+	tstr path_str = json_path_to_str_advanced(error->path, options);
+
+	string_builder_append_tstr(string_builder, &path_str);
+
+	tstr_free(&path_str);
+
+	return string_builder_release_into_tstr(&string_builder);
+}
+
+TJSON_NODISCARD tstr json_iterate_error_to_str(const JsonIterateError* error) {
+	return json_iterate_error_to_str_advanced(error, (JsonPathStringOptions){ .compact = true });
 }
 
 static void free_json_path_segment(JsonPathSegment segment) {

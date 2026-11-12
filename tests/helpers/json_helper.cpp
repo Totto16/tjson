@@ -250,15 +250,15 @@ std::ostream& operator<<(std::ostream& os, const JsonIterateErrorCpp& error) {
 
 std::ostream& operator<<(std::ostream& os, const JsonIterateError& error) {
 
-	tstr path_str = json_path_to_str(error.path);
+	tstr err_str = json_iterate_error_to_str(&error);
 
-	if(tstr_is_null(&path_str)) {
+	if(tstr_is_null(&err_str)) {
 		throw std::runtime_error("error in formating path");
 	}
 
-	os << error.err << " at " << path_str;
+	os << err_str;
 
-	tstr_free(&path_str);
+	tstr_free(&err_str);
 
 	return os;
 }

@@ -48,6 +48,11 @@ typedef struct {
 
 void free_json_iterate_error(JsonIterateError* path);
 
+TJSON_NODISCARD tstr json_iterate_error_to_str(const JsonIterateError* error);
+
+TJSON_NODISCARD tstr json_iterate_error_to_str_advanced(const JsonIterateError* error,
+                                                        JsonPathStringOptions options);
+
 GENERATE_VARIANT_ALL_JSON_ITERATE_RESULT() // GCOVR_EXCL_LINE
 
 typedef struct {
