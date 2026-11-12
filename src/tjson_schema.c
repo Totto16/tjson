@@ -1050,8 +1050,7 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* const j
 
 TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* const str) {
 	tstr temp = tstr_from(str);
-	JsonSchemaRegexResult const result = json_schema_regex_get_tstr(&temp);
-	tstr_free(&temp);
+	JsonSchemaRegexResult const result = json_schema_regex_get_tstr_moved(TJSON_MOVE(tstr, temp));
 	return result;
 }
 
@@ -1062,11 +1061,21 @@ static void json_schema_regex_destroy_impl(JsonSchemaRegex* const json_schema_re
 	tstr_free(&(json_schema_regex->original));
 }
 
-TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* const str) {
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_dup(const tstr* const str) {
 
-	SimpleRegexResult result = simple_regex_compile(str);
+	tstr temp = tstr_dup(str);
+	JsonSchemaRegexResult const result = json_schema_regex_get_tstr_moved(TJSON_MOVE(tstr, temp));
+	return result;
+}
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_moved(TJSON_MOVED(tstr) str) {
+	tstr str_normal = *TJSON_GET_MOVED_VALUE(str);
+	*TJSON_GET_MOVED_VALUE(str) = tstr_null();
+
+	SimpleRegexResult result = simple_regex_compile(&str_normal);
 
 	IF_SIMPLE_REGEX_RESULT_IS_ERROR_CONST(result) {
+		tstr_free(&str_normal);
 		return new_json_schema_regex_result_error((JsonSchemaRegexError){ .err = error });
 	}
 
@@ -1076,12 +1085,13 @@ TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* con
 	    RC_ALLOC(JsonSchemaRegex, json_schema_regex_destroy_impl);
 
 	if(json_schema_regex == NULL) {
+		tstr_free(&str_normal);
 		return new_json_schema_regex_result_error(
 		    (JsonSchemaRegexError){ .err = TSTR_LIT("allocation error") });
 	}
 
 	json_schema_regex->regex = regex;
-	json_schema_regex->original = tstr_dup(str);
+	json_schema_regex->original = str_normal;
 
 	return new_json_schema_regex_result_ok(json_schema_regex);
 }

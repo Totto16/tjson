@@ -86,7 +86,9 @@ GENERATE_VARIANT_ALL_JSON_SCHEMA_REGEX_RESULT()
 
 TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* str);
 
-TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr(const tstr* str);
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_moved(TJSON_MOVED(tstr) str);
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_dup(const tstr* str);
 
 void free_json_schema_regex_error(JsonSchemaRegexError* error);
 
