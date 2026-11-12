@@ -1026,6 +1026,60 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			    R"($["hello with a whitespace"]["third with a smiley: \uD83D\uDE43"][""].test["1"])");
 		}();
 	}
+
+	SUBCASE("json error to string") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
+			tstr obj_key = "large_string_that_is_allocated"_tstr;
+
+			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
+
+			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str(&error);
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, "test error 123 at $.large_string_that_is_allocated[1]");
+		}();
+	}
+
+	SUBCASE("json error to string (advanced)") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
+			tstr obj_key = "large_string_that_is_allocated"_tstr;
+
+			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
+
+			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str_advanced(&error, { .compact = false });
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, R"(test error 123 at $["large_string_that_is_allocated"][1])");
+		}();
+	}
 }
 
 TEST_CASE("testing stringification of json values <json_parser_stringify>") {

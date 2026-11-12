@@ -128,7 +128,9 @@ struct JsonIterateErrorCpp {
 	~JsonIterateErrorCpp();
 
 	[[nodiscard]] const std::string& err() const;
+
 	[[nodiscard]] const json::path::path& path() const;
+	
 
 	std::ostream& operator<<(std::ostream& os) const;
 
