@@ -86,8 +86,10 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		    .schema = json_schema::string().nonempty().get(),
 		    .tests =
 		        std::vector<JsonSchemaValidateTestCaseSingle>{
-		            JsonSchemaValidateTestCaseSingle{ .value = json::string("hello"),
-		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::string(
+		                    "hello this is a long string that is longer then SSO strings"),
+		                .result = std::nullopt },
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::string(""),
 		                .result = "string size (0) is smaller than the min size (1)" },
@@ -156,6 +158,19 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::string("HelloW"),
 		                .result = "string 'HelloW' doesn't match regex '^[A-Z][a-z]*$'" },
+
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::string().regex("^[A-Z][abcdefghijklmnopqrstuvwxyz]*$").get(),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{ .value = json::string("Hello"),
+		                                              .result = std::nullopt },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::string("HelloW"),
+		                .result = "string 'HelloW' doesn't match regex "
+		                          "'^[A-Z][abcdefghijklmnopqrstuvwxyz]*$'" },
 
 		        },
 		},
@@ -322,7 +337,9 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		                .result = std::nullopt,
 		            },
 		            JsonSchemaValidateTestCaseSingle{
-		                .value = json::object({ { "obj_key", json::null() } }),
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
 		                .result = std::nullopt,
 		            },
 		            JsonSchemaValidateTestCaseSingle{
@@ -346,6 +363,55 @@ TEST_CASE("testing validation of json schemas <json_schema_validate>") {
 		            JsonSchemaValidateTestCaseSingle{
 		                .value = json::object({ { "obj_key", json::null() } }),
 		                .result = "object can't have additional properties: but got key 'obj_key'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
+		                .result = "object can't have additional properties: but got key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected'",
+		            },
+		        },
+		},
+		JsonSchemaValidateTestCase{
+		    .schema = json_schema::object(
+		        false, { json_schema::JsonSchemaObjectEntryCpp{
+		                   .key = "obj_key_thats_is_really_long_longer_than_expected",
+		                   .value = json_schema::null(),
+		                   .required = true,
+		               } }),
+		    .tests =
+		        std::vector<JsonSchemaValidateTestCaseSingle>{
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::boolean(true),
+		                .result = "JsonValue is not an object",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value = json::object({}),
+		                .result = "object is missing required key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected'",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() } }),
+		                .result = std::nullopt,
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::number(1.0) } }),
+		                .result = "Value in object at key "
+		                          "'obj_key_thats_is_really_long_longer_than_expected' is "
+		                          "incorrect: JsonValue is not null",
+		            },
+		            JsonSchemaValidateTestCaseSingle{
+		                .value =
+		                    json::object({ { "obj_key_thats_is_really_long_longer_than_expected",
+		                                     json::null() },
+		                                   { "additional_key", json::boolean(true) } }),
+		                .result =
+		                    "object can't have additional properties: but got key 'additional_key'",
 		            },
 		        },
 		},

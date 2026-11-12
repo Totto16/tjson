@@ -1350,6 +1350,8 @@ NODISCARD static tstr json_schema_validate_object_schema_data_impl( // NOLINT(mi
 				return error;
 			}
 
+			tstr_free(&key_str_1);
+
 			const JsonValue sub_value = json_object_entry_get_value(entry);
 
 			tstr subschema_result = json_schema_validate_data(&(schema_entry->schema), &sub_value);
