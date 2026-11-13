@@ -30,7 +30,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(parent.ptr != NULL) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, first RTTI value vas not NULL"),
+				    .err = TSTR_LIT("implementation error, first RTTI value was not NULL"),
 				    .path = NULL,
 				});
 			}
@@ -59,7 +59,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, root object end RTTI value vas "
+				    .err = TSTR_LIT("implementation error, root object end RTTI value was "
 				                    "not of type 'TestJsonStruct'"),
 				    .path = NULL,
 				});
@@ -174,7 +174,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, root object end RTTI value vas "
+				    .err = TSTR_LIT("implementation error, root object end RTTI value was "
 				                    "not of type 'TestJsonStruct'"),
 				    .path = NULL,
 				});
@@ -193,7 +193,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
 				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, root object key RTTI value vas "
+				    .err = TSTR_LIT("implementation error, root object key RTTI value was "
 				                    "not of type 'TestJsonStruct'"),
 				    .path = NULL,
 				});
