@@ -83,10 +83,12 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* json_value
                                                      RTTIAnnotatedValue start,
                                                      RTTIAnnotatedValue userdata);
 
-#define RETURN_JSON_ITERATE_ERROR_DYNAMIC(path_arg, raw_err_msg, err_msg_fmt, ...) \
+#define RETURN_JSON_ITERATE_ERROR_DYNAMIC_EXTENDED(path_arg, free_expr, raw_err_msg, err_msg_fmt, \
+                                                   ...) \
 	do { \
 		tstr fmt_str = tstr_from(""); \
 		if(tstr_is_null(&fmt_str)) { \
+			free_expr; \
 			return new_json_iterate_result_error((JsonIterateError){ \
 			    .err = TSTR_LIT(raw_err_msg), \
 			    .path = (path_arg), \
@@ -94,16 +96,25 @@ TJSON_NODISCARD JsonIterateResult json_value_iterate(const JsonValue* json_value
 		} \
 		TStrResult res = tstr_fmt(&fmt_str, err_msg_fmt, __VA_ARGS__); \
 		if(res != TStrResultOk) { \
+			free_expr; \
 			return new_json_iterate_result_error((JsonIterateError){ \
 			    .err = TSTR_LIT(raw_err_msg), \
 			    .path = (path_arg), \
 			}); \
 		} \
+		free_expr; \
 		return new_json_iterate_result_error((JsonIterateError){ \
 		    .err = fmt_str, \
 		    .path = (path_arg), \
 		}); \
 	} while(false)
+
+#define RETURN_JSON_ITERATE_ERROR_DYNAMIC_WITH_PATH(path_arg, raw_err_msg, err_msg_fmt, ...) \
+	RETURN_JSON_ITERATE_ERROR_DYNAMIC_EXTENDED( \
+	    path_arg, do {} while(false), raw_err_msg, err_msg_fmt, __VA_ARGS__)
+
+#define RETURN_JSON_ITERATE_ERROR_DYNAMIC(raw_err_msg, err_msg_fmt, ...) \
+	RETURN_JSON_ITERATE_ERROR_DYNAMIC_WITH_PATH(NULL, raw_err_msg, err_msg_fmt, __VA_ARGS__)
 
 #ifdef __cplusplus
 }
