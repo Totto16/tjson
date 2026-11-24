@@ -12,10 +12,12 @@
 #if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000) || defined(__cplusplus)
 	#define TJSON_NODISCARD [[nodiscard]]
 	#define TJSON_MAYBE_UNUSED [[maybe_unused]]
+	#define TJSON_DEPRECATED(msg) [[deprecated(msg)]]
 #else
     // see e.g. https://www.gnu.org/software/gnulib/manual/html_node/Attributes.html
 	#define TJSON_NODISCARD __attribute__((__warn_unused_result__))
 	#define TJSON_MAYBE_UNUSED __attribute__((__unused__))
+	#define TJSON_DEPRECATED(msg) __attribute__((deprecated(msg)));
 #endif
 
 #ifdef TJSON_STRONGLY_TYPED_MOVE

@@ -116,11 +116,16 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 
 	tstr_view str_view = tstr_as_view(&key_normal);
 
-	bool return_ok = false;
-	JsonPathSegmentObjectKey object_key =
-	    json_path_get_object_key_from_tstr_view(str_view, &return_ok);
+	bool res_ok = json_path_add_object_key_view(path, str_view);
 
 	tstr_free(&key_normal);
+
+	return res_ok;
+}
+
+TJSON_NODISCARD bool json_path_add_object_key_view(JsonPath* path, tstr_view view) {
+	bool return_ok = false;
+	JsonPathSegmentObjectKey object_key = json_path_get_object_key_from_tstr_view(view, &return_ok);
 
 	if(!return_ok) {
 		return false;
