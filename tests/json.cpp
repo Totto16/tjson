@@ -1077,7 +1077,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 		}();
 	}
 
-	SUBCASE("json error to string (advanced) (deprecated method)") {
+	SUBCASE("json error to string (advanced) (no view)") {
 		[]() -> void {
 			auto path = json_path_get_root();
 			assert(path != nullptr);
@@ -1086,13 +1086,8 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			bool ok = json_path_add_object_key(path, &obj_key);
 			assert(ok);
-
-#pragma GCC diagnostic pop
 
 			ok = json_path_add_array_index(path, 1);
 			assert(ok);

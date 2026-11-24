@@ -46,15 +46,9 @@ TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	return path;
 }
 
-TJSON_NODISCARD bool json_path_add_object_key_dup(JsonPath* const path, const tstr* key) {
+TJSON_NODISCARD bool json_path_add_object_key(JsonPath* const path, const tstr* key) {
 
-	tstr key_duped = tstr_dup(key);
-
-	if(tstr_is_null(&key_duped)) {
-		return false;
-	}
-
-	return json_path_add_object_key_moved(path, TJSON_MOVE(tstr, key_duped));
+	return json_path_add_object_key_view(path, tstr_as_view(key));
 }
 
 static void free_json_path_segment_object_key(JsonPathSegmentObjectKey* object_key) {
@@ -108,20 +102,6 @@ json_path_get_object_key_from_tstr_view(tstr_view view, bool* return_ok) {
 }
 
 #undef FREE_AT_END
-
-TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
-
-	tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
-	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
-
-	tstr_view str_view = tstr_as_view(&key_normal);
-
-	bool res_ok = json_path_add_object_key_view(path, str_view);
-
-	tstr_free(&key_normal);
-
-	return res_ok;
-}
 
 TJSON_NODISCARD bool json_path_add_object_key_view(JsonPath* path, tstr_view view) {
 	bool return_ok = false;
@@ -688,8 +668,7 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					bool add_result =
-					    json_path_add_object_key_view(json_path, tstr_as_view(&key_tstr));
+					bool add_result = json_path_add_object_key(json_path, &key_tstr);
 
 					if(!add_result) {
 						FREE_AT_END();
