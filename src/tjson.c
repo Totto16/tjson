@@ -363,11 +363,16 @@ NODISCARD tstr_static json_object_add_entry_tstr(JsonObject* const json_object,
 
 NODISCARD tstr_static json_object_add_entry_cstr(JsonObject* json_object, const char* key,
                                                  JsonValue value) {
-	JsonString* key_string = json_get_string_from_cstr(key);
+	return json_object_add_entry_view(json_object, tstr_view_from(key), value);
+}
+
+TJSON_NODISCARD tstr_static json_object_add_entry_view(JsonObject* json_object, tstr_view key,
+                                                       JsonValue value) {
+	JsonString* key_string = json_get_string_from_tstr_view(key);
 
 	if(key_string == NULL) {
-		return TSTR_STATIC_LIT(
-		    "Internal OOM error: string allocation failed while adding an object entry by cstr");
+		return TSTR_STATIC_LIT("Internal OOM error: string allocation failed while adding an "
+		                       "object entry by tstr_view");
 	}
 
 	return json_object_add_entry_dup(json_object, key_string, value);

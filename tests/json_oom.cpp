@@ -175,8 +175,8 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 
 			std::string actual_error = string_from_tstr_static(res1);
 
-			std::string expected_error =
-			    "Internal OOM error: string allocation failed while adding an object entry by cstr";
+			std::string expected_error = "Internal OOM error: string allocation failed while "
+			                             "adding an object entry by tstr_view";
 
 			REQUIRE_EQ(expected_error, actual_error);
 		}();

@@ -1048,8 +1048,12 @@ TJSON_NODISCARD tstr_static json_schema_string_set_max(JsonSchemaString* const j
 	return tstr_static_null();
 }
 
-TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* const str) {
-	tstr temp = tstr_from(str);
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_cstr(const char* const str) {
+	return json_schema_regex_get_view(tstr_view_from(str));
+}
+
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_view(tstr_view str) {
+	tstr temp = tstr_from_view(str);
 	JsonSchemaRegexResult const result = json_schema_regex_get_tstr_moved(TJSON_MOVE(tstr, temp));
 	return result;
 }

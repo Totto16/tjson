@@ -49,7 +49,7 @@ JsonSchemaStringBuilder::JsonSchemaStringBuilder()
 
 [[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(const std::string& str) {
 
-	auto regex_result = json_schema_regex_get(str.c_str());
+	auto regex_result = json_schema_regex_get_cstr(str.c_str());
 
 	IF_JSON_SCHEMA_REGEX_RESULT_IS_ERROR_MUT_REF(&regex_result) {
 		std::string err = string_from_tstr(error->err);
