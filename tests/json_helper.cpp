@@ -37,6 +37,7 @@ struct JsonIteratorProcessingTest {
 struct JsonIteratorErrorTest {
 	JsonValue input;
 	JsonIterateErrorCpp error;
+	JsonIterateUserData userdata;
 };
 
 } // namespace
@@ -207,8 +208,13 @@ TEST_CASE("testing json iterator processing <json_iterator_processing>") {
 
 		RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
 
-		JsonIterateResult actual_result =
-		    json_value_iterate(&test_case.input, test_iterate_cb, test_iterate_free, empty, empty);
+		JsonIterateUserData userdata_impl = { .check_segments = true };
+
+		RTTIAnnotatedValue userdata =
+		    TRTTI_ANNOTATED_VALUE_GET(JsonIterateUserData, &userdata_impl);
+
+		JsonIterateResult actual_result = json_value_iterate(&test_case.input, test_iterate_cb,
+		                                                     test_iterate_free, empty, userdata);
 
 		REQUIRE_IS_NOT_ERROR(actual_result);
 
@@ -241,13 +247,20 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 	{
 		json_iterator_cases.emplace_back(
 		    json::array({}),
-
-		    JsonIterateErrorCpp{ "Error: unhandled iterate value in root path: array_start",
-		                         json::path::path() });
+		    JsonIterateErrorCpp{
+		        "Error: unhandled iterate value in root path: array_start with type <EMPTY>",
+		        json::path::path() },
+		    JsonIterateUserData{ .check_segments = true });
 		json_iterator_cases.emplace_back(
 		    json::object({ { "number", json::null() } }),
 		    JsonIterateErrorCpp{ "Error: invalid json value for type that expected: 'uint32_t'",
-		                         json::path::path() / json::path::object("number") });
+		                         json::path::path() },
+		    JsonIterateUserData{ .check_segments = false });
+		json_iterator_cases.emplace_back(
+		    json::object({ { "number", json::null() } }),
+		    JsonIterateErrorCpp{ "Error: implementation error, incorrect object key in path: null",
+		                         json::path::path() / json::path::object("number") },
+		    JsonIterateUserData{ .check_segments = true });
 
 		json_iterator_cases.emplace_back(
 		    json::object(
@@ -257,7 +270,8 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		          { "name", json::string("string2") } }),
 		    JsonIterateErrorCpp{
 		        "Error: unhandled iterate value in TestJsonStructOptionalArray: null",
-		        json::path::path() / json::path::object("optional_array") / json::path::array(3) });
+		        json::path::path() / json::path::object("optional_array") / json::path::array(3) },
+		    JsonIterateUserData{ .check_segments = true });
 	}
 
 	CAutoFreePtr<std::vector<JsonIteratorErrorTest>> defer_tests = {
@@ -270,14 +284,17 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		}
 	};
 
-	for(const auto& test_case : json_iterator_cases) {
+	for(auto& test_case : json_iterator_cases) {
 
 		INFO("Test case: ", test_case.input);
 
 		RTTIAnnotatedValue empty = TRTTI_ANNOTATED_VALUE_GET_EMPTY();
 
-		JsonIterateResult actual_result =
-		    json_value_iterate(&test_case.input, test_iterate_cb, test_iterate_free, empty, empty);
+		RTTIAnnotatedValue userdata =
+		    TRTTI_ANNOTATED_VALUE_GET(JsonIterateUserData, &test_case.userdata);
+
+		JsonIterateResult actual_result = json_value_iterate(&test_case.input, test_iterate_cb,
+		                                                     test_iterate_free, empty, userdata);
 
 		REQUIRE_IS_ERROR(actual_result);
 

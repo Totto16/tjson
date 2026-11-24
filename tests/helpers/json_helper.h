@@ -25,7 +25,13 @@ typedef struct {
 	tstr name;
 } TestJsonStruct;
 
+typedef struct {
+	bool check_segments;
+} JsonIterateUserData;
+
 TRTTI_DECLARE_TYPE_AS_SUPPORTED(TestJsonStruct)
+
+TRTTI_DECLARE_TYPE_AS_SUPPORTED(JsonIterateUserData)
 
 JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
                                   JsonIterateValue value, RTTIAnnotatedValue userdata);

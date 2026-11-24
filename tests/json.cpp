@@ -562,10 +562,10 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 			{
 
-				const auto key = "key_2";
+				const auto key = "key_2"_tstr_view;
 
 				const auto add_result =
-				    json_object_add_entry_cstr(object, key, json::number((int64_t)2));
+				    json_object_add_entry_view(object, key, json::number((int64_t)2));
 				if(!tstr_static_is_null(add_result)) {
 					throw std::runtime_error(
 					    std::string{ "JSON object entry addition failed for key: " } +
@@ -594,7 +594,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			REQUIRE_NE(object, nullptr);
 			CAutoFreePtr<JsonObject> defer_tests = { object, free_json_object };
 
-			JsonString* key_string = json_get_string_from_cstr("key1");
+			JsonString* key_string = json_get_string_from_tstr_view("key1"_tstr_view);
 
 			auto res1 = json_object_add_entry_dup(object, key_string, new_json_value_null());
 
@@ -614,12 +614,12 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 
 	SUBCASE("json_string_starts_with cases") {
 		[]() -> void {
-			JsonString* str1 = json_get_string_from_cstr("string1");
+			JsonString* str1 = json_get_string_from_tstr_view("string1"_tstr_view);
 
 			REQUIRE_NE(str1, nullptr);
 			CAutoFreePtr<JsonString> defer1 = { str1, free_json_string };
 
-			JsonString* str2 = json_get_string_from_cstr("string2");
+			JsonString* str2 = json_get_string_from_tstr_view("string2"_tstr_view);
 
 			REQUIRE_NE(str2, nullptr);
 			CAutoFreePtr<JsonString> defer2 = { str2, free_json_string };
@@ -627,7 +627,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto res1 = json_string_starts_with(str1, str2);
 			REQUIRE_FALSE(res1);
 
-			JsonString* str3 = json_get_string_from_cstr("long string");
+			JsonString* str3 = json_get_string_from_tstr_view("long string"_tstr_view);
 
 			REQUIRE_NE(str3, nullptr);
 			CAutoFreePtr<JsonString> defer3 = { str3, free_json_string };
@@ -635,7 +635,7 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto res2 = json_string_starts_with(str2, str3);
 			REQUIRE_FALSE(res2);
 
-			JsonString* str4 = json_get_string_from_cstr("string");
+			JsonString* str4 = json_get_string_from_tstr_view("string"_tstr_view);
 
 			REQUIRE_NE(str4, nullptr);
 			CAutoFreePtr<JsonString> defer4 = { str4, free_json_string };
@@ -1032,11 +1032,9 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto path = json_path_get_root();
 			assert(path != nullptr);
 
-			tstr obj_key = "large_string_that_is_allocated"_tstr;
+			tstr_view obj_key = "large_string_that_is_allocated"_tstr_view;
 
-			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
-
-			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			bool ok = json_path_add_object_key_view(path, obj_key);
 			assert(ok);
 
 			ok = json_path_add_array_index(path, 1);
@@ -1059,11 +1057,36 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto path = json_path_get_root();
 			assert(path != nullptr);
 
+			tstr_view obj_key = "large_string_that_is_allocated"_tstr_view;
+
+			bool ok = json_path_add_object_key_view(path, obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str_advanced(&error, { .compact = false });
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, R"(test error 123 at $["large_string_that_is_allocated"][1])");
+		}();
+	}
+
+	SUBCASE("json error to string (advanced) (no view)") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
 			tstr obj_key = "large_string_that_is_allocated"_tstr;
 
 			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
 
-			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			bool ok = json_path_add_object_key(path, &obj_key);
 			assert(ok);
 
 			ok = json_path_add_array_index(path, 1);

@@ -171,12 +171,12 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			const bool mock_res = mock_allocator.malloc().always_fail();
 			REQUIRE_TRUE(mock_res);
 
-			auto res1 = json_object_add_entry_cstr(object, "key1", new_json_value_null());
+			auto res1 = json_object_add_entry_view(object, "key1"_tstr_view, new_json_value_null());
 
 			std::string actual_error = string_from_tstr_static(res1);
 
-			std::string expected_error =
-			    "Internal OOM error: string allocation failed while adding an object entry by cstr";
+			std::string expected_error = "Internal OOM error: string allocation failed while "
+			                             "adding an object entry by tstr_view";
 
 			REQUIRE_EQ(expected_error, actual_error);
 		}();

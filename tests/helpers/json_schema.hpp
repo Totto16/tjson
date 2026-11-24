@@ -102,7 +102,15 @@ struct JsonSchemaStringBuilder final : JsonSchemaBuilderGeneric<JsonSchemaString
 
 	[[nodiscard]] JsonSchemaStringBuilder& max(size_t value);
 
-	[[nodiscard]] JsonSchemaStringBuilder& regex(const std::string& str);
+	template <size_t Len> [[nodiscard]] JsonSchemaStringBuilder& regex(const char (&value)[Len]) {
+		static_assert(Len > 0);
+		return regex({
+		    .data = value,
+		    .len = Len - 1,
+		});
+	}
+
+	[[nodiscard]] JsonSchemaStringBuilder& regex(tstr_view view);
 };
 
 struct JsonSchemaArrayBuilder final : JsonSchemaBuilderGeneric<JsonSchemaArray> {

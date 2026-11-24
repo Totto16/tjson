@@ -12,10 +12,12 @@
 #if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000) || defined(__cplusplus)
 	#define TJSON_NODISCARD [[nodiscard]]
 	#define TJSON_MAYBE_UNUSED [[maybe_unused]]
+	#define TJSON_DEPRECATED(msg) [[deprecated(msg)]]
 #else
     // see e.g. https://www.gnu.org/software/gnulib/manual/html_node/Attributes.html
 	#define TJSON_NODISCARD __attribute__((__warn_unused_result__))
 	#define TJSON_MAYBE_UNUSED __attribute__((__unused__))
+	#define TJSON_DEPRECATED(msg) __attribute__((deprecated(msg)));
 #endif
 
 #ifdef TJSON_STRONGLY_TYPED_MOVE
@@ -234,8 +236,6 @@ json_object_get_entry_by_other_entry(const JsonObject* object, const JsonObjectE
 
 // create functions
 
-TJSON_NODISCARD JsonString* json_get_string_from_cstr(const char* cstr);
-
 TJSON_NODISCARD JsonString* json_get_string_from_tstr(const tstr* str);
 
 TJSON_NODISCARD JsonString* json_get_string_from_tstr_view(tstr_view str_view);
@@ -265,7 +265,7 @@ TJSON_NODISCARD tstr_static json_object_add_entry_by_other_entry(JsonObject* jso
 TJSON_NODISCARD tstr_static json_object_add_entry_tstr(JsonObject* json_object, const tstr* key,
                                                        JsonValue value);
 
-TJSON_NODISCARD tstr_static json_object_add_entry_cstr(JsonObject* json_object, const char* key,
+TJSON_NODISCARD tstr_static json_object_add_entry_view(JsonObject* json_object, tstr_view key,
                                                        JsonValue value);
 
 void free_json_object(JsonObject* json_obj);

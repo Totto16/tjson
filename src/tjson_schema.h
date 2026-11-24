@@ -84,7 +84,7 @@ typedef struct {
 
 GENERATE_VARIANT_ALL_JSON_SCHEMA_REGEX_RESULT()
 
-TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get(const char* str);
+TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_view(tstr_view str);
 
 TJSON_NODISCARD JsonSchemaRegexResult json_schema_regex_get_tstr_moved(TJSON_MOVED(tstr) str);
 

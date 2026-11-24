@@ -5,6 +5,8 @@ TVEC_IMPLEMENT_VEC_TYPE(TestJsonStructArrayElement)
 
 TRTTI_IMPLEMENTATION_FOR_TYPE(TestJsonStruct)
 
+TRTTI_IMPLEMENTATION_FOR_TYPE(JsonIterateUserData)
+
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(tstr)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(uint32_t)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(bool)
@@ -22,7 +24,8 @@ TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructArrayElement)
 JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
                                   JsonIterateValue value, RTTIAnnotatedValue userdata) {
 
-	(void)userdata;
+	JsonIterateUserData* validated_userdata =
+	    TRTTI_ANNOTATED_VALUE_CAST(JsonIterateUserData, userdata);
 
 	if(json_path_is_root(path)) {
 
@@ -51,121 +54,6 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			};
 
 			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(TestJsonStruct, allocated_struct);
-
-			return new_json_iterate_result_ok(result);
-		}
-
-		IF_JSON_ITERATE_VALUE_IS_OBJECT_END(value) {
-
-			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, root object end RTTI value was "
-				                    "not of type 'TestJsonStruct'"),
-				    .path = NULL,
-				});
-			}
-
-			// NOTE: here we could check some properties of the final result, alias if the type has
-			// all fields set to a valid value
-
-			// NOTE: return NON empty, as this is the toplevel/sub parser, so the return value of
-			// this is the actual result of the json_iterate function!
-
-			return new_json_iterate_result_ok(parent);
-		}
-
-		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
-
-		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    NULL, "Error: unhandled iterate value in root path: <no more info>",
-		    "Error: unhandled iterate value in root path: " TSTR_FMT,
-		    TSTR_STATIC_FMT_ARGS(tag_name));
-	}
-
-	//
-
-	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
-
-		IF_JSON_ITERATE_VALUE_IS_STRING_CONST(value) {
-
-			tstr str_value = json_string_get_as_str(string);
-
-			if(tstr_is_null(&str_value)) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("error in getting tstr from json string"),
-				    .path = NULL,
-				});
-			}
-
-			tstr* str_wrapper = TJSON_NEW(tstr);
-
-			if(str_wrapper == NULL) {
-				tstr_free(&str_value);
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("OOM"),
-				    .path = NULL,
-				});
-			}
-
-			*str_wrapper = str_value;
-
-			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(tstr, str_wrapper);
-
-			return new_json_iterate_result_ok(result);
-		}
-
-		IF_JSON_ITERATE_VALUE_IS_NUMBER_CONST(value) {
-
-			uint32_t num_value = (uint32_t)number.value;
-
-			uint32_t* number_wrapper = TJSON_NEW(uint32_t);
-
-			if(number_wrapper == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("OOM"),
-				    .path = NULL,
-				});
-			}
-
-			*number_wrapper = num_value;
-
-			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, number_wrapper);
-
-			return new_json_iterate_result_ok(result);
-		}
-
-		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
-
-			TestJsonNull* null = TJSON_NEW(TestJsonNull);
-
-			if(null == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("OOM"),
-				    .path = NULL,
-				});
-			}
-
-			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(TestJsonNull, null);
-
-			return new_json_iterate_result_ok(result);
-		}
-
-		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
-
-			TestJsonStructOptionalArray* allocated_array = TJSON_NEW(TestJsonStructOptionalArray);
-
-			if(allocated_array == NULL) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("OOM"),
-				    .path = NULL,
-				});
-			}
-
-			*allocated_array =
-			    (TestJsonStructOptionalArray){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
-
-			RTTIAnnotatedValue result =
-			    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructOptionalArray, allocated_array);
 
 			return new_json_iterate_result_ok(result);
 		}
@@ -276,12 +164,11 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-				    NULL,
 				    "Error: invalid json value for type that "
 				    "expected: 'TestJsonStructOptionalArray': <no more info>",
 				    "Error: invalid json value for type that "
-				    "expected: 'TestJsonStructOptionalArray': " TRTTI_TYPE_NAME_FMT,
-				    TRTTI_TYPE_NAME_FMT_ARGS(object_entry.entry.value.type.name));
+				    "expected: 'TestJsonStructOptionalArray': " TRTTI_FMT,
+				    TRTTI_FMT_ARGS(object_entry.entry.value));
 			}
 
 			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("name"))) {
@@ -329,9 +216,212 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			}
 
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-			    NULL, "Error: unhandled object key in root object: <no more info>",
+			    "Error: unhandled object key in root object: <no more info>",
 			    "Error: unhandled object key in root object: " TSTR_FMT,
 			    TSTR_FMT_ARGS(*object_entry.entry.key));
+		}
+
+		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+		    "Error: unhandled iterate value in root path: <no more info>",
+		    "Error: unhandled iterate value in root path: " TSTR_FMT " with type " TRTTI_FMT,
+		    TSTR_STATIC_FMT_ARGS(tag_name), TRTTI_FMT_ARGS(parent));
+	}
+
+	//
+
+	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
+
+		IF_JSON_ITERATE_VALUE_IS_STRING_CONST(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key =
+				    json_path_segment_is_object_key_view(segment_ref, TSTR_VIEW_LIT("name"));
+
+				tstr key_2 = tstr_from("name");
+
+				const bool is_correct_key_2 = json_path_segment_is_object_key(segment_ref, &key_2);
+
+				tstr_free(&key_2);
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key || !is_correct_key_2) {
+
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
+			tstr str_value = json_string_get_as_str(string);
+
+			if(tstr_is_null(&str_value)) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("error in getting tstr from json string"),
+				    .path = NULL,
+				});
+			}
+
+			tstr* str_wrapper = TJSON_NEW(tstr);
+
+			if(str_wrapper == NULL) {
+				tstr_free(&str_value);
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = NULL,
+				});
+			}
+
+			*str_wrapper = str_value;
+
+			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(tstr, str_wrapper);
+
+			return new_json_iterate_result_ok(result);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_NUMBER_CONST(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key =
+				    json_path_segment_is_object_key_view(segment_ref, TSTR_VIEW_LIT("number"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
+			uint32_t num_value = (uint32_t)number.value;
+
+			uint32_t* number_wrapper = TJSON_NEW(uint32_t);
+
+			if(number_wrapper == NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = NULL,
+				});
+			}
+
+			*number_wrapper = num_value;
+
+			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(uint32_t, number_wrapper);
+
+			return new_json_iterate_result_ok(result);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
+			TestJsonNull* null = TJSON_NEW(TestJsonNull);
+
+			if(null == NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = NULL,
+				});
+			}
+
+			RTTIAnnotatedValue result = TRTTI_ANNOTATED_VALUE_GET(TestJsonNull, null);
+
+			return new_json_iterate_result_ok(result);
+		}
+
+		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
+			TestJsonStructOptionalArray* allocated_array = TJSON_NEW(TestJsonStructOptionalArray);
+
+			if(allocated_array == NULL) {
+				return new_json_iterate_result_error((JsonIterateError){
+				    .err = TSTR_LIT("OOM"),
+				    .path = NULL,
+				});
+			}
+
+			*allocated_array =
+			    (TestJsonStructOptionalArray){ .array = TVEC_EMPTY(TestJsonStructArrayElement) };
+
+			RTTIAnnotatedValue result =
+			    TRTTI_ANNOTATED_VALUE_GET(TestJsonStructOptionalArray, allocated_array);
+
+			return new_json_iterate_result_ok(result);
 		}
 
 		return new_json_iterate_result_error((JsonIterateError){
@@ -343,6 +433,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray, parent)) {
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_PUSH_CONST(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
 
 			TestJsonStructOptionalArray* const dest =
 			    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructOptionalArray, parent);
@@ -405,16 +520,39 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				return new_json_iterate_result_ok(empty);
 			}
 
-			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-			    NULL,
-			    "Error: invalid value for type that expected: "
-			    "'TestJsonStructArrayElement': <no more info>",
-			    "Error: invalid value for type that expected: "
-			    "'TestJsonStructArrayElement': " TRTTI_TYPE_NAME_FMT,
-			    TRTTI_TYPE_NAME_FMT_ARGS(array_push.entry.value.type.name));
+			RETURN_JSON_ITERATE_ERROR_DYNAMIC("Error: invalid value for type that expected: "
+			                                  "'TestJsonStructArrayElement': <no more info>",
+			                                  "Error: invalid value for type that expected: "
+			                                  "'TestJsonStructArrayElement': " TRTTI_FMT,
+			                                  TRTTI_FMT_ARGS(array_push.entry.value));
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_any_array_index(segment_ref);
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC("Error: implementation error, incorrect path "
+					                                  "segment type in path: <no more info>",
+					                                  "Error: implementation error, incorrect path "
+					                                  "segment type in path: " TSTR_FMT,
+					                                  TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
 
 			bool* bool_wrapper = TJSON_NEW(bool);
 
@@ -434,6 +572,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_END(value) {
 
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
 			// NOTE: here we could check some properties of the final result, alias if the type
 			// has all fields set to a valid value
 
@@ -446,7 +609,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    NULL, "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
+		    "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
 		    "Error: unhandled iterate value in TestJsonStructOptionalArray: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
@@ -498,12 +661,20 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 		return;
 	}
 
+	if(TRTTI_ANNOTATED_VALUE_IS(bool, data)) {
+
+		bool* dest = TRTTI_ANNOTATED_VALUE_CAST(bool, data);
+
+		TJSON_FREE(dest);
+
+		return;
+	}
+
 	if(data.ptr == NULL) {
 		// no need to free empty value
 		return;
 	}
 
-	fprintf(stderr, "ERROR: don't know how to free: " TRTTI_TYPE_NAME_FMT "\n",
-	        TRTTI_TYPE_NAME_FMT_ARGS(data.type.name));
+	fprintf(stderr, "ERROR: don't know how to free: " TRTTI_FMT "\n", TRTTI_FMT_ARGS(data));
 	exit(EXIT_FAILURE);
 }
