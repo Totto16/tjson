@@ -236,9 +236,6 @@ json_object_get_entry_by_other_entry(const JsonObject* object, const JsonObjectE
 
 // create functions
 
-TJSON_DEPRECATED("use the tstr_view variant")
-TJSON_NODISCARD JsonString* json_get_string_from_cstr(const char* cstr);
-
 TJSON_NODISCARD JsonString* json_get_string_from_tstr(const tstr* str);
 
 TJSON_NODISCARD JsonString* json_get_string_from_tstr_view(tstr_view str_view);
@@ -266,10 +263,6 @@ TJSON_NODISCARD tstr_static json_object_add_entry_by_other_entry(JsonObject* jso
                                                                  const JsonObjectEntry* entry);
 
 TJSON_NODISCARD tstr_static json_object_add_entry_tstr(JsonObject* json_object, const tstr* key,
-                                                       JsonValue value);
-
-TJSON_DEPRECATED("use the tstr_view variant")
-TJSON_NODISCARD tstr_static json_object_add_entry_cstr(JsonObject* json_object, const char* key,
                                                        JsonValue value);
 
 TJSON_NODISCARD tstr_static json_object_add_entry_view(JsonObject* json_object, tstr_view key,

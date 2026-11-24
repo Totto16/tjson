@@ -47,9 +47,9 @@ JsonSchemaStringBuilder::JsonSchemaStringBuilder()
 	return *this;
 }
 
-[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(const std::string& str) {
+[[nodiscard]] JsonSchemaStringBuilder& JsonSchemaStringBuilder::regex(tstr_view view) {
 
-	auto regex_result = json_schema_regex_get_cstr(str.c_str());
+	auto regex_result = json_schema_regex_get_view(view);
 
 	IF_JSON_SCHEMA_REGEX_RESULT_IS_ERROR_MUT_REF(&regex_result) {
 		std::string err = string_from_tstr(error->err);

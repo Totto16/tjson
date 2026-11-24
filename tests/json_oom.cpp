@@ -171,7 +171,7 @@ TEST_CASE("testing oom behaviour of json functions <json_oom_tester>") {
 			const bool mock_res = mock_allocator.malloc().always_fail();
 			REQUIRE_TRUE(mock_res);
 
-			auto res1 = json_object_add_entry_cstr(object, "key1", new_json_value_null());
+			auto res1 = json_object_add_entry_view(object, "key1"_tstr_view, new_json_value_null());
 
 			std::string actual_error = string_from_tstr_static(res1);
 
