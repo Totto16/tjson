@@ -788,6 +788,16 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					return make_json_iterate_result_error(error.error, json_path);
 				}
 
+				bool remove_result = json_path_remove_last_segment(json_path);
+
+				if(!remove_result) {
+					FREE_AT_END();
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("json path remove failed"),
+					    .path = json_path,
+					});
+				}
+
 #undef FREE_AT_END
 #define FREE_AT_END() \
 	do { \
@@ -827,16 +837,6 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 					FREE_AT_END();
 					return new_json_iterate_result_error((JsonIterateError){
 					    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
-					    .path = json_path,
-					});
-				}
-
-				bool remove_result = json_path_remove_last_segment(json_path);
-
-				if(!remove_result) {
-					FREE_AT_END();
-					return new_json_iterate_result_error((JsonIterateError){
-					    .err = TSTR_LIT("json path remove failed"),
 					    .path = json_path,
 					});
 				}
