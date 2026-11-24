@@ -77,7 +77,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    NULL, "Error: unhandled iterate value in root path: <no more info>",
+		    "Error: unhandled iterate value in root path: <no more info>",
 		    "Error: unhandled iterate value in root path: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
@@ -276,12 +276,11 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				}
 
 				RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-				    NULL,
 				    "Error: invalid json value for type that "
 				    "expected: 'TestJsonStructOptionalArray': <no more info>",
 				    "Error: invalid json value for type that "
-				    "expected: 'TestJsonStructOptionalArray': " TRTTI_TYPE_NAME_FMT,
-				    TRTTI_TYPE_NAME_FMT_ARGS(object_entry.entry.value.type.name));
+				    "expected: 'TestJsonStructOptionalArray': " TRTTI_FMT,
+				    TRTTI_FMT_ARGS(object_entry.entry.value));
 			}
 
 			if(tstr_eq_static_tstr(object_entry.entry.key, TSTR_STATIC_LIT("name"))) {
@@ -329,7 +328,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			}
 
 			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-			    NULL, "Error: unhandled object key in root object: <no more info>",
+			    "Error: unhandled object key in root object: <no more info>",
 			    "Error: unhandled object key in root object: " TSTR_FMT,
 			    TSTR_FMT_ARGS(*object_entry.entry.key));
 		}
@@ -405,13 +404,11 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				return new_json_iterate_result_ok(empty);
 			}
 
-			RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-			    NULL,
-			    "Error: invalid value for type that expected: "
-			    "'TestJsonStructArrayElement': <no more info>",
-			    "Error: invalid value for type that expected: "
-			    "'TestJsonStructArrayElement': " TRTTI_TYPE_NAME_FMT,
-			    TRTTI_TYPE_NAME_FMT_ARGS(array_push.entry.value.type.name));
+			RETURN_JSON_ITERATE_ERROR_DYNAMIC("Error: invalid value for type that expected: "
+			                                  "'TestJsonStructArrayElement': <no more info>",
+			                                  "Error: invalid value for type that expected: "
+			                                  "'TestJsonStructArrayElement': " TRTTI_FMT,
+			                                  TRTTI_FMT_ARGS(array_push.entry.value));
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
@@ -446,7 +443,7 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
 		RETURN_JSON_ITERATE_ERROR_DYNAMIC(
-		    NULL, "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
+		    "Error: unhandled iterate value in TestJsonStructOptionalArray: <no more info>",
 		    "Error: unhandled iterate value in TestJsonStructOptionalArray: " TSTR_FMT,
 		    TSTR_STATIC_FMT_ARGS(tag_name));
 	}
@@ -503,7 +500,6 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 		return;
 	}
 
-	fprintf(stderr, "ERROR: don't know how to free: " TRTTI_TYPE_NAME_FMT "\n",
-	        TRTTI_TYPE_NAME_FMT_ARGS(data.type.name));
+	fprintf(stderr, "ERROR: don't know how to free: " TRTTI_FMT "\n", TRTTI_FMT_ARGS(data));
 	exit(EXIT_FAILURE);
 }
