@@ -242,12 +242,13 @@ TEST_CASE("testing json iterator errors <json_iterator_error>") {
 		json_iterator_cases.emplace_back(
 		    json::array({}),
 
-		    JsonIterateErrorCpp{ "Error: unhandled iterate value in root path: array_start",
-		                         json::path::path() });
+		    JsonIterateErrorCpp{
+		        "Error: unhandled iterate value in root path: array_start with type <EMPTY>",
+		        json::path::path() });
 		json_iterator_cases.emplace_back(
 		    json::object({ { "number", json::null() } }),
 		    JsonIterateErrorCpp{ "Error: invalid json value for type that expected: 'uint32_t'",
-		                         json::path::path() / json::path::object("number") });
+		                         json::path::path() });
 
 		json_iterator_cases.emplace_back(
 		    json::object(
