@@ -5,6 +5,8 @@ TVEC_IMPLEMENT_VEC_TYPE(TestJsonStructArrayElement)
 
 TRTTI_IMPLEMENTATION_FOR_TYPE(TestJsonStruct)
 
+TRTTI_IMPLEMENTATION_FOR_TYPE(JsonIterateUserData)
+
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(tstr)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(uint32_t)
 TRTTI_DEFINE_TYPE_AS_SUPPORTED(bool)
@@ -22,7 +24,8 @@ TRTTI_DEFINE_TYPE_AS_SUPPORTED(TestJsonStructArrayElement)
 JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue parent,
                                   JsonIterateValue value, RTTIAnnotatedValue userdata) {
 
-	(void)userdata;
+	JsonIterateUserData* validated_userdata =
+	    TRTTI_ANNOTATED_VALUE_CAST(JsonIterateUserData, userdata);
 
 	if(json_path_is_root(path)) {
 
@@ -232,6 +235,32 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_STRING_CONST(value) {
 
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key =
+				    json_path_segment_is_object_key_view(segment_ref, TSTR_VIEW_LIT("name"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
 			tstr str_value = json_string_get_as_str(string);
 
 			if(tstr_is_null(&str_value)) {
@@ -260,6 +289,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_NUMBER_CONST(value) {
 
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key =
+				    json_path_segment_is_object_key_view(segment_ref, TSTR_VIEW_LIT("number"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
 			uint32_t num_value = (uint32_t)number.value;
 
 			uint32_t* number_wrapper = TJSON_NEW(uint32_t);
@@ -280,6 +334,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_NULL(value) {
 
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
 			TestJsonNull* null = TJSON_NEW(TestJsonNull);
 
 			if(null == NULL) {
@@ -295,6 +374,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_START(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
 
 			TestJsonStructOptionalArray* allocated_array = TJSON_NEW(TestJsonStructOptionalArray);
 
@@ -314,25 +418,6 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 			return new_json_iterate_result_ok(result);
 		}
 
-		IF_JSON_ITERATE_VALUE_IS_OBJECT_END(value) {
-
-			if(!TRTTI_ANNOTATED_VALUE_IS(TestJsonStruct, parent)) {
-				return new_json_iterate_result_error((JsonIterateError){
-				    .err = TSTR_LIT("implementation error, root object end RTTI value was "
-				                    "not of type 'TestJsonStruct'"),
-				    .path = NULL,
-				});
-			}
-
-			// NOTE: here we could check some properties of the final result, alias if the type has
-			// all fields set to a valid value
-
-			// NOTE: return NON empty, as this is the toplevel/sub parser, so the return value of
-			// this is the actual result of the json_iterate function!
-
-			return new_json_iterate_result_ok(parent);
-		}
-
 		return new_json_iterate_result_error((JsonIterateError){
 		    .err = TSTR_LIT("Error: unhandled iterate value in TestJsonStruct"),
 		    .path = NULL,
@@ -342,6 +427,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonStructOptionalArray, parent)) {
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_PUSH_CONST(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
 
 			TestJsonStructOptionalArray* const dest =
 			    TRTTI_ANNOTATED_VALUE_CAST(TestJsonStructOptionalArray, parent);
@@ -413,6 +523,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 
 		IF_JSON_ITERATE_VALUE_IS_BOOLEAN_CONST(value) {
 
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_any_array_index(segment_ref);
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC("Error: implementation error, incorrect path "
+					                                  "segment type in path: <no more info>",
+					                                  "Error: implementation error, incorrect path "
+					                                  "segment type in path: " TSTR_FMT,
+					                                  TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
+
 			bool* bool_wrapper = TJSON_NEW(bool);
 
 			if(bool_wrapper == NULL) {
@@ -430,6 +565,31 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 		}
 
 		IF_JSON_ITERATE_VALUE_IS_ARRAY_END(value) {
+
+			if(validated_userdata->check_segments) {
+				JsonPathSegmentRef* segment_ref = json_path_get_last_segment(path);
+
+				if(segment_ref == NULL) {
+					return new_json_iterate_result_error((JsonIterateError){
+					    .err = TSTR_LIT("implementation error, couldn't get last segment"),
+					    .path = NULL,
+					});
+				}
+
+				const bool is_correct_key = json_path_segment_is_object_key_view(
+				    segment_ref, TSTR_VIEW_LIT("optional_array"));
+
+				free_json_path_segment_ref(segment_ref);
+
+				if(!is_correct_key) {
+					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
+
+					RETURN_JSON_ITERATE_ERROR_DYNAMIC(
+					    "Error: implementation error, incorrect object key in path: <no more info>",
+					    "Error: implementation error, incorrect object key in path: " TSTR_FMT,
+					    TSTR_STATIC_FMT_ARGS(tag_name));
+				}
+			}
 
 			// NOTE: here we could check some properties of the final result, alias if the type
 			// has all fields set to a valid value
@@ -489,6 +649,15 @@ void test_iterate_free(RTTIAnnotatedValue data) {
 	if(TRTTI_ANNOTATED_VALUE_IS(TestJsonNull, data)) {
 
 		TestJsonNull* dest = TRTTI_ANNOTATED_VALUE_CAST(TestJsonNull, data);
+
+		TJSON_FREE(dest);
+
+		return;
+	}
+
+	if(TRTTI_ANNOTATED_VALUE_IS(bool, data)) {
+
+		bool* dest = TRTTI_ANNOTATED_VALUE_CAST(bool, data);
 
 		TJSON_FREE(dest);
 

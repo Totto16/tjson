@@ -40,6 +40,8 @@ TJSON_NODISCARD bool json_path_segment_is_object_key_view(const JsonPathSegmentR
 TJSON_NODISCARD bool json_path_segment_is_array_index(const JsonPathSegmentRef* segment_ref,
                                                       size_t index);
 
+TJSON_NODISCARD bool json_path_segment_is_any_array_index(const JsonPathSegmentRef* segment_ref);
+
 void free_json_path_segment_ref(JsonPathSegmentRef* segment_ref);
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
