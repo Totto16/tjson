@@ -607,8 +607,6 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
-					// TODO: json path is the object, it should be used for the recusirve call only,
-					// not the object_entry call, todo the same for arrays!
 					bool add_result = json_path_add_object_key_dup(json_path, &key_tstr);
 
 					if(!add_result) {
@@ -634,6 +632,16 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 						FREE_AT_END();
 						return make_json_iterate_result_error(error.error, json_path);
+					}
+
+					bool remove_result = json_path_remove_last_segment(json_path);
+
+					if(!remove_result) {
+						FREE_AT_END();
+						return new_json_iterate_result_error((JsonIterateError){
+						    .err = TSTR_LIT("json path remove failed"),
+						    .path = json_path,
+						});
 					}
 
 #undef FREE_AT_END
@@ -682,16 +690,6 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 						FREE_AT_END();
 						return new_json_iterate_result_error((JsonIterateError){
 						    .err = TSTR_LIT("sub iterator returned non NULL rtti type"),
-						    .path = json_path,
-						});
-					}
-
-					bool remove_result = json_path_remove_last_segment(json_path);
-
-					if(!remove_result) {
-						FREE_AT_END();
-						return new_json_iterate_result_error((JsonIterateError){
-						    .err = TSTR_LIT("json path remove failed"),
 						    .path = json_path,
 						});
 					}
