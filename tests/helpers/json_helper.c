@@ -248,9 +248,15 @@ JsonIterateResult test_iterate_cb(const JsonPath* path, RTTIAnnotatedValue paren
 				const bool is_correct_key =
 				    json_path_segment_is_object_key_view(segment_ref, TSTR_VIEW_LIT("name"));
 
+				tstr key_2 = tstr_from("name");
+
+				const bool is_correct_key_2 = json_path_segment_is_object_key(segment_ref, &key_2);
+
+				tstr_free(&key_2);
+
 				free_json_path_segment_ref(segment_ref);
 
-				if(!is_correct_key) {
+				if(!is_correct_key || !is_correct_key_2) {
 
 					tstr_static tag_name = get_current_tag_name_for_json_iterate_value(value);
 
