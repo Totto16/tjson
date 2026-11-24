@@ -24,41 +24,30 @@ json::path::array::~array() {
 	// noop
 }
 
-json::path::object::object(std::string value)
-    : m_value{ tstr_from_len(value.c_str(), value.size()) } {}
+json::path::object::object(tstr_view value) : m_value{ value } {}
 
-json::path::object::object(const char* value) : m_value{ tstr_from(value) } {}
-
-[[nodiscard]] const tstr* json::path::object::value() const {
+[[nodiscard]] const tstr_view* json::path::object::value() const {
 	return &(this->m_value);
-}
-
-[[nodiscard]] tstr json::path::object::value_moved() {
-	tstr value = this->m_value;
-	this->m_value = tstr_null();
-
-	return value;
 }
 
 json::path::object::object(object&& other) noexcept {
 	this->m_value = other.m_value;
-	other.m_value = tstr_null();
+	other.m_value = { .data = NULL, .len = 0 };
 }
 
 json::path::object& json::path::object::operator=(object&& other) noexcept {
 	this->m_value = other.m_value;
-	other.m_value = tstr_null();
+	other.m_value = { .data = NULL, .len = 0 };
 
 	return *this;
 }
 
 json::path::object::~object() {
-	if(tstr_is_null(&(this->m_value))) {
+	if(this->m_value.data == NULL) {
 		return;
 	}
 
-	tstr_free(&(this->m_value));
-	this->m_value = tstr_null();
+	this->m_value = { .data = NULL, .len = 0 };
 }
 
 json::path::dotdot::dotdot() {}
@@ -86,9 +75,9 @@ json::path::path json::path::path::operator/(array&& arr) {
 
 json::path::path json::path::path::operator/(object&& obj) {
 
-	tstr val = obj.value_moved();
+	const tstr_view* val = obj.value();
 
-	bool ok = json_path_add_object_key_moved(this->m_holder, TJSON_MOVE(tstr, val));
+	bool ok = json_path_add_object_key_view(this->m_holder, *val);
 
 	if(!ok) {
 		throw std::runtime_error("object add error");

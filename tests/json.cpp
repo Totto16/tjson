@@ -1032,11 +1032,9 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto path = json_path_get_root();
 			assert(path != nullptr);
 
-			tstr obj_key = "large_string_that_is_allocated"_tstr;
+			tstr_view obj_key = "large_string_that_is_allocated"_tstr_view;
 
-			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
-
-			bool ok = json_path_add_object_key_dup(path, &obj_key);
+			bool ok = json_path_add_object_key_view(path, obj_key);
 			assert(ok);
 
 			ok = json_path_add_array_index(path, 1);
@@ -1059,12 +1057,42 @@ TEST_CASE("testing helper functions of the json parser <json_parser_helper_fn>")
 			auto path = json_path_get_root();
 			assert(path != nullptr);
 
+			tstr_view obj_key = "large_string_that_is_allocated"_tstr_view;
+
+			bool ok = json_path_add_object_key_view(path, obj_key);
+			assert(ok);
+
+			ok = json_path_add_array_index(path, 1);
+			assert(ok);
+
+			JsonIterateError error{ .err = "test error 123"_tstr, .path = path };
+
+			CAutoFreePtr<JsonIterateError> defer_error{ &error, free_json_iterate_error };
+
+			tstr val = json_iterate_error_to_str_advanced(&error, { .compact = false });
+
+			CAutoFreePtr<tstr> defer_val{ &val, tstr_free };
+
+			REQUIRE_EQ(val, R"(test error 123 at $["large_string_that_is_allocated"][1])");
+		}();
+	}
+
+	SUBCASE("json error to string (advanced) (deprecated method)") {
+		[]() -> void {
+			auto path = json_path_get_root();
+			assert(path != nullptr);
+
 			tstr obj_key = "large_string_that_is_allocated"_tstr;
 
 			CAutoFreePtr<tstr> defer_obj_key{ &obj_key, tstr_free };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 			bool ok = json_path_add_object_key_dup(path, &obj_key);
 			assert(ok);
+
+#pragma GCC diagnostic pop
 
 			ok = json_path_add_array_index(path, 1);
 			assert(ok);

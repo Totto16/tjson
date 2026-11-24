@@ -35,15 +35,20 @@ struct array {
 
 struct object {
   private:
-	tstr m_value;
+	tstr_view m_value;
 
   public:
-	object(std::string value);
-	object(const char* value);
+	template <size_t Len>
+	object(const char (&value)[Len])
+	    : m_value{
+		      .data = value,
+		      .len = Len - 1,
+	      } {
+		static_assert(Len > 0);
+	}
+	object(tstr_view value);
 
-	[[nodiscard]] const tstr* value() const;
-
-	[[nodiscard]] tstr value_moved();
+	[[nodiscard]] const tstr_view* value() const;
 
 	object(object const&) = delete;
 	object& operator=(object const&) = delete;
@@ -130,7 +135,6 @@ struct JsonIterateErrorCpp {
 	[[nodiscard]] const std::string& err() const;
 
 	[[nodiscard]] const json::path::path& path() const;
-	
 
 	std::ostream& operator<<(std::ostream& os) const;
 
