@@ -13,6 +13,8 @@ extern "C" {
 
 typedef struct JsonPathImpl JsonPath;
 
+typedef struct JsonPathSegmentRefImpl JsonPathSegmentRef;
+
 TJSON_NODISCARD JsonPath* json_path_get_root(void);
 
 // NOTE: this tstr is the raw value, no escapes are possible, we only support constructing json
@@ -24,6 +26,20 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 TJSON_NODISCARD bool json_path_add_array_index(JsonPath* path, size_t index);
 
 TJSON_NODISCARD bool json_path_remove_last_segment(JsonPath* path);
+
+// NOTE: this ref is only valid until the next modification of the path, so just use it briefly!
+TJSON_NODISCARD JsonPathSegmentRef* json_path_get_last_segment(const JsonPath* path);
+
+TJSON_NODISCARD bool json_path_segment_is_object_key(const JsonPathSegmentRef* segment_ref,
+                                                     const tstr* key);
+
+TJSON_NODISCARD bool json_path_segment_is_object_key_view(const JsonPathSegmentRef* segment_ref,
+                                                          tstr_view key);
+
+TJSON_NODISCARD bool json_path_segment_is_array_index(const JsonPathSegmentRef* segment_ref,
+                                                      size_t index);
+
+void free_json_path_segment_ref(JsonPathSegmentRef* segment_ref);
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path);
 

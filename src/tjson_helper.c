@@ -30,6 +30,10 @@ struct JsonPathImpl {
 	JsonPathSegmentsArray segments;
 };
 
+struct JsonPathSegmentRefImpl {
+	const JsonPathSegment* segment;
+};
+
 TJSON_NODISCARD JsonPath* json_path_get_root(void) {
 	JsonPath* path = TJSON_NEW(JsonPath);
 
@@ -64,30 +68,17 @@ json_path_segment_object_key_eq(const JsonPathSegmentObjectKey* const object_key
 	return utf8_codpoints_eq(&(object_key1->value), &(object_key2->value));
 }
 
-TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
+TJSON_NODISCARD static JsonPathSegmentObjectKey
+json_path_get_object_key_from_tstr_view(tstr_view view, bool* return_ok) {
 
-	tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
-	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
-
-#define FREE_AT_END() \
-	do { \
-		tstr_free(&key_normal); \
-	} while(false)
-
-	tstr_view str_view = tstr_as_view(&key_normal);
-
-	const Utf8DataResult result = get_utf8_string(str_view);
+	const Utf8DataResult result = get_utf8_string(view);
 
 	IF_UTF8_DATA_RESULT_IS_ERROR_IGN(result) {
-		FREE_AT_END();
-		return false;
+		*return_ok = false;
+		return (JsonPathSegmentObjectKey){ .value = TVEC_EMPTY(Utf8Codepoint) };
 	}
 
-	JsonPathSegmentObjectKey object_key = { .value = TVEC_EMPTY(Utf8Codepoint) };
-
 	const Utf8Data data = utf8_data_result_get_as_ok(result);
-
-	tstr_free(&key_normal);
 
 #undef FREE_AT_END
 #define FREE_AT_END() \
@@ -96,6 +87,8 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 		free_json_path_segment_object_key(&object_key); \
 	} while(false)
 
+	JsonPathSegmentObjectKey object_key = { .value = TVEC_EMPTY(Utf8Codepoint) };
+
 	for(size_t i = 0; i < data.size; ++i) {
 		const Utf8Codepoint codepoint = data.data[i];
 
@@ -103,13 +96,36 @@ TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(
 
 		if(add_result != TvecResultOk) {
 			FREE_AT_END();
-			return false;
+			*return_ok = false;
+			return (JsonPathSegmentObjectKey){ .value = TVEC_EMPTY(Utf8Codepoint) };
 		}
 	}
 
 	free_utf8_data(data);
 
+	*return_ok = true;
+	return object_key;
+}
+
 #undef FREE_AT_END
+
+TJSON_NODISCARD bool json_path_add_object_key_moved(JsonPath* path, TJSON_MOVED(tstr) key) {
+
+	tstr key_normal = *TJSON_GET_MOVED_VALUE(key);
+	*TJSON_GET_MOVED_VALUE(key) = tstr_null();
+
+	tstr_view str_view = tstr_as_view(&key_normal);
+
+	bool return_ok = false;
+	JsonPathSegmentObjectKey object_key =
+	    json_path_get_object_key_from_tstr_view(str_view, &return_ok);
+
+	tstr_free(&key_normal);
+
+	if(!return_ok) {
+		return false;
+	}
+
 #define FREE_AT_END() \
 	do { \
 		free_json_path_segment_object_key(&object_key); \
@@ -147,6 +163,66 @@ TJSON_NODISCARD bool json_path_remove_last_segment(JsonPath* path) {
 	free_json_path_segment(segment);
 
 	return true;
+}
+
+TJSON_NODISCARD JsonPathSegmentRef* json_path_get_last_segment(const JsonPath* path) {
+	const size_t len = TVEC_LENGTH(JsonPathSegment, path->segments);
+
+	if(len == 0) {
+		return NULL;
+	}
+
+	const JsonPathSegment* last_segment = TVEC_GET_AT(JsonPathSegment, &(path->segments), len - 1);
+
+	JsonPathSegmentRef* ref = TJSON_NEW(JsonPathSegmentRef);
+
+	if(ref == NULL) {
+		return NULL;
+	}
+
+	*ref = (JsonPathSegmentRef){ .segment = last_segment };
+
+	return ref;
+}
+
+TJSON_NODISCARD bool json_path_segment_is_object_key(const JsonPathSegmentRef* segment_ref,
+                                                     const tstr* key) {
+	return json_path_segment_is_object_key_view(segment_ref, tstr_as_view(key));
+}
+
+TJSON_NODISCARD bool json_path_segment_is_object_key_view(const JsonPathSegmentRef* segment_ref,
+                                                          tstr_view key) {
+
+	IF_JSON_PATH_SEGMENT_IS_OBJECT_KEY_CONST_REF(segment_ref->segment) {
+
+		bool return_ok = false;
+
+		JsonPathSegmentObjectKey created_object_key =
+		    json_path_get_object_key_from_tstr_view(key, &return_ok);
+
+		const bool result = json_path_segment_object_key_eq(object_key, &created_object_key);
+
+		free_json_path_segment_object_key(&created_object_key);
+
+		return result;
+	}
+
+	return false;
+}
+
+TJSON_NODISCARD bool json_path_segment_is_array_index(const JsonPathSegmentRef* segment_ref,
+                                                      size_t index) {
+	IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_CONST_REF(segment_ref->segment) {
+
+		return array_index->index == index;
+	}
+
+	return false;
+}
+
+void free_json_path_segment_ref(JsonPathSegmentRef* segment_ref) {
+
+	TJSON_FREE(segment_ref);
 }
 
 TJSON_NODISCARD bool json_path_is_root(const JsonPath* path) {
