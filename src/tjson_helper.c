@@ -208,7 +208,7 @@ TJSON_NODISCARD bool json_path_segment_is_array_index(const JsonPathSegmentRef* 
 TJSON_NODISCARD bool json_path_segment_is_any_array_index(const JsonPathSegmentRef* segment_ref) {
 	IF_JSON_PATH_SEGMENT_IS_ARRAY_INDEX_IGN(*segment_ref->segment) {
 
-		return true;
+		return true; // NOLINT(readability-simplify-boolean-expr)
 	}
 
 	return false;
