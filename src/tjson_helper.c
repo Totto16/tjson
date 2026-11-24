@@ -607,6 +607,8 @@ TJSON_NODISCARD static JsonIterateResult json_value_iterate_impl( // NOLINT(misc
 
 					const JsonValue value = json_object_entry_get_value(next_entry);
 
+					// TODO: json path is the object, it should be used for the recusirve call only,
+					// not the object_entry call, todo the same for arrays!
 					bool add_result = json_path_add_object_key_dup(json_path, &key_tstr);
 
 					if(!add_result) {
