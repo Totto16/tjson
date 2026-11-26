@@ -1,8 +1,10 @@
 [wrap-file]
-directory = tstr.h-1.0.2
-source_url = https://github.com/Totto16/tstr.h/archive/refs/tags/v1.0.2.tar.gz
-source_filename = tstr.h-1.0.2.tar.gz
-source_hash = 8729e257ad0d7bf7fe343b1cca750b7500f7b5f6dbee719f578d5148bc09c263
+directory = tstr.h-1.0.3
+source_url = https://github.com/Totto16/tstr.h/archive/refs/tags/v1.0.3.tar.gz
+source_filename = tstr.h-1.0.3.tar.gz
+source_hash = fc132ae2b82bb059b8dd5240baf550354be17266278b30ae21fb865983c86a47
+source_fallback_url = https://wrap.totto.lt/v2/tstr.h_1.0.3-1/get_source/tstr.h-1.0.3.tar.gz
+wrapdb_version = 1.0.3-1
 
 [provide]
 dependency_names = tstr.h
