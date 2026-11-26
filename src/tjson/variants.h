@@ -1,6 +1,6 @@
 #pragma once
 
-#if _TJSON_COMPILE_WITH_NARROWED_ENUMS
+#ifdef _TJSON_COMPILE_WITH_NARROWED_ENUMS
 	#define TJSON_C_23_NARROW_ENUM_TO(x) : x
 	#define TJSON_C_23_ENUM_TYPE(x) x
 
